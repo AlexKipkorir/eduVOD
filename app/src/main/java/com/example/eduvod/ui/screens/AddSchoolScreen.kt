@@ -21,7 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddSchoolScreen(navController: NavHostController) {
+fun AddSchoolScreen(navController: NavHostController, prefillSchoolName: String?) {
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -29,7 +29,7 @@ fun AddSchoolScreen(navController: NavHostController) {
     //Form States
     var moeRegNo by remember { mutableStateOf("") }
     var kpsaRegNo by remember { mutableStateOf("") }
-    var schoolName by remember { mutableStateOf("") }
+    var schoolName by remember { mutableStateOf(prefillSchoolName ?: "") }
     var mobile by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var region by remember { mutableStateOf("") }
@@ -38,6 +38,7 @@ fun AddSchoolScreen(navController: NavHostController) {
     var location by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var website by remember { mutableStateOf("") }
+
 
     //Dropdowns (Static options for now)
     val types = listOf("Primary", "Secondary", "Mixed", "Special Needs")
