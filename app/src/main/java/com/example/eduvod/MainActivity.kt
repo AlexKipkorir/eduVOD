@@ -15,9 +15,12 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.eduvod.ui.screens.AddSchoolScreen
 import com.example.eduvod.ui.screens.DashboardScreen
 import com.example.eduvod.ui.screens.SplashScreen
 import com.example.eduvod.ui.screens.LoginScreen
+import com.example.eduvod.ui.screens.SchoolManagementScreen
+import com.example.eduvod.ui.screens.SystemConfigScreen
 import com.example.eduvod.ui.theme.EduVODTheme
 
 class MainActivity : ComponentActivity() {
@@ -63,6 +66,15 @@ fun EduVODNavHost(
         }
         composable("dashboard") {
             DashboardScreen(navController)
+        }
+        composable("SchoolManagement") {
+            SchoolManagementScreen(navController)
+        }
+        composable("add_school") {
+            AddSchoolScreen(navController)
+        }
+        composable("config") {
+            SystemConfigScreen(navController)
         }
 
     }
