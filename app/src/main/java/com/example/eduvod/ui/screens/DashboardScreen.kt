@@ -73,10 +73,10 @@ fun DashboardScreen(navController: NavHostController) {
 //    )
 
     val navItems = listOf(
-        NavItem("Schools Management", Icons.Default.Business, "Schools Management"),
-        NavItem("Grades Management", Icons.Default.Grade, "Grades Management"),
-        NavItem("User Management", Icons.Default.AdminPanelSettings, "User Management"),
-        NavItem("Systems Configuration", Icons.Default.Settings, "Systems Configuration")
+        NavItem("Schools Management", Icons.Default.Business, "schools"),
+        NavItem("Grades Management", Icons.Default.Grade, "grades"),
+        NavItem("User Management", Icons.Default.AdminPanelSettings, "users"),
+        NavItem("Systems Configuration", Icons.Default.Settings, "config")
     )
 
     ModalNavigationDrawer(

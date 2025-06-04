@@ -67,7 +67,7 @@ fun EduVODNavHost(
         composable("dashboard") {
             DashboardScreen(navController)
         }
-        composable("SchoolManagement") {
+        composable("schools") {
             SchoolManagementScreen(navController)
         }
         composable("add_school") {
