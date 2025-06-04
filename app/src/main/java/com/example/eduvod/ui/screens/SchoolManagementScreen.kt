@@ -137,8 +137,7 @@ fun SchoolManagementScreen(navController: NavHostController) {
                         navController.navigate("add_school?schoolName=${Uri.encode(schoolName)}")
                     },
                     onManageAdmin = {
-                        selectedSchool = schoolName
-                        showAdminDialog = true
+                        navController.navigate("manage_admins/${Uri.encode(schoolName)}")
                     }
                 )
 

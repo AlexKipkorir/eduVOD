@@ -19,6 +19,7 @@ import com.example.eduvod.ui.screens.AddSchoolScreen
 import com.example.eduvod.ui.screens.DashboardScreen
 import com.example.eduvod.ui.screens.SplashScreen
 import com.example.eduvod.ui.screens.LoginScreen
+import com.example.eduvod.ui.screens.ManageSchoolAdminsScreen
 import com.example.eduvod.ui.screens.SchoolManagementScreen
 import com.example.eduvod.ui.screens.SchoolDetailsScreen
 import com.example.eduvod.ui.screens.SystemConfigScreen
@@ -83,6 +84,11 @@ fun EduVODNavHost(
             val schoolName = backStackEntry.arguments?.getString("schoolName")
             SchoolDetailsScreen(navController, schoolName)
         }
+        composable("manage_admins/{schoolName}") { backStackEntry ->
+            val schoolName = backStackEntry.arguments?.getString("schoolName")
+            ManageSchoolAdminsScreen(navController, schoolName)
+        }
+
 
 
     }
