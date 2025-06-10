@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.eduvod.ui.viewmodel.SystemConfigViewModel
+import com.example.eduvod.viewmodel.SystemConfigViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,5 +1,6 @@
 package com.example.eduvod.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,6 +24,8 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.res.painterResource
+import com.example.eduvod.R
 
 
 @Composable
@@ -44,6 +47,13 @@ fun LoginScreen(navController: NavHostController) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(id = R.drawable.eduvod_logo_2),
+                contentDescription = "EduVOD Logo",
+                modifier = Modifier
+                    .height(200.dp)
+                    .padding(bottom = 16.dp)
+            )
             Text(
                 text = "Welcome to EduVOD",
                 style = MaterialTheme.typography.headlineLarge.copy(

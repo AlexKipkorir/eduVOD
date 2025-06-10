@@ -10,16 +10,28 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.eduvod.viewmodel.SchoolManagementViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageSchoolAdminsScreen(navController: NavHostController, schoolName: String?) {
+fun ManageSchoolAdminsScreen(
+    navController: NavHostController,
+    schoolName: String?,
+    viewModel: SchoolManagementViewModel = viewModel()
+) {
     val admins = remember { mutableStateListOf("john.doe@school.org", "mary.jane@School.org")}
     var showAddDialog by remember { mutableStateOf(false) }
     var newAdminEmail by remember { mutableStateOf("") }
 
+    val snackbarHostState= remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val currentSchool = viewModel.getSchoolByName(schoolName ?: "")
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -33,11 +45,13 @@ fun ManageSchoolAdminsScreen(navController: NavHostController, schoolName: Strin
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                icon = { Icon(Icons.Default.PersonAdd, contentDescription = "Add Admin") },
-                text = { Text("Add Admin") },
-                onClick = { showAddDialog = true }
-            )
+            if (currentSchool?.hasAdmin == false) {
+                ExtendedFloatingActionButton(
+                    icon = { Icon(Icons.Default.PersonAdd, contentDescription = "Add Admin") },
+                    text = { Text("Add Admin") },
+                    onClick = { showAddDialog = true }
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -81,10 +95,24 @@ fun ManageSchoolAdminsScreen(navController: NavHostController, schoolName: Strin
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (newAdminEmail.isNotBlank() ) {
+                    if (newAdminEmail.isNotBlank()) {
+                        if (viewModel.getSchoolByName(schoolName?: "")?.hasAdmin == true){
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Admin already assigned for this school.")
+                            }
+                            showAddDialog = false
+                            return@TextButton
+                        }
+
                         admins.add(newAdminEmail)
-                        newAdminEmail = ""
+                        viewModel.assignAdmin(schoolName ?: "")
                         showAddDialog = false
+                        newAdminEmail = ""
+
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Admin successfully assigned.")
+                        }
+
                     }
                 }) {
                     Text("Add")

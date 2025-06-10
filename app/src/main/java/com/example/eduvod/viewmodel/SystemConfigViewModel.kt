@@ -1,4 +1,4 @@
-package com.example.eduvod.ui.viewmodel
+package com.example.eduvod.viewmodel
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel

@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.eduvod.ui.screens.AddSchoolScreen
 import com.example.eduvod.ui.screens.DashboardScreen
+import com.example.eduvod.ui.screens.EditSchoolScreen
 import com.example.eduvod.ui.screens.SplashScreen
 import com.example.eduvod.ui.screens.LoginScreen
 import com.example.eduvod.ui.screens.ManageSchoolAdminsScreen
@@ -81,14 +82,17 @@ fun EduVODNavHost(
             SystemConfigScreen(navController)
         }
         composable("school_details/{schoolName}") { backStackEntry ->
-            val schoolName = backStackEntry.arguments?.getString("schoolName")
+            val schoolName = backStackEntry.arguments?.getString("schoolName") ?: return@composable
             SchoolDetailsScreen(navController, schoolName)
         }
         composable("manage_admins/{schoolName}") { backStackEntry ->
             val schoolName = backStackEntry.arguments?.getString("schoolName")
             ManageSchoolAdminsScreen(navController, schoolName)
         }
-
+        composable("edit_school/{schoolName}") { backStackEntry ->
+            val schoolName = backStackEntry.arguments?.getString("schoolName") ?: return@composable
+            EditSchoolScreen(navController, schoolName)
+        }
 
 
     }
