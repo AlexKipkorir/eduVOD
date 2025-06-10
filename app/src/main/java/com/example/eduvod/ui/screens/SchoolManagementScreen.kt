@@ -42,6 +42,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -50,6 +52,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,7 +65,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.model.School
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
-
+import kotlinx.coroutines.launch
 
 data class School(
     val name: String,
@@ -73,7 +76,13 @@ data class School(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SchoolManagementScreen(navController: NavHostController, viewModel: SchoolManagementViewModel = viewModel()) {
+fun SchoolManagementScreen(
+    navController: NavHostController,
+    viewModel: SchoolManagementViewModel = viewModel(),
+) {
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     var searchQuery by remember { mutableStateOf("") }
     val schools = viewModel.schools
@@ -118,7 +127,8 @@ fun SchoolManagementScreen(navController: NavHostController, viewModel: SchoolMa
                 }
             )
         },
-        containerColor = Color(0xFFF4F9FC)
+        containerColor = Color(0xFFF4F9FC),
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         val filteredSchools = schools.filter {
             it.name.contains(searchQuery, ignoreCase = true) &&
@@ -142,17 +152,31 @@ fun SchoolManagementScreen(navController: NavHostController, viewModel: SchoolMa
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = { /* TODO: Download Template */ }) {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("School template downloaded.")
+                            }
+                        }
+                    ) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Download Template")
                     }
-                    Button(onClick = { /* TODO: Upload Template */ }) {
+
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Import functionality not connected yet.")
+                            }
+                        }
+                    ) {
                         Icon(Icons.Default.Upload, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Import Excel")
                     }
                 }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 OutlinedTextField(
