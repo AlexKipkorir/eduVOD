@@ -9,11 +9,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import kotlinx.coroutines.launch
+
+data class AdminAccount(
+    val  email: String,
+    var isBlocked: Boolean = false
+)
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,13 +30,23 @@ fun ManageSchoolAdminsScreen(
     schoolName: String?,
     viewModel: SchoolManagementViewModel = viewModel()
 ) {
-    val admins = remember { mutableStateListOf("john.doe@school.org", "mary.jane@School.org")}
+
+    val admins = remember {
+        mutableStateListOf(
+            AdminAccount("john.doe@school.org"),
+            AdminAccount("mary.jane@school.org")
+        )
+    }
     var showAddDialog by remember { mutableStateOf(false) }
     var newAdminEmail by remember { mutableStateOf("") }
 
     val snackbarHostState= remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val currentSchool = viewModel.getSchoolByName(schoolName ?: "")
+
+    var newAdminPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var adminAssigned by remember { mutableStateOf(currentSchool?.hasAdmin == true) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -45,9 +63,9 @@ fun ManageSchoolAdminsScreen(
             )
         },
         floatingActionButton = {
-            if (currentSchool?.hasAdmin == false) {
+            if (!adminAssigned) {
                 ExtendedFloatingActionButton(
-                    icon = { Icon(Icons.Default.PersonAdd, contentDescription = "Add Admin") },
+                    icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
                     text = { Text("Add Admin") },
                     onClick = { showAddDialog = true }
                 )
@@ -68,14 +86,19 @@ fun ManageSchoolAdminsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(admins) { email ->
+                items(admins) { admin ->
                     AdminCard(
-                        email = email,
-                        onBlock = { admins.remove(email) },
+                        admin = admin,
+                        onBlock = {
+                            admin.isBlocked = !admin.isBlocked
+                        },
                         onReset = {
-                            //TODO: Reset admin account
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Password reset for ${admin.email}")
+                            }
                         }
                     )
+
                 }
             }
         }
@@ -84,38 +107,56 @@ fun ManageSchoolAdminsScreen(
     if (showAddDialog) {
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
-            title = { Text("Add Admin") },
+            title = { Text("Create Admin Account") },
             text = {
-                OutlinedTextField(
-                    value = newAdminEmail,
-                    onValueChange = { newAdminEmail = it },
-                    label = { Text("Admin Email") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = newAdminEmail,
+                        onValueChange = { newAdminEmail = it },
+                        label = { Text("Admin Email") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newAdminPassword,
+                        onValueChange = { newAdminPassword = it },
+                        label = { Text("Password") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = { Text("Confirm Password") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (newAdminEmail.isNotBlank()) {
-                        if (viewModel.getSchoolByName(schoolName?: "")?.hasAdmin == true){
+                    when {
+                        newAdminEmail.isBlank() || newAdminPassword.isBlank() || confirmPassword.isBlank() -> {
                             scope.launch {
-                                snackbarHostState.showSnackbar("Admin already assigned for this school.")
+                                snackbarHostState.showSnackbar("All fields are required.")
                             }
+                        }
+                        newAdminPassword != confirmPassword -> {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Passwords do not match.")
+                            }
+                        }
+                        else -> {
+                            admins.add(AdminAccount(email = newAdminEmail))
+                            viewModel.assignAdmin(schoolName?: "")
+                            adminAssigned = true
                             showAddDialog = false
-                            return@TextButton
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Admin created successfully")
+                            }
                         }
-
-                        admins.add(newAdminEmail)
-                        viewModel.assignAdmin(schoolName ?: "")
-                        showAddDialog = false
-                        newAdminEmail = ""
-
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Admin successfully assigned.")
-                        }
-
                     }
                 }) {
-                    Text("Add")
+                    Text("Add Admin")
                 }
             },
             dismissButton = {
@@ -128,23 +169,45 @@ fun ManageSchoolAdminsScreen(
 }
 
 @Composable
-fun AdminCard(email: String, onBlock: () -> Unit, onReset: () -> Unit) {
+fun AdminCard(
+    admin: AdminAccount,
+    onBlock: () -> Unit,
+    onReset: () -> Unit
+) {
+    var isBlocked by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = if (admin.isBlocked) Color(0xFFFFEBEE) else Color.White),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(email, fontSize = 16.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                IconButton(onClick = onReset) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(admin.email, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    onClick = {
+                        onReset()
+                        //Simulate logic
+                        println("Reset admin password")
+                    }
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Reset")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Reset Password")
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        isBlocked = !isBlocked
+                        onBlock()
+                    }
+                ) {
                     Icon(Icons.Default.Block, contentDescription = "Block")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(if (admin.isBlocked) "Unblock" else "Block")
                 }
             }
         }
