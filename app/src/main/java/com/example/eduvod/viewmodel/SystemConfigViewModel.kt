@@ -1,51 +1,36 @@
 package com.example.eduvod.viewmodel
 
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 
 
 class SystemConfigViewModel : ViewModel() {
 
     // Lists representing dropdown data
-    var types = mutableStateListOf("Primary", "Secondary")
-        private set
+    val types = mutableStateListOf("Primary", "Secondary", "Mixed")
+    val categories = mutableStateListOf("Public", "Private")
+    val curriculums = mutableStateListOf("CBC", "8-4-4", "British", "IGSE")
+    val regions = mutableStateListOf("Nairobi Diocese", "Mombasa Diocese", "Kisumu Diocese", "Eldoret Diocese", "Garissa Diocese", "Isiolo Diocese", "Nakuru Diocese", "Turkana Diocese",)
 
-    var categories = mutableStateListOf("Public", "Private")
-        private set
+    fun addItem(section: String, value: String) { sectionList(section).add(value) }
 
-    var curriculums = mutableStateListOf("CBC", "British", "IGSE")
-        private set
-
-    //CRUD Operations
-
-    fun addItem(section: String, item: String) {
-        when (section) {
-            "School Type" -> types.add(item)
-            "School Category" -> categories.add(item)
-            "Curriculum" -> curriculums.add(item)
-        }
+    fun updateItem(section: String, old: String, new: String) {
+        val list = sectionList(section)
+        val index = list.indexOf(old)
+        if (index != -1) list[index] = new
     }
 
-    fun deleteItem(section: String, item: String) {
-        when(section) {
-            "School Type" -> types.remove(item)
-            "School Category" -> categories.remove(item)
-            "Curriculum" -> curriculums.remove(item)
-        }
+    fun deleteItem(section: String, value: String) {
+        sectionList(section).remove(value)
     }
 
-    fun updateItem(section: String, oldItem: String, newItem: String) {
-        val list = when (section) {
-            "School Type" -> types
-            "School Category" -> categories
-            "Curriculum" -> curriculums
-            else -> null
-        }
-        list?.let {
-            val index = it.indexOf(oldItem)
-            if (index != -1) {
-                it[index] = newItem
-            }
-        }
+    fun sectionList(section: String): SnapshotStateList<String> = when (section) {
+        "School Type" -> types
+        "School Category" -> categories
+        "Curriculum" -> curriculums
+        "Region / Diocese" -> regions
+        else -> mutableStateListOf()
     }
+
 }

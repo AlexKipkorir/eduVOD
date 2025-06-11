@@ -1,6 +1,5 @@
 package com.example.eduvod.ui.screens
 
-import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,12 +65,20 @@ import androidx.navigation.NavHostController
 import com.example.eduvod.model.School
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import kotlinx.coroutines.launch
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.provider.OpenableColumns
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 
 data class School(
     val name: String,
     val moeRegNo: String,
     val email: String,
-    var hasAdmin: Boolean = false
+    var hasAdmin: Boolean = false,
+    val region: String,
+    val type: String
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,7 +94,7 @@ fun SchoolManagementScreen(
     var searchQuery by remember { mutableStateOf("") }
     val schools = viewModel.schools
 
-    val selectedSchool by remember { mutableStateOf<String?>(null) }
+    var selectedSchool by remember { mutableStateOf<String?>(null) }
     var showAdminDialog by remember { mutableStateOf(false) }
 
     var selectedRegion by remember { mutableStateOf("ALL") }
@@ -95,6 +102,29 @@ fun SchoolManagementScreen(
 
     val regionOptions = listOf("ALL", "Nairobi", "Mombasa", "Kisumu", "Eldoret", "Garissa", "Isiolo", "Nakuru", "Turkana")
     val typeOptions = listOf("All", "Primary", "Secondary", "Mixed")
+
+    val context = LocalContext.current
+
+    var selectedFileName by remember { mutableStateOf<String?>(null) }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val cursor = context.contentResolver.query(it, null, null, null, null)
+            cursor?.use {
+                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (it.moveToFirst()) {
+                    selectedFileName = it.getString(nameIndex)
+                }
+            }
+        }
+    }
+    LaunchedEffect(selectedFileName) {
+        selectedFileName?.let {
+            snackbarHostState.showSnackbar("Selected file: $it")
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -166,9 +196,7 @@ fun SchoolManagementScreen(
 
                     Button(
                         onClick = {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Import functionality not connected yet.")
-                            }
+                            filePickerLauncher.launch("*/*")
                         }
                     ) {
                         Icon(Icons.Default.Upload, contentDescription = null)
