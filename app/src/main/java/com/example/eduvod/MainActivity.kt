@@ -24,6 +24,7 @@ import com.example.eduvod.ui.screens.ManageSchoolAdminsScreen
 import com.example.eduvod.ui.screens.SchoolManagementScreen
 import com.example.eduvod.ui.screens.SchoolDetailsScreen
 import com.example.eduvod.ui.screens.SystemConfigScreen
+import com.example.eduvod.ui.screens.UserManagementScreen
 import com.example.eduvod.ui.theme.EduVODTheme
 
 class MainActivity : ComponentActivity() {
@@ -93,8 +94,9 @@ fun EduVODNavHost(
             val schoolName = backStackEntry.arguments?.getString("schoolName") ?: return@composable
             EditSchoolScreen(navController, schoolName)
         }
-
-
+        composable("users") {
+            UserManagementScreen(navController)
+        }
     }
 }
 
