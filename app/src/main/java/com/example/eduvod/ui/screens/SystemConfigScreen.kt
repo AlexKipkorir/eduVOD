@@ -80,7 +80,8 @@ fun SystemConfigScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0D47A1))
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color(0xFFF4F9FC)
     ) { padding ->
         LazyColumn(
             contentPadding = padding,
@@ -138,6 +139,7 @@ fun SystemConfigScreen(
                                 ) {
                                     Text(
                                         text = item,
+                                        fontSize = 15.sp,
                                         modifier = Modifier.padding(start = 8.dp),
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             fontWeight = FontWeight.Bold

@@ -3,29 +3,33 @@ package com.example.eduvod
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.core.view.WindowCompat
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.eduvod.ui.screens.AddSchoolScreen
 import com.example.eduvod.ui.screens.DashboardScreen
 import com.example.eduvod.ui.screens.EditSchoolScreen
-import com.example.eduvod.ui.screens.SplashScreen
 import com.example.eduvod.ui.screens.LoginScreen
 import com.example.eduvod.ui.screens.ManageSchoolAdminsScreen
-import com.example.eduvod.ui.screens.SchoolManagementScreen
 import com.example.eduvod.ui.screens.SchoolDetailsScreen
+import com.example.eduvod.ui.screens.SchoolManagementScreen
+import com.example.eduvod.ui.screens.SplashScreen
 import com.example.eduvod.ui.screens.SystemConfigScreen
 import com.example.eduvod.ui.screens.UserManagementScreen
 import com.example.eduvod.ui.theme.EduVODTheme
+import com.google.accompanist.navigation.animation.AnimatedNavHost
+import com.google.accompanist.navigation.animation.composable
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,15 +56,19 @@ fun EduVODApp() {
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun EduVODNavHost(
     navController: NavHostController,
     contentPadding: PaddingValues
 ) {
-    NavHost(
+    AnimatedNavHost(
         navController = navController,
         startDestination = "splash",
-        modifier = Modifier.padding(contentPadding) // apply it if needed
+        enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) },
+        exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)) },
+        popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300)) },
+        popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) }
     ) {
         composable("splash") {
             SplashScreen(navController)

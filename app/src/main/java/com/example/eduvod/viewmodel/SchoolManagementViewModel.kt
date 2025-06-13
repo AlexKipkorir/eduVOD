@@ -1,10 +1,16 @@
 package com.example.eduvod.viewmodel
 
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.example.eduvod.model.School
 
 class SchoolManagementViewModel : ViewModel() {
+
+    var searchQuery = mutableStateOf("")
+    var selectedRegion = mutableStateOf("ALL")
+    var selectedType = mutableStateOf("ALL")
 
     val schools = mutableStateListOf(
         School("Green Ivy High", "MOE1001", "KPSA1001", "CBC", "Public", "Secondary", "Mixed", "0700000001", "ivy@edu.org", "Nairobi", "Nairobi Diocese", "Nairobi", "Westlands", "Kangemi", "P.O. Box 123", "www.greenivy.ac.ke", false),

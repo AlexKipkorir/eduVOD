@@ -88,17 +88,17 @@ fun SchoolManagementScreen(
     viewModel: SchoolManagementViewModel = viewModel(),
 ) {
 
+    val searchQuery by viewModel.searchQuery
+    val selectedRegion by viewModel.selectedRegion
+    val selectedType by viewModel.selectedType
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    var searchQuery by remember { mutableStateOf("") }
     val schools = viewModel.schools
 
-    var selectedSchool by remember { mutableStateOf<String?>(null) }
+    val selectedSchool by remember { mutableStateOf<String?>(null) }
     var showAdminDialog by remember { mutableStateOf(false) }
-
-    var selectedRegion by remember { mutableStateOf("ALL") }
-    var selectedType by remember { mutableStateOf("ALL") }
 
     val regionOptions = listOf("ALL", "Nairobi", "Mombasa", "Kisumu", "Eldoret", "Garissa", "Isiolo", "Nakuru", "Turkana")
     val typeOptions = listOf("All", "Primary", "Secondary", "Mixed")
@@ -209,12 +209,12 @@ fun SchoolManagementScreen(
 
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    onValueChange = { viewModel.searchQuery.value = it },
                     label = { Text("Search Schools") },
                     singleLine = true,
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
-                           IconButton(onClick = { searchQuery = "" }) {
+                           IconButton(onClick = { viewModel.searchQuery.value = "" }) {
                                Icon(Icons.Default.Close, contentDescription = "Clear Search")
                            }
                         }
@@ -238,19 +238,19 @@ fun SchoolManagementScreen(
                         label = "Region",
                         options = regionOptions,
                         selectedOption = selectedRegion,
-                        onSelected = { selectedRegion = it }
+                        onSelected = { viewModel.selectedRegion.value = it }
                     )
                     FilterDropdown(
                         label = "Type",
                         options = typeOptions,
                         selectedOption = selectedType,
-                        onSelected = { selectedType = it }
+                        onSelected = { viewModel.selectedType.value = it }
                     )
                     Button(
                         onClick = {
-                            searchQuery = ""
-                            selectedRegion = "ALL"
-                            selectedType = "ALL"
+                            viewModel.searchQuery.value = ""
+                            viewModel.selectedRegion.value = "ALL"
+                            viewModel.selectedType.value = "ALL"
                         },
                         modifier = Modifier.align(Alignment.End)
                     ) {
@@ -406,7 +406,10 @@ fun FilterDropdown(
             readOnly = true,
             label = { Text(label) },
             trailingIcon = {
-                Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown", Modifier.clickable { expanded = true })
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = "Dropdown",
+                    Modifier.clickable { expanded = true })
             },
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
@@ -419,11 +422,11 @@ fun FilterDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            options.forEach {
+            options.forEach { item ->
                 DropdownMenuItem(
-                    text = { Text(it) },
+                    text = { Text(item) },
                     onClick = {
-                        onSelected(it)
+                        onSelected(item)
                         expanded = false
                     }
                 )
