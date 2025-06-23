@@ -69,17 +69,11 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.provider.OpenableColumns
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 
-data class School(
-    val name: String,
-    val moeRegNo: String,
-    val email: String,
-    var hasAdmin: Boolean = false,
-    val region: String,
-    val type: String
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,6 +139,11 @@ fun SchoolManagementScreen(
 
                     }
                 },
+                actions = {
+                    IconButton(onClick = { navController.navigate("school_admins") }) {
+                        Icon(Icons.Default.Person, contentDescription = "Manage Admins", tint = Color.White)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xff0D47A1))
             )
         },
@@ -165,7 +164,6 @@ fun SchoolManagementScreen(
                     (selectedRegion == "ALL" || it.region == selectedRegion) &&
                     (selectedType == "ALL" || it.type == selectedType)
         }
-
 
         LazyColumn(
             contentPadding = PaddingValues(16.dp),
@@ -193,7 +191,6 @@ fun SchoolManagementScreen(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Download Template")
                     }
-
                     Button(
                         onClick = {
                             filePickerLauncher.launch("*/*")
@@ -342,29 +339,37 @@ fun SchoolCard(
                 ActionIconWithLabel(
                     icon = Icons.Default.Visibility,
                     label = "View",
-                    onClick = onView
+                    onClick = onView,
+                    contentDescription = "Admin Assigned",
+                    tint = Color(0xFF0D47A1),
+                    modifier = Modifier.size(24.dp)
                 )
                 ActionIconWithLabel(
                     icon = Icons.Default.Edit,
                     label = "Edit",
-                    onClick = onEdit
+                    onClick = onEdit,
+                    contentDescription = "Admin Assigned",
+                    tint = Color(0xFF0D47A1),
+                    modifier = Modifier.size(24.dp)
                 )
 
                 if (!school.hasAdmin) {
                     ActionIconWithLabel(
                         icon = Icons.Default.PersonAdd,
                         label = "Add Admin",
+                        tint = Color(0xFF0D47A1),
                         onClick = onManageAdmin
                     )
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
+                        ActionIconWithLabel(
+                            icon = Icons.Default.CheckCircle,
+                            label = "View Admin",
                             contentDescription = "Admin Assigned",
                             tint = Color(0xFF2E7D32),
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(24.dp),
+                            onClick = onManageAdmin
                         )
-                        Text("Admin", fontSize = 12.sp, color = Color.Gray)
                     }
                 }
             }
@@ -373,16 +378,23 @@ fun SchoolCard(
 }
 
 @Composable
-fun ActionIconWithLabel(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .padding(horizontal = 4.dp)
-    ) {
-        IconButton(onClick = onClick) {
-            Icon(icon, contentDescription = label, tint = Color(0xFF1565C0), modifier = Modifier.size(24.dp))
+fun ActionIconWithLabel(
+    icon: ImageVector,
+    label: String,
+    contentDescription: String? = null,
+    tint: Color = Color.Unspecified,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        IconButton(onClick = onClick, modifier = modifier) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = if (tint != Color.Unspecified) tint else LocalContentColor.current
+            )
         }
-        Text(text = label, fontSize = 12.sp, color = Color.Gray)
+        Text(text = label, fontSize = 12.sp)
     }
 }
 

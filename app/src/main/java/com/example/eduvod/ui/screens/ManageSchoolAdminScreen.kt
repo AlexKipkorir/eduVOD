@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
@@ -53,13 +54,17 @@ fun ManageSchoolAdminsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Admins - ${schoolName ?: "Unknown"}")
+                    Text(
+                        text = "Admins - ${schoolName ?: "Unknown"}",
+                        color = Color.White
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack()}) {
-                       Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                       Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xff0D47A1))
             )
         },
         floatingActionButton = {
@@ -90,7 +95,10 @@ fun ManageSchoolAdminsScreen(
                     AdminCard(
                         admin = admin,
                         onBlock = {
-                            admin.isBlocked = !admin.isBlocked
+                            val index = admins.indexOf(admin)
+                            if (index != -1) {
+                                admins[index] = admins[index].copy(isBlocked = !admins[index].isBlocked)
+                            }
                         },
                         onReset = {
                             scope.launch {
@@ -182,6 +190,7 @@ fun AdminCard(
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            Icon(Icons.Default.Person, contentDescription = null)
             Text(admin.email, fontSize = 16.sp, fontWeight = FontWeight.Bold)
 
             Spacer(modifier = Modifier.height(8.dp))

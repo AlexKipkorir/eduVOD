@@ -8,8 +8,16 @@ class UserManagementViewModel : ViewModel() {
 
     val admins = mutableStateListOf(
         AdminUser("admin@eduvod.com"),
-        AdminUser("alex@eduvod.com")
-    )
+        AdminUser("alex@eduvod.com"),
+        AdminUser("blair@eduvod.com"),
+        AdminUser("dylan@eduvod.com"),
+        AdminUser("patrick@eduvod.com"),
+        AdminUser("jane@eduvod.com"),
+        AdminUser("karey@eduvod.com"),
+        AdminUser("shawn@eduvod.com"),
+        AdminUser("derrick@eduvod.com"),
+
+        )
 
     fun addAdmin(email: String): Boolean {
         if (admins.any { it.email.equals(email, ignoreCase = true) }) return false

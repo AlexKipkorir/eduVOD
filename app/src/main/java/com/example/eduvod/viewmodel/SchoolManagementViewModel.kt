@@ -5,12 +5,22 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.example.eduvod.model.School
+import com.example.eduvod.model.AdminUser
+import com.example.eduvod.ui.screens.AdminAccount
+
+data class SchoolAdmin(
+    val email: String,
+    val assignedSchool: String? = null
+)
 
 class SchoolManagementViewModel : ViewModel() {
 
     var searchQuery = mutableStateOf("")
     var selectedRegion = mutableStateOf("ALL")
     var selectedType = mutableStateOf("ALL")
+
+    val admins = mutableStateListOf<AdminAccount>()
+
 
     val schools = mutableStateListOf(
         School("Green Ivy High", "MOE1001", "KPSA1001", "CBC", "Public", "Secondary", "Mixed", "0700000001", "ivy@edu.org", "Nairobi", "Nairobi Diocese", "Nairobi", "Westlands", "Kangemi", "P.O. Box 123", "www.greenivy.ac.ke", false),
@@ -35,6 +45,12 @@ class SchoolManagementViewModel : ViewModel() {
         School("Starlight Primary", "MOE1020", "KPSA1020", "CBC", "Public", "Primary", "Mixed", "0700000020", "star@edu.org", "Garissa", "Northern Diocese", "Garissa", "Fafi", "Dadaab", "P.O. Box 142", "www.starlightprimary.ac.ke", false)
     )
 
+    val schoolAdmins = mutableStateListOf(
+        SchoolAdmin("lucy@edu.org"),
+        SchoolAdmin("mike@edu.org"),
+        SchoolAdmin("susan@edu.org")
+    )
+
 
     fun assignAdmin(schoolName: String) {
         val index = schools.indexOfFirst { it.name == schoolName }
@@ -45,5 +61,33 @@ class SchoolManagementViewModel : ViewModel() {
 
     fun getSchoolByName(name: String): School? {
         return schools.find { it.name == name }
+    }
+
+    fun unassignAdmin(adminEmail: String) {
+        val index = schoolAdmins.indexOfFirst { it.email == adminEmail }
+        if (index != -1) {
+            schoolAdmins[index] = schoolAdmins[index].copy(assignedSchool = null)
+        }
+    }
+
+    fun assignAdminToSchool(adminEmail: String, schoolName: String) {
+        val index = schoolAdmins.indexOfFirst { it.email == adminEmail }
+        if (index != -1) {
+            schoolAdmins[index] = schoolAdmins[index].copy(assignedSchool = schoolName)
+        }
+    }
+
+    fun addAdmin(email: String): Boolean {
+        if(schoolAdmins.any { it.email.equals(email, ignoreCase = true) }) return false
+        schoolAdmins.add(SchoolAdmin(email))
+        return true
+    }
+
+    fun getUnassignedAdmins(): List<String> {
+        return schoolAdmins.filter { it.assignedSchool == null }.map { it.email }
+    }
+
+    fun reassignAdmin(email: String, schoolName: String) {
+        assignAdminToSchool(email, schoolName)
     }
 }

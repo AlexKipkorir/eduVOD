@@ -2,6 +2,7 @@ package com.example.eduvod.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import androidx.navigation.NavHostController
@@ -20,7 +21,14 @@ fun AppNavHost(navController: NavHostController) {
         composable("login") { LoginScreen(navController) }
         composable("dashboard") { DashboardScreen(navController) }
         composable("Schools Management") { SchoolManagementScreen(navController) }
-        composable("add_school") { AddSchoolScreen(navController, null) }
+        composable("add_school?schoolName={schoolName}") { backStackEntry ->
+            val schoolName = backStackEntry.arguments?.getString("schoolName")
+            AddSchoolScreen(
+                navController = navController,
+                prefillSchoolName = schoolName,
+                viewModel = viewModel()
+            )
+        }
         composable("edit_school/{schoolName}") {
             val schoolName = it.arguments?.getString("schoolName") ?: ""
             EditSchoolScreen(navController, schoolName)

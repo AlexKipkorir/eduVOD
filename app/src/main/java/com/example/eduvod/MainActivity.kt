@@ -14,21 +14,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.eduvod.ui.screens.AddSchoolScreen
 import com.example.eduvod.ui.screens.DashboardScreen
 import com.example.eduvod.ui.screens.EditSchoolScreen
+import com.example.eduvod.ui.screens.GradesManagementScreen
 import com.example.eduvod.ui.screens.LoginScreen
 import com.example.eduvod.ui.screens.ManageSchoolAdminsScreen
 import com.example.eduvod.ui.screens.SchoolDetailsScreen
 import com.example.eduvod.ui.screens.SchoolManagementScreen
 import com.example.eduvod.ui.screens.SplashScreen
+import com.example.eduvod.ui.screens.StreamViewScreen
 import com.example.eduvod.ui.screens.SystemConfigScreen
 import com.example.eduvod.ui.screens.UserManagementScreen
 import com.example.eduvod.ui.theme.EduVODTheme
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
+import com.example.eduvod.ui.screens.SchoolAdminsScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -84,9 +88,12 @@ fun EduVODNavHost(
         }
         composable("add_school?schoolName={schoolName}") { backStackEntry ->
             val schoolName = backStackEntry.arguments?.getString("schoolName")
-            AddSchoolScreen(navController, prefillSchoolName = schoolName)
+            AddSchoolScreen(
+                navController = navController,
+                prefillSchoolName = schoolName,
+                viewModel = viewModel()
+            )
         }
-
         composable("config") {
             SystemConfigScreen(navController)
         }
@@ -104,6 +111,16 @@ fun EduVODNavHost(
         }
         composable("users") {
             UserManagementScreen(navController)
+        }
+        composable("grades") {
+            GradesManagementScreen(navController)
+        }
+        composable("view_streams/{gradeName}") { backStackEntry ->
+            val gradeName = backStackEntry.arguments?.getString("gradeName") ?: return@composable
+            StreamViewScreen(navController, gradeName)
+        }
+        composable("school_admins") {
+            SchoolAdminsScreen(navController = navController, viewModel = viewModel())
         }
     }
 }
