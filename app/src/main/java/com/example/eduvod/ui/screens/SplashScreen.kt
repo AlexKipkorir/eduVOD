@@ -15,20 +15,28 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.eduvod.viewmodel.AuthViewModel
+import com.example.eduvod.viewmodel.LoginState
 import kotlinx.coroutines.delay
 
 @Composable
-fun SplashScreen(navController: NavHostController) {
+fun SplashScreen(
+    navController: NavHostController,
+    authViewModel: AuthViewModel
+) {
     // Fade animation
     val fadeAnim = rememberInfiniteTransition(label = "fadeAnimation")
     val alpha by fadeAnim.animateFloat(
@@ -41,6 +49,7 @@ fun SplashScreen(navController: NavHostController) {
         label = "alphaAnim"
     )
 
+    val loginState by authViewModel.loginState.collectAsState()
     // Navigate after 2.5 seconds
     LaunchedEffect(Unit) {
         delay(2500)
@@ -48,6 +57,25 @@ fun SplashScreen(navController: NavHostController) {
             popUpTo("splash") { inclusive = true }
         }
     }
+
+    //Check if user is loggedIn
+//    LaunchedEffect(loginState) {
+//        when (loginState) {
+//            is LoginState.LoggedIn -> {
+//                delay(1000) // Smooth transition
+//                navController.navigate("dashboard") {
+//                    popUpTo("splash") { inclusive = true }
+//                }
+//            }
+//            is LoginState.LoggedOut -> {
+//                delay(1000)
+//                navController.navigate("login") {
+//                    popUpTo("splash") { inclusive = true }
+//                }
+//            }
+//            else -> {}
+//        }
+//    }
 
     // UI
     Box(
@@ -85,5 +113,7 @@ fun SplashScreen(navController: NavHostController) {
 @Composable
 fun SplashScreenPreview() {
     val navController = rememberNavController()
-    SplashScreen(navController = navController)
+    val context = LocalContext.current
+    val authViewModel = remember { AuthViewModel(context) }
+    SplashScreen(navController = navController, authViewModel = authViewModel)
 }

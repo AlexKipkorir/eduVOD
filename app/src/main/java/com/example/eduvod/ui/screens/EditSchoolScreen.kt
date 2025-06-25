@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,11 +67,14 @@ fun EditSchoolScreen(
     var region by remember { mutableStateOf(originalSchool?.region?: "") }
     var diocese by remember { mutableStateOf(originalSchool?.diocese?: "") }
     var county by remember { mutableStateOf(originalSchool?.county?: "") }
-    var subCounty by remember { mutableStateOf(originalSchool?.county?: "") }
+    var subCounty by remember { mutableStateOf(originalSchool?.subCounty?: "") }
     var location by remember { mutableStateOf(originalSchool?.location?: "") }
     var address by remember { mutableStateOf(originalSchool?.address?: "") }
     var website by remember { mutableStateOf(originalSchool?.website?: "") }
     var selectedAdmin by remember { mutableStateOf("") }
+    val adminOptions = viewModel.getUnassignedAdmins()
+    var isDropdownExpanded by remember { mutableStateOf(false) }
+
 
     Scaffold(
         topBar = {
@@ -119,16 +124,71 @@ fun EditSchoolScreen(
             SectionInputField("Address", address) { address = it }
 
             Divider()
-            viewModel.assignAdminToSchool(selectedAdmin, schoolName)
+            Text("Assign Admin (Optional)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0D47A1))
+
+            OutlinedTextField(
+                value = selectedAdmin,
+                onValueChange = { selectedAdmin = it },
+                label = { Text("Select Admin Email") },
+                readOnly = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                trailingIcon = {
+                    IconButton(onClick = { isDropdownExpanded = !isDropdownExpanded }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Dropdown"
+                        )
+                    }
+                }
+            )
+            DropdownMenu(
+                expanded = isDropdownExpanded,
+                onDismissRequest = { isDropdownExpanded = false }
+            ) {
+                adminOptions.forEach { adminEmail ->
+                    DropdownMenuItem(
+                        text = { Text(adminEmail) },
+                        onClick = {
+                            selectedAdmin = adminEmail
+                            isDropdownExpanded = false
+                        }
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
-                    scope.launch {
-                        //Update school logic here
-                        snackbarHostState.showSnackbar("Changes saved for ${originalSchool?.name}")
-                        navController.popBackStack()
+                    val updatedSchool = originalSchool?.copy(
+                        moeRegNo = moeRegNo,
+                        kpsaRegNo = kpsaRegNo,
+                        curriculum = curriculum,
+                        category = category,
+                        type = type,
+                        composition = composition,
+                        mobile = mobile,
+                        email = email,
+                        website = website,
+                        region = region,
+                        diocese = diocese,
+                        county = county,
+                        subCounty = subCounty,
+                        location = location,
+                        address = address
+                    )
+
+                    updatedSchool?.let {
+                        scope.launch {
+                            viewModel.updateSchool(it.moeRegNo.toIntOrNull() ?: return@launch, it)
+                            if (selectedAdmin.isNotBlank()) {
+                                viewModel.reassignAdmin(selectedAdmin, it.name)
+                            }
+                            snackbarHostState.showSnackbar("Changes saved for ${originalSchool?.name}")
+                            navController.popBackStack()
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -136,8 +196,6 @@ fun EditSchoolScreen(
             ) {
                 Text("Save Changes", color = Color.White)
             }
-
-
         }
     }
 }

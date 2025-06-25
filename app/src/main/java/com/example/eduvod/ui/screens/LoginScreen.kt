@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,11 +52,20 @@ import androidx.navigation.NavHostController
 import com.example.eduvod.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.eduvod.viewmodel.AuthViewModel
+import com.example.eduvod.viewmodel.LoginState
+
 
 @Composable
-fun LoginScreen(navController: NavHostController) {
+fun LoginScreen(
+    navController: NavHostController,
+    authViewModel: AuthViewModel
+) {
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
+
+    val loginState by authViewModel.loginState.collectAsState()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -63,6 +73,7 @@ fun LoginScreen(navController: NavHostController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var passwordVisible by remember { mutableStateOf(false) }
     var logoVisible by remember { mutableStateOf(false) }
+    var localError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         delay(300)
@@ -173,6 +184,7 @@ fun LoginScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // Error Message
+            //OG
             errorMessage?.let {
                 Text(
                     text = it,
@@ -181,8 +193,21 @@ fun LoginScreen(navController: NavHostController) {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
-
+            //Retrofit
+//            when (loginState) {
+//                is LoginState.Error -> Text(
+//                    text = (loginState as LoginState.Error).message,
+//                    color = Color.Red,
+//                    fontSize = 14.sp
+//                )
+//                else -> localError?.let {
+//                    Text(text = it, color = Color.Red, fontSize = 14.sp)
+//                }
+//            }
+//
+//            Spacer(modifier = Modifier.height(12.dp))
             // Login Button
+            //OG
             Button(
                 onClick = {
                     focusManager.clearFocus()
@@ -227,8 +252,42 @@ fun LoginScreen(navController: NavHostController) {
                     Text("Login")
                 }
             }
+
+            //Retrofit
+//            Button(
+//                onClick = {
+//                    focusManager.clearFocus()
+//                    localError = null
+//
+//                    if (email.isBlank() || password.isBlank()) {
+//                        localError = "Please enter both email and password"
+//                        return@Button
+//                    }
+//                    authViewModel.loginUser(email.trim(), password.trim())
+//                },
+//                enabled = loginState != LoginState.Loading,
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor = Color(0xff1565C0),
+//                    contentColor = Color.White
+//                ),
+//                modifier = Modifier.fillMaxWidth().height(56.dp)
+//            ) {
+//                if (loginState == LoginState.Loading) {
+//                    CircularProgressIndicator(color = Color.Blue, strokeWidth = 2.dp)
+//                } else {
+//                    Text("Login")
+//                }
+//            }
         }
     }
+    //Navigate on success
+//    LaunchedEffect(loginState) {
+//        email = ""
+//        password = ""
+//        navController.navigate("dashboard") {
+//            popUpTo("login") { inclusive = true }
+//        }
+//    }
 }
 
 

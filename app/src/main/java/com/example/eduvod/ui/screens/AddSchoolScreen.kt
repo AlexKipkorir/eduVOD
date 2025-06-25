@@ -47,12 +47,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.eduvod.model.School
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import kotlinx.coroutines.launch
-import java.nio.file.WatchEvent
-import kotlin.math.exp
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,7 +64,7 @@ fun AddSchoolScreen(
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val viewModel: SchoolManagementViewModel = viewModel()
+//    val viewModel: SchoolManagementViewModel = viewModel()
 
 
     //Form States
@@ -184,11 +182,32 @@ fun AddSchoolScreen(
                             }
                         }
                         else -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("School data is valid. Ready to submit")
-                                navController.popBackStack()
+                            val newSchool = School(
+                                name = schoolName,
+                                moeRegNo = moeRegNo,
+                                kpsaRegNo = kpsaRegNo,
+                                curriculum = selectedCurriculum,
+                                category = selectedCategory,
+                                type = selectedType,
+                                composition = "Mixed",
+                                mobile = mobile,
+                                email = email,
+                                region = region,
+                                diocese = selectedDiocese,
+                                county = county,
+                                subCounty = subCounty,
+                                location = location,
+                                address = address,
+                                website = website,
+                                hasAdmin = true
+                            )
+                            viewModel.addSchool(newSchool, selectedAdmin)
+
+                            navController.navigate("schools") {
+                                popUpTo("add_school") { inclusive = true }
                             }
                         }
+
                     }
                 },
                 modifier = Modifier.fillMaxWidth()

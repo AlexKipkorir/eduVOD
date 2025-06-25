@@ -95,18 +95,19 @@ fun ManageSchoolAdminsScreen(
                     AdminCard(
                         admin = admin,
                         onBlock = {
+                            viewModel.blockAdmin(admin.email, !admin.isBlocked)
                             val index = admins.indexOf(admin)
                             if (index != -1) {
                                 admins[index] = admins[index].copy(isBlocked = !admins[index].isBlocked)
                             }
                         },
                         onReset = {
+                            viewModel.resetAdmin(admin.email)
                             scope.launch {
                                 snackbarHostState.showSnackbar("Password reset for ${admin.email}")
                             }
                         }
                     )
-
                 }
             }
         }
@@ -182,8 +183,6 @@ fun AdminCard(
     onBlock: () -> Unit,
     onReset: () -> Unit
 ) {
-    var isBlocked by remember { mutableStateOf(false) }
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = if (admin.isBlocked) Color(0xFFFFEBEE) else Color.White),
@@ -197,11 +196,7 @@ fun AdminCard(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
-                    onClick = {
-                        onReset()
-                        //Simulate logic
-                        println("Reset admin password")
-                    }
+                    onClick = onReset
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = "Reset")
                     Spacer(modifier = Modifier.width(4.dp))
@@ -209,10 +204,7 @@ fun AdminCard(
                 }
 
                 OutlinedButton(
-                    onClick = {
-                        isBlocked = !isBlocked
-                        onBlock()
-                    }
+                    onClick = onBlock
                 ) {
                     Icon(Icons.Default.Block, contentDescription = "Block")
                     Spacer(modifier = Modifier.width(4.dp))
@@ -222,3 +214,4 @@ fun AdminCard(
         }
     }
 }
+

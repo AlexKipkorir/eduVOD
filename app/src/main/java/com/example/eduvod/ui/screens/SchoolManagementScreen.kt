@@ -1,5 +1,9 @@
 package com.example.eduvod.ui.screens
 
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +26,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Upload
@@ -37,6 +42,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -48,6 +54,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,14 +73,8 @@ import androidx.navigation.NavHostController
 import com.example.eduvod.model.School
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import kotlinx.coroutines.launch
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.provider.OpenableColumns
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
+import okhttp3.ResponseBody
+import java.io.File
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -175,15 +177,32 @@ fun SchoolManagementScreen(
                     text = "Import Schools",
                     style = MaterialTheme.typography.titleMedium.copy(
                         color = Color(0xFF0D47A1),
-                        fontWeight = FontWeight.SemiBold)
+                        fontWeight = FontWeight.SemiBold
+                    )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+
                     Button(
                         onClick = {
                             scope.launch {
-                                snackbarHostState.showSnackbar("School template downloaded.")
+                                val response = viewModel.downloadSchoolTemplate()
+                                if (response != null && response.isSuccessful) {
+                                    val body: ResponseBody? = response.body()
+                                    if (body != null) {
+                                        val fileName = "school_template.xlsx"
+                                        val file = File(context.cacheDir, fileName)
+                                        file.outputStream().use { output ->
+                                            body.byteStream().copyTo(output)
+                                        }
+                                        snackbarHostState.showSnackbar("Downloaded: ${file.absolutePath}")
+                                    } else {
+                                        snackbarHostState.showSnackbar("Empty response body.")
+                                    }
+                                } else {
+                                    snackbarHostState.showSnackbar("Failed to download template.")
+                                }
                             }
                         }
                     ) {
@@ -211,9 +230,9 @@ fun SchoolManagementScreen(
                     singleLine = true,
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
-                           IconButton(onClick = { viewModel.searchQuery.value = "" }) {
-                               Icon(Icons.Default.Close, contentDescription = "Clear Search")
-                           }
+                            IconButton(onClick = { viewModel.searchQuery.value = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear Search")
+                            }
                         }
                     },
                     modifier = Modifier

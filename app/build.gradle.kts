@@ -67,5 +67,8 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.compose.material3)
     implementation(libs.accompanist.navigation.animation)
-
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation(libs.logging.interceptor)
+    implementation(libs.androidx.datastore.preferences)
 }

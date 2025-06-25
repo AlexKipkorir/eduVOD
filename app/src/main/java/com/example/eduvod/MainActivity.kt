@@ -13,9 +13,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.example.eduvod.ui.screens.AddSchoolScreen
 import com.example.eduvod.ui.screens.DashboardScreen
@@ -33,6 +35,12 @@ import com.example.eduvod.ui.theme.EduVODTheme
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.example.eduvod.ui.screens.SchoolAdminsScreen
+import com.example.eduvod.viewmodel.AuthViewModel
+import android.content.Context
+import androidx.compose.runtime.remember
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+
 
 
 class MainActivity : ComponentActivity() {
@@ -47,16 +55,26 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+class AuthViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(AuthViewModel::class.java)) {
+            return AuthViewModel(context) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
 
 @Composable
 fun EduVODApp() {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val authViewModel = remember { AuthViewModel(context) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        EduVODNavHost(navController = navController, contentPadding = padding)
+        EduVODNavHost(navController = navController, contentPadding = padding, authViewModel = authViewModel)
     }
 }
 
@@ -64,8 +82,12 @@ fun EduVODApp() {
 @Composable
 fun EduVODNavHost(
     navController: NavHostController,
-    contentPadding: PaddingValues
+    contentPadding: PaddingValues,
+    authViewModel: AuthViewModel
 ) {
+    val context = LocalContext.current
+    val authViewModel = remember { AuthViewModel(context) }
+
     AnimatedNavHost(
         navController = navController,
         startDestination = "splash",
@@ -75,10 +97,12 @@ fun EduVODNavHost(
         popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) }
     ) {
         composable("splash") {
-            SplashScreen(navController)
+            SplashScreen(navController = navController, authViewModel = authViewModel)
         }
         composable("login") {
-            LoginScreen(navController)
+            val context = LocalContext.current
+            val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+            LoginScreen(navController = navController, authViewModel = authViewModel)
         }
         composable("dashboard") {
             DashboardScreen(navController)
