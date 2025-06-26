@@ -1,6 +1,9 @@
 package com.example.eduvod.retrofit
 
+import com.example.eduvod.model.Grade
+import com.example.eduvod.model.RenameStreamRequest
 import com.example.eduvod.model.School
+import com.example.eduvod.model.Stream
 import com.example.eduvod.retrofit.request.LoginRequest
 import com.example.eduvod.retrofit.response.ApiResponse
 import com.example.eduvod.retrofit.response.LoginResponseData
@@ -106,4 +109,36 @@ interface ApiService {
         @Path("section") section: String,
         @Body item: Map<String, String>
     ): Response<ApiResponse<Unit>>
+
+    //Grades Management
+    @GET("grades")
+    suspend fun getAllGrades(): Response<ApiResponse<List<Grade>>>
+
+    @POST("grades")
+    suspend fun addGrade(@Body grade: Grade): Response<ApiResponse<Grade>>
+
+    @DELETE("grades/{name}")
+    suspend fun deleteGrade(@Path("name") name: String): Response<ApiResponse<Unit>>
+
+    //Stream Management
+    @POST("grades/{gradeName}/streams")
+    suspend fun addStreamToGrade(
+        @Path("gradeName") gradeName: String,
+        @Body stream: Stream
+    ): Response<ApiResponse<Unit>>
+
+    @PUT("grades/{gradeName}/streams")
+    suspend fun renameStream(
+        @Path("gradeName") gradeName: String,
+        @Body renameRequest: RenameStreamRequest
+    ): Response<ApiResponse<Unit>>
+
+    @DELETE("grades/{gradeName}/streams/{streamName}")
+    suspend fun deleteStream(
+        @Path("gradeName") gradeName: String,
+        @Path("streamName") streamName: String
+    ): Response<ApiResponse<Unit>>
+
+
+
 }

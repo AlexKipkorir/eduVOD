@@ -1,48 +1,21 @@
 package com.example.eduvod.ui.screens
 
 import android.net.Uri
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -65,20 +38,45 @@ fun GradesManagementScreen(
     var showDialog by remember { mutableStateOf(false) }
     var newGrade by remember { mutableStateOf("") }
     var selectedCurriculum by remember { mutableStateOf("CBC") }
+    var expanded by remember { mutableStateOf(false) }
 
     val gradeList = viewMap.grades
-    val curriculumOptions = listOf("CBC", "8-4-4", "British", "IGCSE")
+    val groupedGrades = gradeList.groupBy { it.curriculum }
+    val curriculumOptions = viewMap.allCurriculums
+
+    LaunchedEffect(Unit) {
+        viewMap.snackbarMessage.collect { message ->
+            message?.let {
+                snackbarHostState.showSnackbar(it)
+                viewMap.clearSnackbar()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Grades Management", color = Color.White) },
+                title = {
+                    Text(
+                        "Grades Management",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0D47A1))
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                ),
+                modifier = Modifier.background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFF1565C0), Color(0xFF0D47A1))
+                    )
+                )
             )
         },
         floatingActionButton = {
@@ -91,6 +89,7 @@ fun GradesManagementScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color(0xFFF4F9FC)
     ) { padding ->
+
         LazyColumn(
             modifier = Modifier
                 .padding(padding)
@@ -107,50 +106,94 @@ fun GradesManagementScreen(
                     )
                 )
             }
-            items(gradeList) { grade ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(4.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(grade.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Curriculum: ${grade.curriculum}", color = Color.Gray)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Streams: ${grade.streams.joinToString()}", color = Color.Gray)
-                        Spacer(modifier = Modifier.height(12.dp))
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            IconButton(onClick = {
-                                navController.navigate("view_streams/${Uri.encode(grade.name)}")
-                            }) {
-                                Icon(Icons.Default.Visibility, contentDescription = "View Stream", tint = Color(0xFF1565C0))
-                            }
+            if (gradeList.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 64.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.School, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(64.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("No grades added yet.", color = Color.Gray)
+                    }
+                }
+            } else {
+                groupedGrades.forEach { (curriculum, grades) ->
+                    item {
+                        Text(
+                            text = curriculum,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1565C0)
+                            ),
+                            modifier = Modifier.padding(top = 12.dp)
+                        )
+                    }
 
+                    items(grades) { grade ->
+                        val bgColor = when (grade.curriculum) {
+                            "CBC" -> Color(0xFFE3F2FD)
+                            "8-4-4" -> Color(0xFFFFF9C4)
+                            "British" -> Color(0xFFF3E5F5)
+                            "IGCSE" -> Color(0xFFFFEBEE)
+                            else -> Color.White
+                        }
 
-                            if (!grade.hasSchool) {
-                                IconButton(onClick = {
-                                    viewMap.deleteGrade(grade)
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Deleted: ${grade.name}")
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(4.dp, shape = RoundedCornerShape(16.dp)),
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = bgColor),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(grade.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.School, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Curriculum: ${grade.curriculum}", color = Color.Gray, fontSize = 14.sp)
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("${grade.streams.size} stream(s)", color = Color.Gray, fontSize = 14.sp)
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    IconButton(onClick = {
+                                        navController.navigate("view_streams/${Uri.encode(grade.name)}")
+                                    }) {
+                                        Icon(Icons.Default.Visibility, contentDescription = "View Stream", tint = Color(0xFF1565C0))
                                     }
-                                }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete Grade", tint = Color.Black)
+
+                                    if (!grade.hasSchool) {
+                                        IconButton(onClick = {
+                                            viewMap.deleteGrade(grade)
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("Deleted: ${grade.name}")
+                                            }
+                                        }) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Delete Grade", tint = Color.Black)
+                                        }
+                                    }
                                 }
                             }
                         }
-
                     }
                 }
-
             }
         }
     }
+
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("Add Grade") },
+            shape = RoundedCornerShape(16.dp),
+            title = { Text("Add Grade", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
@@ -161,39 +204,47 @@ fun GradesManagementScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     ExposedDropdownMenuBox(
-                        expanded = false,
-                        onExpandedChange = {}
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded }
                     ) {
                         OutlinedTextField(
                             value = selectedCurriculum,
                             onValueChange = {},
-                            label = { Text("Curriculum") },
                             readOnly = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(false) },
-                            modifier = Modifier.fillMaxWidth()
+                            label = { Text("Curriculum") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
                         )
                         DropdownMenu(
-                            expanded = false,
-                            onDismissRequest = { },
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
                         ) {
-                           curriculumOptions.forEach { option ->
-                               DropdownMenuItem(
-                                   text = { Text(option) },
-                                   onClick = { selectedCurriculum = option }
-                               )
-                           }
+                            curriculumOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        selectedCurriculum = option
+                                        expanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
+                ElevatedButton(onClick = {
                     if (newGrade.isNotBlank()) {
-                        viewMap.addGrade(Grade(
-                            name = newGrade,
-                            curriculum = selectedCurriculum,
-                            streams = mutableStateListOf()
-                        ))
+                        viewMap.addGrade(
+                            Grade(
+                                name = newGrade,
+                                curriculum = selectedCurriculum,
+                                streams = mutableStateListOf(),
+                                hasSchool = false
+                            )
+                        )
                         showDialog = false
                         newGrade = ""
                     }
@@ -209,5 +260,6 @@ fun GradesManagementScreen(
         )
     }
 }
+
 
 
