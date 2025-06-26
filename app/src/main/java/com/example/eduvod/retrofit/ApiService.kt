@@ -5,9 +5,12 @@ import com.example.eduvod.retrofit.request.LoginRequest
 import com.example.eduvod.retrofit.response.ApiResponse
 import com.example.eduvod.retrofit.response.LoginResponseData
 import com.example.eduvod.retrofit.response.SchoolResponse
+import com.example.eduvod.viewmodel.AdminUser
 import com.example.eduvod.viewmodel.AdminAssignRequest
 import com.example.eduvod.viewmodel.AdminBlockRequest
 import com.example.eduvod.viewmodel.AdminCreateRequest
+import com.example.eduvod.viewmodel.AdminEduvodCreateRequest
+import com.example.eduvod.viewmodel.AdminEduvodResetRequest
 import com.example.eduvod.viewmodel.AdminResetRequest
 import com.example.eduvod.viewmodel.AdminUnassignRequest
 import com.example.eduvod.viewmodel.SchoolAdmin
@@ -69,4 +72,38 @@ interface ApiService {
     @POST("school-admins/block")
     suspend fun blockAdmin(@Body request: AdminBlockRequest): Response<ApiResponse<Unit>>
 
+    //User Management
+    @GET("admin-users")
+    suspend fun getAllEduvodAdmins(): Response<ApiResponse<List<AdminUser>>>
+
+    @POST("admin-users")
+    suspend fun addEduvodAdmin(@Body request: AdminEduvodCreateRequest): Response<ApiResponse<Unit>>
+
+    @POST("admin-user/block")
+    suspend fun blockEduvodAdmin(@Body request: AdminBlockRequest): Response<ApiResponse<Unit>>
+
+    @POST("admin-users/reset-password")
+    suspend fun  resetEduvodAdmin(@Body request: AdminEduvodResetRequest): Response<ApiResponse<Unit>>
+
+    //System Configuration
+    @GET("systems-config/{section}")
+    suspend fun getConfigSection(@Path("section") section: String): Response<ApiResponse<List<String>>>
+
+    @POST("system-config/{section}")
+    suspend fun addConfigItem(
+        @Path("section") section: String,
+        @Body item: Map<String, String>
+    ): Response<ApiResponse<Unit>>
+
+    @PUT("system-config/{section}")
+    suspend fun updateConfigItem(
+        @Path("section") section: String,
+        @Body body: Map<String, String>
+    ): Response<ApiResponse<Unit>>
+
+    @HTTP(method = "DELETE", path = "system-config/{section}", hasBody = true)
+    suspend fun deleteConfigItem(
+        @Path("section") section: String,
+        @Body item: Map<String, String>
+    ): Response<ApiResponse<Unit>>
 }

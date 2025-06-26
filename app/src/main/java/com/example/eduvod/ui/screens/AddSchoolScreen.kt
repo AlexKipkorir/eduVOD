@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.model.School
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
@@ -158,6 +159,38 @@ fun AddSchoolScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+            //OG
+//            Button(
+//                onClick = {
+//                    when {
+//                        schoolName.isBlank() -> {
+//                            scope.launch {
+//                                snackbarHostState.showSnackbar("School Name is required.")
+//                            }
+//                        }
+//                        moeRegNo.isBlank() -> {
+//                            scope.launch {
+//                                snackbarHostState.showSnackbar("MoERegistration Number is required.")
+//                            }
+//                        }
+//                        email.isBlank() -> {
+//                            scope.launch {
+//                                snackbarHostState.showSnackbar("Email is required.")
+//                            }
+//                        }
+//                        else -> {
+//                            scope.launch {
+//                                snackbarHostState.showSnackbar("School data is valid. Ready to submit")
+//                            }
+//                        }
+//                    }
+//                },
+//                modifier = Modifier.fillMaxWidth()
+//            ) {
+//                Text("Submit School")
+//            }
+
+            //Retrofit
             Button(
                 onClick = {
                     when {
@@ -183,6 +216,7 @@ fun AddSchoolScreen(
                         }
                         else -> {
                             val newSchool = School(
+                                id = 0,
                                 name = schoolName,
                                 moeRegNo = moeRegNo,
                                 kpsaRegNo = kpsaRegNo,

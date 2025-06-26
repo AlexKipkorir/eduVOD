@@ -1,20 +1,18 @@
 package com.example.eduvod.viewmodel
 
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.eduvod.model.School
-import com.example.eduvod.model.AdminUser
 import com.example.eduvod.repositories.SchoolRepository
 import com.example.eduvod.ui.screens.AdminAccount
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
-import retrofit2.http.Multipart
 import retrofit2.Response
-
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 data class AdminCreateRequest(
     val email: String,
@@ -45,7 +43,6 @@ data class SchoolAdmin(
     val assignedSchool: String?
 )
 
-
 class SchoolManagementViewModel(
     private val repository: SchoolRepository = SchoolRepository()
 ) : ViewModel() {
@@ -53,6 +50,8 @@ class SchoolManagementViewModel(
     var searchQuery = mutableStateOf("")
     var selectedRegion = mutableStateOf("ALL")
     var selectedType = mutableStateOf("ALL")
+
+    val snackbarMessage = MutableStateFlow<String?>(null)
 
     val admins = mutableStateListOf<AdminAccount>()
 
@@ -69,12 +68,18 @@ class SchoolManagementViewModel(
     // --- SCHOOL Functions --//
     fun fetchSchools() {
         viewModelScope.launch {
-            val response = repository.getSchools()
-            if (response.isSuccessful) {
-                response.body()?.data?.let {
-                    schools.clear()
-                    schools.addAll(it)
+            try {
+                val response = repository.getSchools()
+                if (response.isSuccessful) {
+                    response.body()?.data?.let {
+                        schools.clear()
+                        schools.addAll(it)
+                    }
+                } else {
+                    snackbarMessage.value = "Failed to load schools."
                 }
+            } catch (e: Exception) {
+                snackbarMessage.value = "Error fetching schools: ${e.localizedMessage}"
             }
         }
     }
@@ -83,40 +88,43 @@ class SchoolManagementViewModel(
         viewModelScope.launch {
             try {
                 val response = repository.addSchool(school)
-
                 if (response.isSuccessful && response.body()?.statusCode == 0) {
                     val addedSchool = response.body()?.data
-
                     if (addedSchool != null) {
                         fetchSchools()
-
-                        val assignRequest = AdminAssignRequest(
-                            email = adminEmail,
-                            schoolId = addedSchool.id
+                        repository.assignAdminToSchool(
+                            AdminAssignRequest(adminEmail, addedSchool.id)
                         )
-                        repository.assignAdminToSchool(assignRequest)
-
                         fetchAdmins()
                     }
+                } else {
+                    snackbarMessage.value = "Failed to add school."
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                snackbarMessage.value = "Error adding school: ${e.localizedMessage}"
             }
         }
     }
 
     fun updateSchool(id: Int, school: School) {
         viewModelScope.launch {
-            val response = repository.updateSchool(id, school)
-            if (response.isSuccessful) {
-                val updatedSchool = response.body()?.data
-                val index = schools.indexOfFirst { it.moeRegNo == school.moeRegNo }
-                if (index != -1 && updatedSchool != null) {
-                    schools[index] = updatedSchool
+            try {
+                val response = repository.updateSchool(id, school)
+                if (response.isSuccessful) {
+                    val updatedSchool = response.body()?.data
+                    val index = schools.indexOfFirst { it.id == id }
+                    if (index != -1 && updatedSchool != null) {
+                        schools[index] = updatedSchool
+                    }
+                } else {
+                    snackbarMessage.value = "Failed to update school."
                 }
+            } catch (e: Exception) {
+                snackbarMessage.value = "Error updating school: ${e.localizedMessage}"
             }
         }
     }
+
 
     suspend fun fetchSchoolById(id: Int): School? {
         return try {
@@ -131,16 +139,21 @@ class SchoolManagementViewModel(
         return try {
             repository.downloadTemplate()
         } catch (e: Exception) {
-            e.printStackTrace()
+            snackbarMessage.value = "Error downloading template: ${e.localizedMessage}"
             null
         }
     }
 
     suspend fun importSchoolFile(file: MultipartBody.Part): Boolean {
-        return  try {
+        return try {
             val response = repository.importSchools(file)
-            response.isSuccessful && response.body()?.statusCode == 200
+            val success = response.isSuccessful && response.body()?.statusCode == 200
+            if (!success) {
+                snackbarMessage.value = "Failed to import schools."
+            }
+            success
         } catch (e: Exception) {
+            snackbarMessage.value = "Error importing schools: ${e.localizedMessage}"
             false
         }
     }
@@ -158,9 +171,15 @@ class SchoolManagementViewModel(
 
     fun deleteSchool(id: Int) {
         viewModelScope.launch {
-            val response = repository.deleteSchool(id)
-            if (response.isSuccessful) {
-                schools.removeIf { it.moeRegNo == id.toString() }
+            try {
+                val response = repository.deleteSchool(id)
+                if (response.isSuccessful) {
+                    schools.removeIf { it.id == id }
+                } else {
+                    snackbarMessage.value = "Failed to delete school."
+                }
+            } catch (e: Exception) {
+                snackbarMessage.value = "Error deleting school: ${e.localizedMessage}"
             }
         }
     }
@@ -168,40 +187,60 @@ class SchoolManagementViewModel(
     // --- ADMIN Functions ---//
     fun fetchAdmins() {
         viewModelScope.launch {
-            val response = repository.getAllSchoolAdmins()
-            if (response.isSuccessful) {
-                response.body()?.data?.let {
-                    schoolAdmins.clear()
-                    schoolAdmins.addAll(it)
+            try {
+                val response = repository.getAllSchoolAdmins()
+                if (response.isSuccessful) {
+                    response.body()?.data?.let {
+                        schoolAdmins.clear()
+                        schoolAdmins.addAll(it)
+                    }
+                } else {
+                    snackbarMessage.value = "Failed to load admins."
                 }
+            } catch (e: Exception) {
+                snackbarMessage.value = "Error fetching admins: ${e.localizedMessage}"
             }
         }
     }
 
+
     fun addAdmin(email: String): Boolean {
-        if (schoolAdmins.any() { it.email.equals(email, ignoreCase = true) }) return false
+        if (schoolAdmins.any { it.email.equals(email, ignoreCase = true) }) return false
         viewModelScope.launch {
-            repository.addSchoolAdmin(AdminCreateRequest(email = email, password = "123456"))
-            fetchAdmins()
+            try {
+                repository.addSchoolAdmin(AdminCreateRequest(email, "123456"))
+                fetchAdmins()
+            } catch (e: Exception) {
+                snackbarMessage.value = "Error adding admin: ${e.localizedMessage}"
+            }
         }
         return true
     }
 
+
     fun unassignAdmin(adminEmail: String) {
         viewModelScope.launch {
-            repository.unassignAdmin(AdminUnassignRequest(adminEmail))
-            val index = schoolAdmins.indexOfFirst { it.email == adminEmail }
-            if (index != -1) {
-                schoolAdmins[index] = schoolAdmins[index].copy(assignedSchool = null)
+            try {
+                repository.unassignAdmin(AdminUnassignRequest(adminEmail))
+                val index = schoolAdmins.indexOfFirst { it.email == adminEmail }
+                if (index != -1) {
+                    schoolAdmins[index] = schoolAdmins[index].copy(assignedSchool = null)
+                }
+            } catch (e: Exception) {
+                snackbarMessage.value = "Error unassigning admin: ${e.localizedMessage}"
             }
         }
     }
 
     fun reassignAdmin(email: String, schoolName: String) {
-        val schoolId = getSchoolByName(schoolName)?.moeRegNo?.toIntOrNull() ?: return
+        val schoolId = getSchoolByName(schoolName)?.id ?: return
         viewModelScope.launch {
-            repository.assignAdminToSchool(AdminAssignRequest(email, schoolId))
-            fetchAdmins()
+            try {
+                repository.assignAdminToSchool(AdminAssignRequest(email, schoolId))
+                fetchAdmins()
+            } catch (e: Exception) {
+                snackbarMessage.value = "Error reassigning admin: ${e.localizedMessage}"
+            }
         }
     }
 
@@ -211,18 +250,36 @@ class SchoolManagementViewModel(
 
     fun blockAdmin(email: String, block: Boolean) {
         viewModelScope.launch {
-            repository.blockOrUnblockAdmin(AdminBlockRequest(email, block))
-            fetchAdmins()
+            try {
+                repository.blockOrUnblockAdmin(AdminBlockRequest(email, block))
+                fetchAdmins()
+            } catch (e: Exception) {
+                snackbarMessage.value = "Error blocking admin: ${e.localizedMessage}"
+            }
         }
     }
 
     fun resetAdmin(email: String) {
         viewModelScope.launch {
-            repository.resetAdminPassword(AdminResetRequest(email))
+            try {
+                repository.resetAdminPassword(AdminResetRequest(email))
+            } catch (e: Exception) {
+                snackbarMessage.value = "Error resetting password: ${e.localizedMessage}"
+            }
         }
     }
 
-    //OG
+    fun clearSnackbarMessage() {
+        snackbarMessage.value = null
+    }
+}
+
+//OG
+//class SchoolManagementViewModel : ViewModel() {
+//
+//    var searchQuery = mutableStateOf("")
+//    var selectedRegion = mutableStateOf("ALL")
+//    var selectedType = mutableStateOf("ALL")
 
 //    val schools = mutableStateListOf(
 //        School("Green Ivy High", "MOE1001", "KPSA1001", "CBC", "Public", "Secondary", "Mixed", "0700000001", "ivy@edu.org", "Nairobi", "Nairobi Diocese", "Nairobi", "Westlands", "Kangemi", "P.O. Box 123", "www.greenivy.ac.ke", false),
@@ -292,4 +349,4 @@ class SchoolManagementViewModel(
 //    fun reassignAdmin(email: String, schoolName: String) {
 //        assignAdminToSchool(email, schoolName)
 //    }
-}
+//}

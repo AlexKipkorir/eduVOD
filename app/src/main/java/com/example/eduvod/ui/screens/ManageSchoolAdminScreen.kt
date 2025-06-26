@@ -94,6 +94,17 @@ fun ManageSchoolAdminsScreen(
                 items(admins) { admin ->
                     AdminCard(
                         admin = admin,
+                        //OG
+//                        onBlock = {
+//                            admin.isBlocked = !admin.isBlocked
+//                        },
+//                        onReset = {
+//                            scope.launch {
+//                                snackbarHostState.showSnackbar("Password reset for ${admin.email}")
+//                            }
+//                        }
+
+                        //Retrofit
                         onBlock = {
                             viewModel.blockAdmin(admin.email, !admin.isBlocked)
                             val index = admins.indexOf(admin)
