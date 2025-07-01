@@ -16,6 +16,7 @@ import com.example.eduvod.viewmodel.AdminEduvodCreateRequest
 import com.example.eduvod.viewmodel.AdminEduvodResetRequest
 import com.example.eduvod.viewmodel.AdminResetRequest
 import com.example.eduvod.viewmodel.AdminUnassignRequest
+import com.example.eduvod.viewmodel.DashboardStats
 import com.example.eduvod.viewmodel.SchoolAdmin
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
@@ -139,6 +140,7 @@ interface ApiService {
         @Path("streamName") streamName: String
     ): Response<ApiResponse<Unit>>
 
-
-
+    //Dashboard
+    @GET("dashboard")
+    suspend fun getDashboardStats(): Response<ApiResponse<DashboardStats>>
 }

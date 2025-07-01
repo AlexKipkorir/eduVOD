@@ -39,7 +39,7 @@ import android.content.Context
 import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-
+import com.example.eduvod.viewmodel.DashboardViewModel
 
 
 class MainActivity : ComponentActivity() {
@@ -86,6 +86,7 @@ fun EduVODNavHost(
 ) {
     val context = LocalContext.current
     val authViewModel = remember { AuthViewModel(context) }
+    val dashboardViewModel: DashboardViewModel = viewModel()
 
     AnimatedNavHost(
         navController = navController,
@@ -104,7 +105,7 @@ fun EduVODNavHost(
             LoginScreen(navController = navController, authViewModel = authViewModel)
         }
         composable("dashboard") {
-            DashboardScreen(navController)
+            DashboardScreen(navController, viewModel = dashboardViewModel)
         }
         composable("schools") {
             SchoolManagementScreen(navController)

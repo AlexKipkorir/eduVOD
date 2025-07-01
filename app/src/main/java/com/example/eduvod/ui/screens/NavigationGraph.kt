@@ -14,6 +14,7 @@ import com.example.eduvod.ui.screens.schoolmanagement.ManageSchoolAdminsScreen
 import com.example.eduvod.ui.screens.schoolmanagement.SchoolDetailsScreen
 import com.example.eduvod.ui.screens.schoolmanagement.SchoolManagementScreen
 import com.example.eduvod.viewmodel.AuthViewModel
+import com.example.eduvod.viewmodel.DashboardViewModel
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -32,7 +33,9 @@ fun AppNavHost(navController: NavHostController) {
             LoginScreen(navController = navController, authViewModel = authViewModel)
         }
         composable("dashboard") {
-            DashboardScreen(navController)
+            val dashboardViewModel: DashboardViewModel = viewModel()
+
+            DashboardScreen(navController, viewModel = dashboardViewModel)
         }
         composable("Schools Management") { SchoolManagementScreen(navController) }
         composable("add_school?schoolName={schoolName}") { backStackEntry ->
