@@ -1,4 +1,4 @@
-package com.example.eduvod.ui.screens
+package com.example.eduvod.ui.screens.schoolmanagement
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,7 +47,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.model.School
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
@@ -160,37 +159,6 @@ fun AddSchoolScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
             //OG
-//            Button(
-//                onClick = {
-//                    when {
-//                        schoolName.isBlank() -> {
-//                            scope.launch {
-//                                snackbarHostState.showSnackbar("School Name is required.")
-//                            }
-//                        }
-//                        moeRegNo.isBlank() -> {
-//                            scope.launch {
-//                                snackbarHostState.showSnackbar("MoERegistration Number is required.")
-//                            }
-//                        }
-//                        email.isBlank() -> {
-//                            scope.launch {
-//                                snackbarHostState.showSnackbar("Email is required.")
-//                            }
-//                        }
-//                        else -> {
-//                            scope.launch {
-//                                snackbarHostState.showSnackbar("School data is valid. Ready to submit")
-//                            }
-//                        }
-//                    }
-//                },
-//                modifier = Modifier.fillMaxWidth()
-//            ) {
-//                Text("Submit School")
-//            }
-
-            //Retrofit
             Button(
                 onClick = {
                     when {
@@ -209,39 +177,11 @@ fun AddSchoolScreen(
                                 snackbarHostState.showSnackbar("Email is required.")
                             }
                         }
-                        selectedAdmin.isBlank() -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Admin need to be assigned")
-                            }
-                        }
                         else -> {
-                            val newSchool = School(
-                                id = 0,
-                                name = schoolName,
-                                moeRegNo = moeRegNo,
-                                kpsaRegNo = kpsaRegNo,
-                                curriculum = selectedCurriculum,
-                                category = selectedCategory,
-                                type = selectedType,
-                                composition = "Mixed",
-                                mobile = mobile,
-                                email = email,
-                                region = region,
-                                diocese = selectedDiocese,
-                                county = county,
-                                subCounty = subCounty,
-                                location = location,
-                                address = address,
-                                website = website,
-                                hasAdmin = true
-                            )
-                            viewModel.addSchool(newSchool, selectedAdmin)
-
-                            navController.navigate("schools") {
-                                popUpTo("add_school") { inclusive = true }
+                            scope.launch {
+                                snackbarHostState.showSnackbar("School data is valid. Ready to submit")
                             }
                         }
-
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -249,10 +189,66 @@ fun AddSchoolScreen(
                 Text("Submit School")
             }
 
+            //Retrofit
+//            Button(
+//                onClick = {
+//                    when {
+//                        schoolName.isBlank() -> {
+//                            scope.launch {
+//                                snackbarHostState.showSnackbar("School Name is required.")
+//                            }
+//                        }
+//                        moeRegNo.isBlank() -> {
+//                            scope.launch {
+//                                snackbarHostState.showSnackbar("MoERegistration Number is required.")
+//                            }
+//                        }
+//                        email.isBlank() -> {
+//                            scope.launch {
+//                                snackbarHostState.showSnackbar("Email is required.")
+//                            }
+//                        }
+//                        selectedAdmin.isBlank() -> {
+//                            scope.launch {
+//                                snackbarHostState.showSnackbar("Admin need to be assigned")
+//                            }
+//                        }
+//                        else -> {
+//                            val newSchool = School(
+//                                id = 0,
+//                                name = schoolName,
+//                                moeRegNo = moeRegNo,
+//                                kpsaRegNo = kpsaRegNo,
+//                                curriculum = selectedCurriculum,
+//                                category = selectedCategory,
+//                                type = selectedType,
+//                                composition = "Mixed",
+//                                mobile = mobile,
+//                                email = email,
+//                                region = region,
+//                                diocese = selectedDiocese,
+//                                county = county,
+//                                subCounty = subCounty,
+//                                location = location,
+//                                address = address,
+//                                website = website,
+//                                hasAdmin = true
+//                            )
+//                            viewModel.addSchool(newSchool, selectedAdmin)
+//
+//                            navController.navigate("schools") {
+//                                popUpTo("add_school") { inclusive = true }
+//                            }
+//                        }
+//
+//                    }
+//                },
+//                modifier = Modifier.fillMaxWidth()
+//            ) {
+//                Text("Submit School")
+//            }
         }
-
     }
-
 }
 
 @Composable

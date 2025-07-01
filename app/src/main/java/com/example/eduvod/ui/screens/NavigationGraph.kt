@@ -8,6 +8,11 @@ import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import androidx.navigation.NavHostController
 import com.example.eduvod.AuthViewModelFactory
+import com.example.eduvod.ui.screens.schoolmanagement.AddSchoolScreen
+import com.example.eduvod.ui.screens.schoolmanagement.EditSchoolScreen
+import com.example.eduvod.ui.screens.schoolmanagement.ManageSchoolAdminsScreen
+import com.example.eduvod.ui.screens.schoolmanagement.SchoolDetailsScreen
+import com.example.eduvod.ui.screens.schoolmanagement.SchoolManagementScreen
 import com.example.eduvod.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalAnimationApi::class)

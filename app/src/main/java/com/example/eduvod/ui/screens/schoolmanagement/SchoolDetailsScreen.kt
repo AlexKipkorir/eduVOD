@@ -1,4 +1,4 @@
-package com.example.eduvod.ui.screens
+package com.example.eduvod.ui.screens.schoolmanagement
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState

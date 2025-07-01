@@ -1,4 +1,4 @@
-package com.example.eduvod.ui.screens
+package com.example.eduvod.ui.screens.gradesmanagement
 
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
@@ -44,14 +44,15 @@ fun GradesManagementScreen(
     val groupedGrades = gradeList.groupBy { it.curriculum }
     val curriculumOptions = viewMap.allCurriculums
 
-    LaunchedEffect(Unit) {
-        viewMap.snackbarMessage.collect { message ->
-            message?.let {
-                snackbarHostState.showSnackbar(it)
-                viewMap.clearSnackbar()
-            }
-        }
-    }
+    //Retrofit
+//    LaunchedEffect(Unit) {
+//        viewMap.snackbarMessage.collect { message ->
+//            message?.let {
+//                snackbarHostState.showSnackbar(it)
+//                viewMap.clearSnackbar()
+//            }
+//        }
+//    }
 
     Scaffold(
         topBar = {

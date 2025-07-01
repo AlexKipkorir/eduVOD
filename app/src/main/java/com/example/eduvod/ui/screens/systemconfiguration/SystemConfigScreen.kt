@@ -1,4 +1,4 @@
-package com.example.eduvod.ui.screens
+package com.example.eduvod.ui.screens.systemconfiguration
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -69,14 +69,16 @@ fun SystemConfigScreen(
         "Region / Diocese" to viewModel.regions
     )
 
-    LaunchedEffect(Unit) {
-        viewModel.snackbarMessage.collect { message ->
-            if (message != null) {
-                snackbarHostState.showSnackbar(message)
-                viewModel.clearSnackbar()
-            }
-        }
-    }
+    //Retrofit
+//    LaunchedEffect(Unit) {
+//        viewModel.snackbarMessage.collect { message ->
+//            if (message != null) {
+//                snackbarHostState.showSnackbar(message)
+//                viewModel.clearSnackbar()
+//            }
+//        }
+//    }
+
     Scaffold(
         topBar = {
             TopAppBar(

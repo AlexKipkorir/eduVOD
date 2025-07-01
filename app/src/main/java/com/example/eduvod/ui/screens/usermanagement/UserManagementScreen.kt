@@ -1,4 +1,4 @@
-package com.example.eduvod.ui.screens
+package com.example.eduvod.ui.screens.usermanagement
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.*
@@ -18,7 +17,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.viewmodel.UserManagementViewModel
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.milliseconds
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,14 +31,16 @@ fun UserManagementScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     val admins = viewModel.admins
 
-    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+    //Retrofit
+//    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
 
-    LaunchedEffect(snackbarMessage) {
-        snackbarMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearSnackbar()
-        }
-    }
+//    LaunchedEffect(snackbarMessage) {
+//        snackbarMessage?.let {
+//            snackbarHostState.showSnackbar(it)
+//            viewModel.clearSnackbar()
+//        }
+//    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -113,23 +113,23 @@ fun UserManagementScreen(
                                 }
 
                                  //OG
-//                                IconButton(onClick = {
-//                                    scope.launch {
-//                                        snackbarHostState.showSnackbar("Password reset link sent.")
-//                                    }
-//                                }) {
-//                                    Icon(Icons.Default.Refresh, contentDescription = "Reset Account")
-//                                }
-
-                                //Retrofit
                                 IconButton(onClick = {
-                                    viewModel.resetPassword(admin.email)
                                     scope.launch {
-                                        snackbarHostState.showSnackbar("Password reset for ${admin.email}")
+                                        snackbarHostState.showSnackbar("Password reset link sent.")
                                     }
                                 }) {
                                     Icon(Icons.Default.Refresh, contentDescription = "Reset Account")
                                 }
+
+                                //Retrofit
+//                                IconButton(onClick = {
+//                                    viewModel.resetPassword(admin.email)
+//                                    scope.launch {
+//                                        snackbarHostState.showSnackbar("Password reset for ${admin.email}")
+//                                    }
+//                                }) {
+//                                    Icon(Icons.Default.Refresh, contentDescription = "Reset Account")
+//                                }
 
                             }
                         }
@@ -143,23 +143,23 @@ fun UserManagementScreen(
         AddAdminDialog(
             onDismiss = { showAddDialog = false },
             //OG
-//            onConfirm = { email, password ->
-//                val added = viewModel.addAdmin(email)
-//                scope.launch {
-//                    snackbarHostState.showSnackbar(
-//                        if (added) "Admin added successfully." else "Admin already exists"
-//                    )
-//                }
-//                showAddDialog = false
-//            }
-            //Retrofit
-            onConfirm = { email, password ->
-                viewModel.addAdmin(email, password)
+            onConfirm = { email, _ ->
+                val added = viewModel.addAdmin(email)
                 scope.launch {
-                    snackbarHostState.showSnackbar("Admin added successfully.")
+                    snackbarHostState.showSnackbar(
+                        if (added) "Admin added successfully." else "Admin already exists"
+                    )
                 }
                 showAddDialog = false
             }
+            //Retrofit
+//            onConfirm = { email, password ->
+//                viewModel.addAdmin(email, password)
+//                scope.launch {
+//                    snackbarHostState.showSnackbar("Admin added successfully.")
+//                }
+//                showAddDialog = false
+//            }
         )
     }
 }

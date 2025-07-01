@@ -1,4 +1,4 @@
-package com.example.eduvod.ui.screens
+package com.example.eduvod.ui.screens.gradesmanagement
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -48,12 +48,13 @@ fun StreamViewScreen(
     var newStream by remember { mutableStateOf("") }
     val snackbar by viewModel.snackbarMessage.collectAsState()
 
-    LaunchedEffect(snackbar) {
-        snackbar?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearSnackbar()
-        }
-    }
+    //Retrofit
+//    LaunchedEffect(snackbar) {
+//        snackbar?.let {
+//            snackbarHostState.showSnackbar(it)
+//            viewModel.clearSnackbar()
+//        }
+//    }
 
     Scaffold(
         topBar = {

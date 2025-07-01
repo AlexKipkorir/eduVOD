@@ -2,7 +2,7 @@ package com.example.eduvod.model
 
 
 data class School(
-    val id: Int,
+    val id: String,
     val name: String,
     val moeRegNo: String,
     val kpsaRegNo: String,

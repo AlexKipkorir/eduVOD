@@ -1,4 +1,4 @@
-package com.example.eduvod.ui.screens
+package com.example.eduvod.ui.screens.schoolmanagement
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -95,29 +95,29 @@ fun ManageSchoolAdminsScreen(
                     AdminCard(
                         admin = admin,
                         //OG
-//                        onBlock = {
-//                            admin.isBlocked = !admin.isBlocked
-//                        },
-//                        onReset = {
-//                            scope.launch {
-//                                snackbarHostState.showSnackbar("Password reset for ${admin.email}")
-//                            }
-//                        }
-
-                        //Retrofit
                         onBlock = {
-                            viewModel.blockAdmin(admin.email, !admin.isBlocked)
-                            val index = admins.indexOf(admin)
-                            if (index != -1) {
-                                admins[index] = admins[index].copy(isBlocked = !admins[index].isBlocked)
-                            }
+                            admin.isBlocked = !admin.isBlocked
                         },
                         onReset = {
-                            viewModel.resetAdmin(admin.email)
                             scope.launch {
                                 snackbarHostState.showSnackbar("Password reset for ${admin.email}")
                             }
                         }
+
+                        //Retrofit
+//                        onBlock = {
+//                            viewModel.blockAdmin(admin.email, !admin.isBlocked)
+//                            val index = admins.indexOf(admin)
+//                            if (index != -1) {
+//                                admins[index] = admins[index].copy(isBlocked = !admins[index].isBlocked)
+//                            }
+//                        },
+//                        onReset = {
+//                            viewModel.resetAdmin(admin.email)
+//                            scope.launch {
+//                                snackbarHostState.showSnackbar("Password reset for ${admin.email}")
+//                            }
+//                        }
                     )
                 }
             }

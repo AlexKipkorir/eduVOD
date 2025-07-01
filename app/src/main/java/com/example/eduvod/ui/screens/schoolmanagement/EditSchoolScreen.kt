@@ -1,4 +1,4 @@
-package com.example.eduvod.ui.screens
+package com.example.eduvod.ui.screens.schoolmanagement
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -186,7 +186,7 @@ fun EditSchoolScreen(
                             if (selectedAdmin.isNotBlank()) {
                                 viewModel.reassignAdmin(selectedAdmin, it.name)
                             }
-                            snackbarHostState.showSnackbar("Changes saved for ${originalSchool?.name}")
+                            snackbarHostState.showSnackbar("Changes saved for ${originalSchool.name}")
                             navController.popBackStack()
                         }
                     }
