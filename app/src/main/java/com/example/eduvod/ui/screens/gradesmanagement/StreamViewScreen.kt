@@ -47,14 +47,15 @@ fun StreamViewScreen(
 
     var newStream by remember { mutableStateOf("") }
     val snackbar by viewModel.snackbarMessage.collectAsState()
+    var streamToDelete by remember { mutableStateOf<String?>(null) }
 
-    //Retrofit
-//    LaunchedEffect(snackbar) {
-//        snackbar?.let {
-//            snackbarHostState.showSnackbar(it)
-//            viewModel.clearSnackbar()
-//        }
-//    }
+
+    LaunchedEffect(snackbar) {
+        snackbar?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSnackbar()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -110,7 +111,6 @@ fun StreamViewScreen(
                 }
             )
 
-            // Summary card
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
                 modifier = Modifier.fillMaxWidth(),
@@ -167,10 +167,7 @@ fun StreamViewScreen(
                                             Icon(Icons.Default.Edit, contentDescription = "Edit")
                                         }
                                         IconButton(onClick = {
-                                            viewModel.removeStreamFromSelectedGrade(stream.name)
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar("Stream deleted.")
-                                            }
+                                            streamToDelete = stream.name
                                         }) {
                                             Icon(Icons.Default.Delete, contentDescription = "Delete")
                                         }
@@ -216,7 +213,33 @@ fun StreamViewScreen(
                                 }
                             )
                         }
+
+
                     }
+                }
+                if (streamToDelete != null) {
+                    AlertDialog(
+                        onDismissRequest = { streamToDelete = null },
+                        title = { Text("Confirm Deletion") },
+                        text = { Text("Are you sure you want to delete stream \"${streamToDelete}\"?") },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                viewModel.removeStreamFromSelectedGrade(streamToDelete!!)
+                                streamToDelete = null
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Stream deleted.")
+                                }
+                            }) {
+                                Text("Delete")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { streamToDelete = null }) {
+                                Text("Cancel")
+                            }
+                        },
+                        shape = RoundedCornerShape(16.dp)
+                    )
                 }
             }
         }

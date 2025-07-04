@@ -43,16 +43,18 @@ fun GradesManagementScreen(
     val gradeList = viewMap.grades
     val groupedGrades = gradeList.groupBy { it.curriculum }
     val curriculumOptions = viewMap.allCurriculums
+    var gradeToDelete by remember { mutableStateOf<Grade?>(null) }
+
 
     //Retrofit
-//    LaunchedEffect(Unit) {
-//        viewMap.snackbarMessage.collect { message ->
-//            message?.let {
-//                snackbarHostState.showSnackbar(it)
-//                viewMap.clearSnackbar()
-//            }
-//        }
-//    }
+    LaunchedEffect(Unit) {
+        viewMap.snackbarMessage.collect { message ->
+            message?.let {
+                snackbarHostState.showSnackbar(it)
+                viewMap.clearSnackbar()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -168,18 +170,21 @@ fun GradesManagementScreen(
                                     IconButton(onClick = {
                                         navController.navigate("view_streams/${Uri.encode(grade.name)}")
                                     }) {
-                                        Icon(Icons.Default.Visibility, contentDescription = "View Stream", tint = Color(0xFF1565C0))
+                                        Icon(
+                                            Icons.Default.Visibility,
+                                            contentDescription = "View Stream",
+                                            tint = Color(0xFF1565C0)
+                                        )
                                     }
 
-                                    if (!grade.hasSchool) {
-                                        IconButton(onClick = {
-                                            viewMap.deleteGrade(grade)
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar("Deleted: ${grade.name}")
-                                            }
-                                        }) {
-                                            Icon(Icons.Default.Delete, contentDescription = "Delete Grade", tint = Color.Black)
-                                        }
+                                    IconButton(onClick = {
+                                        gradeToDelete = grade
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete Grade",
+                                            tint = Color.Black
+                                        )
                                     }
                                 }
                             }
@@ -257,6 +262,32 @@ fun GradesManagementScreen(
                 TextButton(onClick = { showDialog = false }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+    gradeToDelete?.let { grade ->
+        AlertDialog(
+            onDismissRequest = { gradeToDelete = null },
+            title = { Text("Confirm Deletion") },
+            text = { Text("Are you sure you want to delete '${grade.name}'? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewMap.deleteGrade(grade)
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Deleted: ${grade.name}")
+                    }
+                    gradeToDelete = null
+                }) {
+                    Text("Delete", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { gradeToDelete = null }) {
+                    Text("Cancel")
+                }
+            },
+            icon = {
+                Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red)
             }
         )
     }

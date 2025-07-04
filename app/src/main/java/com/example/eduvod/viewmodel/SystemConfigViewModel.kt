@@ -12,32 +12,67 @@ import kotlinx.coroutines.launch
 //OG
 class SystemConfigViewModel : ViewModel() {
 
-    // Lists representing dropdown data
     val types = mutableStateListOf("Primary", "Secondary", "Mixed")
     val categories = mutableStateListOf("Public", "Private")
     val curriculums = mutableStateListOf("CBC", "8-4-4", "British", "IGSE")
-    val regions = mutableStateListOf("Nairobi Diocese", "Mombasa Diocese", "Kisumu Diocese", "Eldoret Diocese", "Garissa Diocese", "Isiolo Diocese", "Nakuru Diocese", "Turkana Diocese",)
+    val regions = mutableStateListOf(
+        "Nairobi Diocese", "Mombasa Diocese", "Kisumu Diocese",
+        "Eldoret Diocese", "Garissa Diocese", "Isiolo Diocese",
+        "Nakuru Diocese", "Turkana Diocese"
+    )
 
-    fun addItem(section: String, value: String) { sectionList(section).add(value) }
+    val snackbarMessage = MutableStateFlow<String?>(null)
 
-    fun updateItem(section: String, old: String, new: String) {
+    init {
+        loadAll()
+    }
+
+    private fun loadAll() {
+    }
+
+    fun sectionList(section: String): SnapshotStateList<String> {
+        return when (section) {
+            "School Type" -> types
+            "School Category" -> categories
+            "Curriculum" -> curriculums
+            "Region / Diocese" -> regions
+            else -> mutableStateListOf()
+        }
+    }
+
+    fun addItem(section: String, value: String) {
         val list = sectionList(section)
-        val index = list.indexOf(old)
-        if (index != -1) list[index] = new
+        viewModelScope.launch {
+            if (!list.contains(value)) {
+                list.add(value)
+            } else {
+                snackbarMessage.value = "$value already exists in $section"
+            }
+        }
+    }
+
+    fun updateItem(section: String, oldValue: String, newValue: String) {
+        val list = sectionList(section)
+        viewModelScope.launch {
+            val index = list.indexOf(oldValue)
+            if (index != -1 && !list.contains(newValue)) {
+                list[index] = newValue
+            } else {
+                snackbarMessage.value = "Failed to update $section"
+            }
+        }
     }
 
     fun deleteItem(section: String, value: String) {
-        sectionList(section).remove(value)
+        val list = sectionList(section)
+        viewModelScope.launch {
+            list.remove(value)
+        }
     }
 
-    fun sectionList(section: String): SnapshotStateList<String> = when (section) {
-        "School Type" -> types
-        "School Category" -> categories
-        "Curriculum" -> curriculums
-        "Region / Diocese" -> regions
-        else -> mutableStateListOf()
+    fun clearSnackbar() {
+        snackbarMessage.value = null
     }
-
 }
 
 //Retrofit

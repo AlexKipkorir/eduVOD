@@ -8,12 +8,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,6 +54,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.material3.SnackbarResult
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +70,8 @@ fun SystemConfigScreen(
     var dialogSection by remember { mutableStateOf("") }
     var oldValue by remember { mutableStateOf("") }
     var inputValue by remember { mutableStateOf("") }
+    var pendingDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
 
     val configSections = listOf(
         "School Type" to viewModel.types,
@@ -69,15 +80,21 @@ fun SystemConfigScreen(
         "Region / Diocese" to viewModel.regions
     )
 
-    //Retrofit
-//    LaunchedEffect(Unit) {
-//        viewModel.snackbarMessage.collect { message ->
-//            if (message != null) {
-//                snackbarHostState.showSnackbar(message)
-//                viewModel.clearSnackbar()
-//            }
-//        }
-//    }
+    val sectionIcons = mapOf(
+        "School Type" to Icons.Default.School,
+        "School Category" to Icons.Default.AccountBalance,
+        "Curriculum" to Icons.Default.MenuBook,
+        "Region / Diocese" to Icons.Default.Place
+    )
+
+    LaunchedEffect(Unit) {
+        viewModel.snackbarMessage.collect { message ->
+            if (message != null) {
+                snackbarHostState.showSnackbar(message)
+                viewModel.clearSnackbar()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -94,91 +111,99 @@ fun SystemConfigScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color(0xFFF4F9FC)
     ) { padding ->
-        LazyColumn(
-            contentPadding = padding,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            configSections.forEach { (title, list) ->
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = title,
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontSize = 24.sp,
-                                        color = Color(0xFF0D47A1),
-                                        fontWeight = MaterialTheme.typography.titleMedium.fontWeight
-                                    )
-                                )
+        Column(Modifier.padding(padding).padding(16.dp)) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Search across all sections") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-                                IconButton(onClick = {
-                                    inputValue = ""
-                                    oldValue = ""
-                                    dialogSection = title
-                                    isEditDialog = false
-                                    showDialog = true
-                                }) {
-                                    Icon(Icons.Default.Add, contentDescription = "Add")
-                                }
-                            }
-                        }
+            Spacer(Modifier.height(12.dp))
 
-                        Spacer(modifier = Modifier.height(8.dp))
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                configSections.forEach { (title, list) ->
+                    val filtered = list.filter { it.contains(searchQuery, ignoreCase = true) }
 
-                        if (list.isEmpty()) {
-                            Text("No entries yet.", color = Color.Gray)
-                        } else {
-                            list.forEach { item ->
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 6.dp)
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = item,
-                                        fontSize = 15.sp,
-                                        modifier = Modifier.padding(start = 8.dp),
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.Bold
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            sectionIcons[title] ?: Icons.Default.Settings,
+                                            contentDescription = title,
+                                            tint = Color(0xFF0D47A1),
+                                            modifier = Modifier.size(24.dp)
                                         )
-                                    )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            title,
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0D47A1)
+                                        )
+                                    }
 
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        IconButton(onClick = {
-                                            inputValue = item
-                                            oldValue = item
-                                            dialogSection = title
-                                            isEditDialog = true
-                                            showDialog = true
-                                        }) {
-                                            Icon(Icons.Default.Edit, contentDescription = "Edit")
-                                        }
-                                        IconButton(onClick = {
-                                            viewModel.deleteItem(dialogSection, item)
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar("Deleted: $item")
+                                    IconButton(onClick = {
+                                        inputValue = ""
+                                        oldValue = ""
+                                        dialogSection = title
+                                        isEditDialog = false
+                                        showDialog = true
+                                    }) {
+                                        Icon(Icons.Default.Add, contentDescription = "Add")
+                                    }
+                                }
+
+                                Spacer(Modifier.height(8.dp))
+
+                                if (filtered.isEmpty()) {
+                                    Text("No entries found.", color = Color.Gray)
+                                } else {
+                                    filtered.forEach { item ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                item,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                IconButton(onClick = {
+                                                    inputValue = item
+                                                    oldValue = item
+                                                    dialogSection = title
+                                                    isEditDialog = true
+                                                    showDialog = true
+                                                }) {
+                                                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                                }
+
+                                                IconButton(onClick = {
+                                                    pendingDelete = title to item
+                                                }) {
+                                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                                                }
                                             }
-                                        }) {
-                                            Icon(Icons.Default.Delete, contentDescription = "Delete")
                                         }
                                     }
                                 }
                             }
-
                         }
                     }
                 }
@@ -186,12 +211,11 @@ fun SystemConfigScreen(
         }
     }
 
+    // Add/Edit Dialog
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = {
-                Text(if (isEditDialog) "Edit $dialogSection" else "Add $dialogSection")
-            },
+            title = { Text(if (isEditDialog) "Edit $dialogSection" else "Add $dialogSection") },
             text = {
                 OutlinedTextField(
                     value = inputValue,
@@ -204,30 +228,22 @@ fun SystemConfigScreen(
             confirmButton = {
                 TextButton(onClick = {
                     if (inputValue.isBlank()) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Input cannot be empty.")
-                        }
+                        scope.launch { snackbarHostState.showSnackbar("Input cannot be empty.") }
                         return@TextButton
                     }
 
                     val exists = viewModel.sectionList(dialogSection).contains(inputValue)
                     if (!isEditDialog && exists) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("This value already exists.")
-                        }
+                        scope.launch { snackbarHostState.showSnackbar("This value already exists.") }
                         return@TextButton
                     }
 
                     if (isEditDialog) {
                         viewModel.updateItem(dialogSection, oldValue, inputValue)
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Updated $dialogSection.")
-                        }
+                        scope.launch { snackbarHostState.showSnackbar("Updated $dialogSection.") }
                     } else {
                         viewModel.addItem(dialogSection, inputValue)
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Added to $dialogSection.")
-                        }
+                        scope.launch { snackbarHostState.showSnackbar("Added to $dialogSection.") }
                     }
 
                     showDialog = false
@@ -237,6 +253,38 @@ fun SystemConfigScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Confirm Delete Dialog
+    pendingDelete?.let { (section, value) ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Confirm Delete") },
+            text = { Text("Are you sure you want to delete \"$value\" from $section?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteItem(section, value)
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "Deleted \"$value\"",
+                            actionLabel = "Undo"
+                        ).also {
+                            if (it == SnackbarResult.ActionPerformed) {
+                                viewModel.addItem(section, value)
+                            }
+                        }
+                    }
+                    pendingDelete = null
+                }) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
                     Text("Cancel")
                 }
             }
