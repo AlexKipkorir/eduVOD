@@ -152,7 +152,6 @@ fun SchoolAdminsScreen(
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                                 if(admin.assignedSchool != null) {
-//                                    Text("Assigned to ${admin.assignedSchool}", fontSize = 13.sp, color = Color.Gray)
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Button(onClick = { viewModel.unassignAdmin(admin.email) }) {
                                         Icon(Icons.Default.Clear, contentDescription = null)

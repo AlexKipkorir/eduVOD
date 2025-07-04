@@ -55,6 +55,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,15 +104,17 @@ fun SchoolManagementScreen(
 
     val context = LocalContext.current
 
-    //Retrofit
-//    LaunchedEffect(Unit) {
-//        viewModel.snackbarMessage.collect { message ->
-//            message?.let {
-//                snackbarHostState.showSnackbar(it)
-//                viewModel.clearSnackbarMessage()
-//            }
-//        }
-//    }
+    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.snackbarMessage.collect { message ->
+            message?.let {
+                snackbarHostState.showSnackbar(it)
+                viewModel.clearSnackbarMessage()
+            }
+        }
+    }
+
     var selectedFileName by remember { mutableStateOf<String?>(null) }
 
     //OG

@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.eduvod.model.School
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
@@ -67,7 +68,6 @@ fun AddSchoolScreen(
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-//    val viewModel: SchoolManagementViewModel = viewModel()
 
 
     //Form States
@@ -83,19 +83,10 @@ fun AddSchoolScreen(
     var address by remember { mutableStateOf("") }
     var website by remember { mutableStateOf("") }
 
-
-    //Dropdowns (Static options for now)
-    //OG
-    val types = listOf("Primary", "Secondary", "Mixed", "Special Needs")
-    val categories = listOf("Public", "Private")
-    val curriculums = listOf("CBC", "British", "IGCSE", "8-4-4")
-    val region = listOf("Nairobi", "Mombasa", "Nakuru", "Kisumu", "Eldoret", "Garissa", "Isiolo", "Turkana")
-
-    //Retrofit
-//    val types = configViewModel.types
-//    val categories = configViewModel.categories
-//    val curriculums = configViewModel.curriculums
-//    val region = configViewModel.regions
+    val types = configViewModel.types
+    val categories = configViewModel.categories
+    val curriculums = configViewModel.curriculums
+    val region = configViewModel.regions
 
     var selectedType by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("") }
@@ -135,17 +126,10 @@ fun AddSchoolScreen(
             CustomTextField("KPSA Reg No", kpsaRegNo) { kpsaRegNo = it }
             CustomTextField("School Name", schoolName) { schoolName = it }
 
-            //OG
-            DropdownField("Curriculum", curriculums,selectedCurriculum) { selectedCurriculum = it }
+            DropdownField("Curriculum", curriculums, selectedCurriculum) { selectedCurriculum = it }
             DropdownField("Category", categories, selectedCategory) { selectedCategory = it }
-            DropdownField("Type", types, selectedType) { selectedType = it }
+            DropdownField("Type",types, selectedType) { selectedType = it }
             DropdownField("Region", region, selectedRegion) { selectedRegion = it }
-
-            // Retrofit
-//            DropdownField("Curriculum", curriculums, selectedCurriculum) { selectedCurriculum = it }
-//            DropdownField("Category", categories, selectedCategory) { selectedCategory = it }
-//            DropdownField("Type",types, selectedType) { selectedType = it }
-//            DropdownField("Region", region, selectedRegion) { selectedRegion = it }
 
             CustomTextField("Diocese", dioceses) { dioceses = it }
             CustomTextField("County", county) { county = it }
@@ -174,7 +158,6 @@ fun AddSchoolScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-            //OG
             Button(
                 onClick = {
                     when {
@@ -193,9 +176,36 @@ fun AddSchoolScreen(
                                 snackbarHostState.showSnackbar("Email is required.")
                             }
                         }
-                        else -> {
+                        selectedAdmin.isBlank() -> {
                             scope.launch {
-                                snackbarHostState.showSnackbar("School data is valid. Ready to submit")
+                                snackbarHostState.showSnackbar("Admin need to be assigned")
+                            }
+                        }
+                        else -> {
+                            val newSchool = School(
+                                id = (schoolViewModel.schools.size + 1).toString(),
+                                name = schoolName,
+                                moeRegNo = moeRegNo,
+                                kpsaRegNo = kpsaRegNo,
+                                curriculum = selectedCurriculum,
+                                category = selectedCategory,
+                                type = selectedType,
+                                composition = "Mixed",
+                                mobile = mobile,
+                                email = email,
+                                region = selectedRegion,
+                                diocese = dioceses,
+                                county = county,
+                                subCounty = subCounty,
+                                location = location,
+                                address = address,
+                                website = website,
+                                hasAdmin = true
+                            )
+                            schoolViewModel.addSchool(newSchool, selectedAdmin)
+
+                            navController.navigate("schools") {
+                                popUpTo("add_school") { inclusive = true }
                             }
                         }
                     }
@@ -204,65 +214,6 @@ fun AddSchoolScreen(
             ) {
                 Text("Submit School")
             }
-
-            //Retrofit
-//            Button(
-//                onClick = {
-//                    when {
-//                        schoolName.isBlank() -> {
-//                            scope.launch {
-//                                snackbarHostState.showSnackbar("School Name is required.")
-//                            }
-//                        }
-//                        moeRegNo.isBlank() -> {
-//                            scope.launch {
-//                                snackbarHostState.showSnackbar("MoERegistration Number is required.")
-//                            }
-//                        }
-//                        email.isBlank() -> {
-//                            scope.launch {
-//                                snackbarHostState.showSnackbar("Email is required.")
-//                            }
-//                        }
-//                        selectedAdmin.isBlank() -> {
-//                            scope.launch {
-//                                snackbarHostState.showSnackbar("Admin need to be assigned")
-//                            }
-//                        }
-//                        else -> {
-//                            val newSchool = School(
-//                                id = 0,
-//                                name = schoolName,
-//                                moeRegNo = moeRegNo,
-//                                kpsaRegNo = kpsaRegNo,
-//                                curriculum = selectedCurriculum,
-//                                category = selectedCategory,
-//                                type = selectedType,
-//                                composition = "Mixed",
-//                                mobile = mobile,
-//                                email = email,
-//                                region = region,
-//                                diocese = selectedDiocese,
-//                                county = county,
-//                                subCounty = subCounty,
-//                                location = location,
-//                                address = address,
-//                                website = website,
-//                                hasAdmin = true
-//                            )
-//                            viewModel.addSchool(newSchool, selectedAdmin)
-//
-//                            navController.navigate("schools") {
-//                                popUpTo("add_school") { inclusive = true }
-//                            }
-//                        }
-//
-//                    }
-//                },
-//                modifier = Modifier.fillMaxWidth()
-//            ) {
-//                Text("Submit School")
-//            }
         }
     }
 }

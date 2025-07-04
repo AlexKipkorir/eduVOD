@@ -277,7 +277,7 @@ class SchoolManagementViewModel : ViewModel() {
     var selectedRegion = mutableStateOf("ALL")
     var selectedType = mutableStateOf("ALL")
 
-    val snackbarMessage = mutableStateOf<String?>(null)
+    val snackbarMessage = MutableStateFlow<String?>(null)
 
     val schools = mutableStateListOf(
         School("1", "Green Ivy High", "MOE1001", "KPSA1001", "CBC", "Public", "Secondary", "Mixed", "0700000001", "ivy@edu.org", "Nairobi", "Nairobi Diocese", "Nairobi", "Westlands", "Kangemi", "P.O. Box 123", "www.greenivy.ac.ke", false),
