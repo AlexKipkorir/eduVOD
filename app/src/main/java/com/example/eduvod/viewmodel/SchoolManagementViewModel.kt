@@ -3,8 +3,15 @@ package com.example.eduvod.viewmodel
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.eduvod.model.School
-
+import com.example.eduvod.repositories.SchoolRepository
+import com.example.eduvod.ui.screens.schoolmanagement.AdminAccount
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import okhttp3.MultipartBody
+import okhttp3.ResponseBody
+import retrofit2.Response
 
 data class AdminCreateRequest(
     val email: String,
@@ -33,10 +40,10 @@ data class AdminResetRequest(
 //data class SchoolAdmin(
 //    val id: Int,
 //    val email: String,
-//    val isBlocked: Boolean,
+//    var isBlocked: Boolean,
 //    val assignedSchool: String?
 //)
-
+//
 //class SchoolManagementViewModel(
 //    private val repository: SchoolRepository = SchoolRepository()
 //) : ViewModel() {
@@ -106,7 +113,7 @@ data class AdminResetRequest(
 //                val response = repository.updateSchool(id, school)
 //                if (response.isSuccessful) {
 //                    val updatedSchool = response.body()?.data
-//                    val index = schools.indexOfFirst { it.id == id }
+//                    val index = schools.indexOfFirst { it.id == id.toString() }
 //                    if (index != -1 && updatedSchool != null) {
 //                        schools[index] = updatedSchool
 //                    }
@@ -118,8 +125,6 @@ data class AdminResetRequest(
 //            }
 //        }
 //    }
-//
-//
 //    suspend fun fetchSchoolById(id: Int): School? {
 //        return try {
 //            val response = repository.getSchoolById(id)
@@ -163,12 +168,12 @@ data class AdminResetRequest(
 //        return schools.find { it.name == name }
 //    }
 //
-//    fun deleteSchool(id: Int) {
+//    fun deleteSchool(schoolId: Int) {
 //        viewModelScope.launch {
 //            try {
-//                val response = repository.deleteSchool(id)
+//                val response = repository.deleteSchool(schoolId)
 //                if (response.isSuccessful) {
-//                    schools.removeIf { it.id == id }
+//                    schools.removeIf { it.id == schoolId.toString() }
 //                } else {
 //                    snackbarMessage.value = "Failed to delete school."
 //                }
@@ -177,7 +182,6 @@ data class AdminResetRequest(
 //            }
 //        }
 //    }
-//
 //    // --- ADMIN Functions ---//
 //    fun fetchAdmins() {
 //        viewModelScope.launch {
@@ -196,8 +200,6 @@ data class AdminResetRequest(
 //            }
 //        }
 //    }
-//
-//
 //    fun addAdmin(email: String): Boolean {
 //        if (schoolAdmins.any { it.email.equals(email, ignoreCase = true) }) return false
 //        viewModelScope.launch {
@@ -210,8 +212,6 @@ data class AdminResetRequest(
 //        }
 //        return true
 //    }
-//
-//
 //    fun unassignAdmin(adminEmail: String) {
 //        viewModelScope.launch {
 //            try {
@@ -225,9 +225,8 @@ data class AdminResetRequest(
 //            }
 //        }
 //    }
-//
 //    fun reassignAdmin(email: String, schoolName: String) {
-//        val schoolId = getSchoolByName(schoolName)?.id ?: return
+//        val schoolId = getSchoolByName(schoolName)?.id?.toString()?.toIntOrNull() ?: return
 //        viewModelScope.launch {
 //            try {
 //                repository.assignAdminToSchool(AdminAssignRequest(email, schoolId))
@@ -237,7 +236,6 @@ data class AdminResetRequest(
 //            }
 //        }
 //    }
-//
 //    fun getUnassignedAdmins(): List<String> {
 //        return schoolAdmins.filter { it.assignedSchool == null }.map { it.email }
 //    }
@@ -252,7 +250,6 @@ data class AdminResetRequest(
 //            }
 //        }
 //    }
-//
 //    fun resetAdmin(email: String) {
 //        viewModelScope.launch {
 //            try {
@@ -262,7 +259,6 @@ data class AdminResetRequest(
 //            }
 //        }
 //    }
-//
 //    fun clearSnackbarMessage() {
 //        snackbarMessage.value = null
 //    }
@@ -272,7 +268,7 @@ data class AdminResetRequest(
 data class SchoolAdmin(
     val email: String,
     val assignedSchool: String? = null,
-    val isBlocked: Boolean = false
+    var isBlocked: Boolean = false
 )
 
 class SchoolManagementViewModel : ViewModel() {
@@ -394,7 +390,6 @@ class SchoolManagementViewModel : ViewModel() {
     }
 
     fun fetchAdmins() {
-        // In a dummy implementation, this might do nothing or just simulate refresh
         snackbarMessage.value = "Admins refreshed"
     }
 

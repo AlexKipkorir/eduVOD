@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+
 data class AdminUser(
     val email: String,
     val isBlocked: Boolean = false
@@ -21,6 +22,10 @@ data class AdminEduvodCreateRequest(
 
 data class AdminEduvodResetRequest(
     val email: String
+)
+data class AdminEduvodBlockRequest(
+    val email: String,
+    val block: Boolean
 )
 
 //OG
@@ -36,21 +41,59 @@ class UserManagementViewModel : ViewModel() {
         AdminUser("karey@eduvod.com"),
         AdminUser("shawn@eduvod.com"),
         AdminUser("derrick@eduvod.com"),
+    )
 
-        )
+    private val _snackbarMessage = MutableStateFlow<String?>(null)
+    val snackbarMessage: StateFlow<String?> = _snackbarMessage
 
-    fun addAdmin(email: String): Boolean {
-        if (admins.any { it.email.equals(email, ignoreCase = true) }) return false
-        admins.add(AdminUser(email))
-        return true
+    fun fetchAllAdmins() {
+        Log.d("UserVM", "Dummy: Fetched all admins.")
+        _snackbarMessage.value = "Admins loaded"
+    }
+
+    fun addAdmin(email: String, password: String) {
+        viewModelScope.launch {
+            val exists = admins.any { it.email.equals(email, ignoreCase = true) }
+            if (exists) {
+                _snackbarMessage.value = "Admin already exists"
+                return@launch
+            }
+
+            admins.add(AdminUser(email))
+            Log.d("UserVM", "Dummy: Added admin $email")
+            _snackbarMessage.value = "Admin added successfully"
+        }
     }
 
     fun toggleBlock(admin: AdminUser) {
-        val index = admins.indexOfFirst { it.email == admin.email }
-        if (index != -1) {
-            val updated = admin.copy(isBlocked = !admin.isBlocked)
-            admins[index] = updated
+        viewModelScope.launch {
+            val index = admins.indexOfFirst { it.email == admin.email }
+            if (index != -1) {
+                admins[index] = admin.copy(isBlocked = !admin.isBlocked)
+                _snackbarMessage.value = if (admin.isBlocked) {
+                    "Admin unblocked"
+                } else {
+                    "Admin blocked"
+                }
+                Log.d("UserVM", "Dummy: Toggled block for ${admin.email}")
+            }
         }
+    }
+
+    fun resetPassword(email: String) {
+        viewModelScope.launch {
+            val exists = admins.any { it.email == email }
+            if (exists) {
+                _snackbarMessage.value = "Password reset link sent"
+                Log.d("UserVM", "Dummy: Password reset for $email")
+            } else {
+                _snackbarMessage.value = "Admin not found"
+            }
+        }
+    }
+
+    fun clearSnackbar() {
+        _snackbarMessage.value = null
     }
 }
 

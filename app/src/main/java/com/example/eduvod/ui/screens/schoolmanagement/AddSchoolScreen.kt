@@ -47,9 +47,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.eduvod.model.School
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
+import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
 
 
@@ -58,9 +59,11 @@ import kotlinx.coroutines.launch
 fun AddSchoolScreen(
     navController: NavHostController,
     prefillSchoolName: String?,
-    viewModel: SchoolManagementViewModel
-
+    schoolViewModel: SchoolManagementViewModel
 ) {
+    val configViewModel: SystemConfigViewModel = viewModel()
+
+
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -73,7 +76,7 @@ fun AddSchoolScreen(
     var schoolName by remember { mutableStateOf(prefillSchoolName ?: "") }
     var mobile by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var region by remember { mutableStateOf("") }
+    var dioceses by remember { mutableStateOf("") }
     var county by remember { mutableStateOf("") }
     var subCounty by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
@@ -82,15 +85,22 @@ fun AddSchoolScreen(
 
 
     //Dropdowns (Static options for now)
+    //OG
     val types = listOf("Primary", "Secondary", "Mixed", "Special Needs")
     val categories = listOf("Public", "Private")
     val curriculums = listOf("CBC", "British", "IGCSE", "8-4-4")
-    val dioceses = listOf("Nairobi Diocese", "Western Diocese", "Coastal Diocese")
+    val region = listOf("Nairobi", "Mombasa", "Nakuru", "Kisumu", "Eldoret", "Garissa", "Isiolo", "Turkana")
+
+    //Retrofit
+//    val types = configViewModel.types
+//    val categories = configViewModel.categories
+//    val curriculums = configViewModel.curriculums
+//    val region = configViewModel.regions
 
     var selectedType by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("") }
     var selectedCurriculum by remember { mutableStateOf("") }
-    var selectedDiocese by remember { mutableStateOf("") }
+    var selectedRegion by remember { mutableStateOf("") }
 
     var selectedAdmin by remember { mutableStateOf("") }
 
@@ -125,13 +135,19 @@ fun AddSchoolScreen(
             CustomTextField("KPSA Reg No", kpsaRegNo) { kpsaRegNo = it }
             CustomTextField("School Name", schoolName) { schoolName = it }
 
+            //OG
             DropdownField("Curriculum", curriculums,selectedCurriculum) { selectedCurriculum = it }
             DropdownField("Category", categories, selectedCategory) { selectedCategory = it }
             DropdownField("Type", types, selectedType) { selectedType = it }
-            DropdownField("Region", listOf(
-                "Nairobi", "Mombasa", "Nakuru", "Kisumu", "Eldoret", "Garrissa", "Isiolo", "Turkana"
-            ), region) { region = it }
-            DropdownField("Diocese", dioceses, selectedDiocese) { selectedDiocese = it }
+            DropdownField("Region", region, selectedRegion) { selectedRegion = it }
+
+            // Retrofit
+//            DropdownField("Curriculum", curriculums, selectedCurriculum) { selectedCurriculum = it }
+//            DropdownField("Category", categories, selectedCategory) { selectedCategory = it }
+//            DropdownField("Type",types, selectedType) { selectedType = it }
+//            DropdownField("Region", region, selectedRegion) { selectedRegion = it }
+
+            CustomTextField("Diocese", dioceses) { dioceses = it }
             CustomTextField("County", county) { county = it }
             CustomTextField("Sub-County", subCounty) { subCounty = it }
             CustomTextField("Location", location) { location = it }
@@ -152,7 +168,7 @@ fun AddSchoolScreen(
 
             AdminDropdown(
                 label = "Assign Admin",
-                options = viewModel.getUnassignedAdmins(),
+                options = schoolViewModel.getUnassignedAdmins(),
                 selectedOption = selectedAdmin,
                 onSelected = { selectedAdmin = it }
             )

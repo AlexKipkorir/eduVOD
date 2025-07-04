@@ -1,20 +1,56 @@
 package com.example.eduvod.ui.screens.schoolmanagement
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.eduvod.viewmodel.SchoolAdmin
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import kotlinx.coroutines.launch
 
@@ -32,22 +68,18 @@ fun ManageSchoolAdminsScreen(
     viewModel: SchoolManagementViewModel = viewModel()
 ) {
 
-    val admins = remember {
-        mutableStateListOf(
-            AdminAccount("john.doe@school.org"),
-            AdminAccount("mary.jane@school.org")
-        )
-    }
+    val admins = viewModel.schoolAdmins
+
+    val allAdmins = viewModel.schoolAdmins.filter { it.assignedSchool == schoolName }
+
     var showAddDialog by remember { mutableStateOf(false) }
-    var newAdminEmail by remember { mutableStateOf("") }
 
     val snackbarHostState= remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val currentSchool = viewModel.getSchoolByName(schoolName ?: "")
 
-    var newAdminPassword by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var adminAssigned by remember { mutableStateOf(currentSchool?.hasAdmin == true) }
+    val unassignedAdmins = viewModel.getUnassignedAdmins()
+    var selectedAdminEmail by remember { mutableStateOf("") }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -68,13 +100,11 @@ fun ManageSchoolAdminsScreen(
             )
         },
         floatingActionButton = {
-            if (!adminAssigned) {
-                ExtendedFloatingActionButton(
-                    icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
-                    text = { Text("Add Admin") },
-                    onClick = { showAddDialog = true }
-                )
-            }
+            ExtendedFloatingActionButton(
+                icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
+                text = { Text("Add Admin") },
+                onClick = { showAddDialog = true }
+            )
         }
     ) { padding ->
         Column(
@@ -91,10 +121,10 @@ fun ManageSchoolAdminsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                //OG
                 items(admins) { admin ->
                     AdminCard(
                         admin = admin,
-                        //OG
                         onBlock = {
                             admin.isBlocked = !admin.isBlocked
                         },
@@ -103,14 +133,14 @@ fun ManageSchoolAdminsScreen(
                                 snackbarHostState.showSnackbar("Password reset for ${admin.email}")
                             }
                         }
-
-                        //Retrofit
+                    )
+                }
+                //Retrofit
+//                items(allAdmins) { admin ->
+//                    AdminCard(
+//                        admin = AdminAccount(admin.email, admin.isBlocked),
 //                        onBlock = {
 //                            viewModel.blockAdmin(admin.email, !admin.isBlocked)
-//                            val index = admins.indexOf(admin)
-//                            if (index != -1) {
-//                                admins[index] = admins[index].copy(isBlocked = !admins[index].isBlocked)
-//                            }
 //                        },
 //                        onReset = {
 //                            viewModel.resetAdmin(admin.email)
@@ -118,8 +148,8 @@ fun ManageSchoolAdminsScreen(
 //                                snackbarHostState.showSnackbar("Password reset for ${admin.email}")
 //                            }
 //                        }
-                    )
-                }
+//                    )
+//                }
             }
         }
     }
@@ -127,60 +157,71 @@ fun ManageSchoolAdminsScreen(
     if (showAddDialog) {
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
-            title = { Text("Create Admin Account") },
+            title = { Text("Assign Admin") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = newAdminEmail,
-                        onValueChange = { newAdminEmail = it },
-                        label = { Text("Admin Email") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = newAdminPassword,
-                        onValueChange = { newAdminPassword = it },
-                        label = { Text("Password") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        label = { Text("Confirm Password") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    when {
-                        newAdminEmail.isBlank() || newAdminPassword.isBlank() || confirmPassword.isBlank() -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("All fields are required.")
-                            }
-                        }
-                        newAdminPassword != confirmPassword -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Passwords do not match.")
-                            }
-                        }
-                        else -> {
-                            admins.add(AdminAccount(email = newAdminEmail))
-                            viewModel.assignAdmin(schoolName?: "")
-                            adminAssigned = true
-                            showAddDialog = false
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Admin created successfully")
+                    if (unassignedAdmins.isEmpty()) {
+                        Text("No unassigned admins available.")
+                    } else {
+                        var expanded by remember { mutableStateOf(false) }
+
+                        OutlinedTextField(
+                            value = selectedAdminEmail,
+                            onValueChange = {},
+                            label = { Text("Select Admin") },
+                            readOnly = true,
+                            trailingIcon = {
+                                IconButton(onClick = { expanded = true }) {
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            unassignedAdmins.forEach { email ->
+                                DropdownMenuItem(
+                                    text = { Text(email) },
+                                    onClick = {
+                                        selectedAdminEmail = email
+                                        expanded = false
+                                    }
+                                )
                             }
                         }
                     }
-                }) {
-                    Text("Add Admin")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (selectedAdminEmail.isNotBlank()) {
+                            viewModel.reassignAdmin(selectedAdminEmail, schoolName ?: "")
+                            viewModel.assignAdmin(schoolName ?: "")
+                            showAddDialog = false
+                            selectedAdminEmail = ""
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Admin assigned successfully.")
+                            }
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Please select an admin.")
+                            }
+                        }
+                    },
+                    enabled = selectedAdminEmail.isNotBlank()
+                ) {
+                    Text("Assign")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showAddDialog = false }) {
+                TextButton(onClick = {
+                    showAddDialog = false
+                    selectedAdminEmail = ""
+                }) {
                     Text("Cancel")
                 }
             }
@@ -190,7 +231,7 @@ fun ManageSchoolAdminsScreen(
 
 @Composable
 fun AdminCard(
-    admin: AdminAccount,
+    admin: SchoolAdmin,
     onBlock: () -> Unit,
     onReset: () -> Unit
 ) {

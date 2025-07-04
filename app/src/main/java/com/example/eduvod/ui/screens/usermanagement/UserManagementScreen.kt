@@ -2,7 +2,7 @@ package com.example.eduvod.ui.screens.usermanagement
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -18,7 +18,6 @@ import androidx.navigation.NavHostController
 import com.example.eduvod.viewmodel.UserManagementViewModel
 import kotlinx.coroutines.launch
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserManagementScreen(
@@ -28,18 +27,27 @@ fun UserManagementScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+
     var showAddDialog by remember { mutableStateOf(false) }
-    val admins = viewModel.admins
+    var searchQuery by remember { mutableStateOf("") }
+    var page by remember { mutableStateOf(0) }
+    val pageSize = 10
 
-    //Retrofit
-//    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+    val filteredAdmins = viewModel.admins.filter {
+        it.email.contains(searchQuery, ignoreCase = true)
+    }.sortedBy { it.isBlocked }
 
-//    LaunchedEffect(snackbarMessage) {
-//        snackbarMessage?.let {
-//            snackbarHostState.showSnackbar(it)
-//            viewModel.clearSnackbar()
-//        }
-//    }
+    val pagedAdmins = filteredAdmins.drop(page * pageSize).take(pageSize)
+    val hasNextPage = (page + 1) * pageSize < filteredAdmins.size
+    val hasPrevPage = page > 0
+
+    LaunchedEffect(snackbarMessage) {
+        snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSnackbar()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -54,7 +62,7 @@ fun UserManagementScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0D47A1) )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0D47A1))
             )
         },
         floatingActionButton = {
@@ -67,72 +75,95 @@ fun UserManagementScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color(0xFFF4F9FC)
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                Text(
-                    "Registered Administrators",
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
-                    color = Color(0xFF0D47A1)
-                )
-            }
-            items(admins) { admin ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(4.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
+        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Search by Email") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (pagedAdmins.isEmpty()) {
+                Text("No admins found.", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    itemsIndexed(pagedAdmins) { _, admin ->
+                        Card(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(4.dp)
                         ) {
-                            Column {
-                                Text(admin.email, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                Text(
-                                    text = if (admin.isBlocked) "Status: Blocked" else "Status: Active",
-                                    color = if (admin.isBlocked) Color.Red else Color(0xFF2E7D32),
-                                    fontSize = 14.sp
-                                )
-                            }
-
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                IconButton(onClick = {
-                                    viewModel.toggleBlock(admin)
-                                }) {
-                                    Icon(
-                                        imageVector = if (admin.isBlocked) Icons.Default.LockOpen else Icons.Default.Block,
-                                        contentDescription = "Block/Unblock"
-                                    )
-                                }
-
-                                 //OG
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Password reset link sent.")
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            shape = MaterialTheme.shapes.medium,
+                                            color = Color(0xFF0D47A1),
+                                            modifier = Modifier.size(40.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    text = admin.email.first().uppercase(),
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(admin.email, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                text = if (admin.isBlocked) "Blocked" else "Active",
+                                                color = if (admin.isBlocked) Color.Red else Color(0xFF2E7D32),
+                                                fontSize = 14.sp
+                                            )
+                                        }
                                     }
-                                }) {
-                                    Icon(Icons.Default.Refresh, contentDescription = "Reset Account")
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        IconButton(onClick = {
+                                            viewModel.toggleBlock(admin)
+                                        }) {
+                                            Icon(
+                                                imageVector = if (admin.isBlocked) Icons.Default.LockOpen else Icons.Default.Block,
+                                                tint = Color.Red,
+                                                contentDescription = "Block/Unblock"
+                                            )
+                                        }
+
+                                        IconButton(onClick = {
+                                            viewModel.resetPassword(admin.email)
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Refresh,
+                                                tint = Color(0xFF2E7D32),
+                                                contentDescription = "Reset Password"
+                                            )
+                                        }
+                                    }
                                 }
-
-                                //Retrofit
-//                                IconButton(onClick = {
-//                                    viewModel.resetPassword(admin.email)
-//                                    scope.launch {
-//                                        snackbarHostState.showSnackbar("Password reset for ${admin.email}")
-//                                    }
-//                                }) {
-//                                    Icon(Icons.Default.Refresh, contentDescription = "Reset Account")
-//                                }
-
                             }
                         }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = { if (hasPrevPage) page-- }) {
+                        Text("Previous")
+                    }
+                    Text("Page ${page + 1}")
+                    TextButton(onClick = { if (hasNextPage) page++ }) {
+                        Text("Next")
                     }
                 }
             }
@@ -142,24 +173,10 @@ fun UserManagementScreen(
     if (showAddDialog) {
         AddAdminDialog(
             onDismiss = { showAddDialog = false },
-            //OG
-            onConfirm = { email, _ ->
-                val added = viewModel.addAdmin(email)
-                scope.launch {
-                    snackbarHostState.showSnackbar(
-                        if (added) "Admin added successfully." else "Admin already exists"
-                    )
-                }
+            onConfirm = { email, password ->
+                viewModel.addAdmin(email, password)
                 showAddDialog = false
             }
-            //Retrofit
-//            onConfirm = { email, password ->
-//                viewModel.addAdmin(email, password)
-//                scope.launch {
-//                    snackbarHostState.showSnackbar("Admin added successfully.")
-//                }
-//                showAddDialog = false
-//            }
         )
     }
 }
@@ -174,6 +191,9 @@ fun AddAdminDialog(
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+
+    val isValidPassword = password.length >= 6 && password.any { it.isDigit() } && password.any { it.isLetter() }
+    val passwordsMatch = password == confirmPassword
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -220,11 +240,18 @@ fun AddAdminDialog(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                if (!isValidPassword && password.isNotEmpty()) {
+                    Text("Password must be at least 6 characters and include letters and numbers.", color = Color.Red)
+                }
+                if (!passwordsMatch && confirmPassword.isNotEmpty()) {
+                    Text("Passwords do not match.", color = Color.Red)
+                }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                if (email.isNotBlank() && password == confirmPassword && password.isNotBlank()) {
+                if (email.isNotBlank() && passwordsMatch && isValidPassword) {
                     onConfirm(email, password)
                 }
             }) {

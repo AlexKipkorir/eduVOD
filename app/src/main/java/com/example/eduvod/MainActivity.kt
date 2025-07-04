@@ -115,7 +115,7 @@ fun EduVODNavHost(
             AddSchoolScreen(
                 navController = navController,
                 prefillSchoolName = schoolName,
-                viewModel = viewModel()
+                schoolViewModel = viewModel()
             )
         }
         composable("config") {

@@ -43,7 +43,7 @@ fun AppNavHost(navController: NavHostController) {
             AddSchoolScreen(
                 navController = navController,
                 prefillSchoolName = schoolName,
-                viewModel = viewModel()
+                schoolViewModel = viewModel()
             )
         }
         composable("edit_school/{schoolName}") {
