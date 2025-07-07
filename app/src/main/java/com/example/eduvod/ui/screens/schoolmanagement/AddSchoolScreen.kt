@@ -63,22 +63,16 @@ fun AddSchoolScreen(
     schoolViewModel: SchoolManagementViewModel
 ) {
     val configViewModel: SystemConfigViewModel = viewModel()
-
-
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-
-    //Form States
     var moeRegNo by remember { mutableStateOf("") }
     var kpsaRegNo by remember { mutableStateOf("") }
     var schoolName by remember { mutableStateOf(prefillSchoolName ?: "") }
     var mobile by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var dioceses by remember { mutableStateOf("") }
-    var county by remember { mutableStateOf("") }
-    var subCounty by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var website by remember { mutableStateOf("") }
@@ -86,14 +80,23 @@ fun AddSchoolScreen(
     val types = configViewModel.types
     val categories = configViewModel.categories
     val curriculums = configViewModel.curriculums
-    val region = configViewModel.regions
+    val regions = configViewModel.regions
 
     var selectedType by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("") }
     var selectedCurriculum by remember { mutableStateOf("") }
     var selectedRegion by remember { mutableStateOf("") }
-
+    var selectedCounty by remember { mutableStateOf("") }
+    var selectedSubCounty by remember { mutableStateOf("") }
     var selectedAdmin by remember { mutableStateOf("") }
+
+    //OG
+//    val counties = configViewModel.regionToCounties[selectedRegion] ?: emptyList()
+//    val subCounties = configViewModel.countyToSubcounties[selectedCounty] ?: emptyList()
+
+    //Retrofit
+    val counties = configViewModel.counties
+    val subCounties = configViewModel.subcounties
 
 
     Scaffold(
@@ -129,11 +132,22 @@ fun AddSchoolScreen(
             DropdownField("Curriculum", curriculums, selectedCurriculum) { selectedCurriculum = it }
             DropdownField("Category", categories, selectedCategory) { selectedCategory = it }
             DropdownField("Type",types, selectedType) { selectedType = it }
-            DropdownField("Region", region, selectedRegion) { selectedRegion = it }
+            DropdownField("Region", regions, selectedRegion) {
+                selectedRegion = it
+                configViewModel.loadCounties(it)
+                selectedCounty = ""
+                selectedSubCounty = ""
+            }
+            DropdownField("County", counties, selectedCounty) {
+                selectedCounty = it
+                configViewModel.loadSubcounties(it)
+                selectedSubCounty = ""
+            }
+            DropdownField("Sub-County", subCounties, selectedSubCounty) {
+                selectedSubCounty = it
+            }
 
             CustomTextField("Diocese", dioceses) { dioceses = it }
-            CustomTextField("County", county) { county = it }
-            CustomTextField("Sub-County", subCounty) { subCounty = it }
             CustomTextField("Location", location) { location = it }
             CustomTextField("Address", address) { address = it }
             CustomTextField("Website", website) { website = it }
@@ -195,8 +209,8 @@ fun AddSchoolScreen(
                                 email = email,
                                 region = selectedRegion,
                                 diocese = dioceses,
-                                county = county,
-                                subCounty = subCounty,
+                                county = selectedCounty,
+                                subCounty = selectedSubCounty,
                                 location = location,
                                 address = address,
                                 website = website,

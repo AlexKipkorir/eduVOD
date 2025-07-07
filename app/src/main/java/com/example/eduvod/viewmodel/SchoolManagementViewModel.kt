@@ -301,6 +301,18 @@ class SchoolManagementViewModel : ViewModel() {
         School("19", "Forest Edge School", "MOE1019", "KPSA1019", "CBC", "Private", "Mixed", "Girls", "0700000019", "forest@edu.org", "Isiolo", "Northern Diocese", "Isiolo", "Isiolo South", "Modogashe", "P.O. Box 141", "www.forestedge.ac.ke", true),
         School("20", "Starlight Primary", "MOE1020", "KPSA1020", "CBC", "Public", "Primary", "Mixed", "0700000020", "star@edu.org", "Garissa", "Northern Diocese", "Garissa", "Fafi", "Dadaab", "P.O. Box 142", "www.starlightprimary.ac.ke", false)
     )
+    val countiesByRegion = mapOf(
+        "Coast" to listOf("Mombasa", "Kwale", "Kilifi", "Tana River", "Lamu", "Taita Taveta"),
+        "Eastern" to listOf("Marsabit", "Isiolo", "Meru", "Tharaka-Nithi", "Embu", "Kitui", "Machakos", "Makueni"),
+        "Central" to listOf("Nyandarua", "Nyeri", "Kirinyaga", "Murang'a", "Kiambu"),
+        "North Eastern" to listOf("Garissa", "Wajir", "Mandera"),
+        "Nairobi" to listOf("Nairobi City"),
+        "Nyanza" to listOf("Siaya", "Kisumu", "Homa Bay", "Migori", "Kisii", "Nyamira"),
+        "Rift Valley" to listOf("Turkana", "West Pokot", "Samburu", "Trans Nzoia", "Uasin Gishu", "Elgeyo Marakwet",
+            "Nandi", "Baringo", "Laikipia", "Nakuru", "Narok", "Kajiado", "Kericho", "Bomet"),
+        "Western" to listOf("Kakamega", "Vihiga", "Bungoma", "Busia")
+    )
+
     val schoolAdmins = mutableStateListOf(
         SchoolAdmin(email = "lucy@edu.org"),
         SchoolAdmin("mike@edu.org"),

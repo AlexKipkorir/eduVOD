@@ -1,8 +1,12 @@
 package com.example.eduvod.repositories
 
 import com.example.eduvod.retrofit.ApiClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class SystemRepository {
+
+    private val api = ApiClient.apiService
 
     suspend fun fetchSystemConfig(section: String): List<String> {
         return try {
@@ -41,5 +45,17 @@ class SystemRepository {
         } catch (e: Exception) {
             false
         }
+    }
+
+    suspend fun fetchRegions(): List<String> = withContext(Dispatchers.IO) {
+        api.getRegions()
+    }
+
+    suspend fun fetchCounties(region: String): List<String> = withContext(Dispatchers.IO) {
+        api.getCountiesByRegion(region)
+    }
+
+    suspend fun fetchSubcounties(county: String): List<String> = withContext(Dispatchers.IO) {
+        api.getSubcountiesByCounty(county)
     }
 }

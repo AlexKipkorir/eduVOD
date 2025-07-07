@@ -111,6 +111,15 @@ interface ApiService {
         @Body item: Map<String, String>
     ): Response<ApiResponse<Unit>>
 
+    @GET("regions")
+    suspend fun getRegions(): List<String>
+
+    @GET("regions/{region}/counties")
+    suspend fun getCountiesByRegion(@Path("region") region: String): List<String>
+
+    @GET("counties/{county}/subcounties")
+    suspend fun getSubcountiesByCounty(@Path("county") county: String): List<String>
+
     //Grades Management
     @GET("grades")
     suspend fun getAllGrades(): Response<ApiResponse<List<Grade>>>
