@@ -105,7 +105,11 @@ fun EduVODNavHost(
             LoginScreen(navController = navController, authViewModel = authViewModel)
         }
         composable("dashboard") {
-            DashboardScreen(navController, viewModel = dashboardViewModel)
+            DashboardScreen(
+                navController = navController,
+                viewModel = dashboardViewModel,
+                authViewModel = authViewModel
+            )
         }
         composable("schools") {
             SchoolManagementScreen(navController)

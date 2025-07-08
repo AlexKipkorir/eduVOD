@@ -185,109 +185,112 @@ fun LoginScreen(
 
             // Error Message
             //OG
-            errorMessage?.let {
-                Text(
-                    text = it,
-                    color = Color.Red,
-                    style = TextStyle(fontSize = 14.sp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-            //Retrofit
-//            when (loginState) {
-//                is LoginState.Error -> Text(
-//                    text = (loginState as LoginState.Error).message,
+//            errorMessage?.let {
+//                Text(
+//                    text = it,
 //                    color = Color.Red,
-//                    fontSize = 14.sp
+//                    style = TextStyle(fontSize = 14.sp)
 //                )
-//                else -> localError?.let {
-//                    Text(text = it, color = Color.Red, fontSize = 14.sp)
-//                }
+//                Spacer(modifier = Modifier.height(12.dp))
 //            }
-//
-//            Spacer(modifier = Modifier.height(12.dp))
-            // Login Button
-            //OG
-            Button(
-                onClick = {
-                    focusManager.clearFocus()
-                    if (email.isBlank() || password.isBlank()) {
-                        errorMessage = "Please enter both email and password."
-                        return@Button
-                    }
-
-                    isLoading = true
-                    errorMessage = null
-
-                    scope.launch {
-                        delay(1500)
-                        isLoading = false
-                        val role = if (email == "admin@eduvod.com" && password == "admin123") {
-                            "EduVOD_Admin"
-                        } else {
-                            "Invalid"
-                        }
-
-                        if (role == "EduVOD_Admin") {
-                            navController.navigate("dashboard") {
-                                popUpTo("login") { inclusive = true }
-                            }
-                        } else {
-                            errorMessage = "Access Denied: Not an EduVOD Admin."
-                        }
-                    }
-                },
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1565C0),
-                    contentColor = Color.White
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(color = Color.Blue, strokeWidth = 2.dp)
-                } else {
-                    Text("Login")
+            //Retrofit
+            when (loginState) {
+                is LoginState.Error -> Text(
+                    text = (loginState as LoginState.Error).message,
+                    color = Color.Red,
+                    fontSize = 14.sp
+                )
+                else -> localError?.let {
+                    Text(text = it, color = Color.Red, fontSize = 14.sp)
                 }
             }
 
-            //Retrofit
+            Spacer(modifier = Modifier.height(12.dp))
+            // Login Button
+            //OG
 //            Button(
 //                onClick = {
 //                    focusManager.clearFocus()
-//                    localError = null
-//
 //                    if (email.isBlank() || password.isBlank()) {
-//                        localError = "Please enter both email and password"
+//                        errorMessage = "Please enter both email and password."
 //                        return@Button
 //                    }
-//                    authViewModel.loginUser(email.trim(), password.trim())
+//
+//                    isLoading = true
+//                    errorMessage = null
+//
+//                    scope.launch {
+//                        delay(1500)
+//                        isLoading = false
+//                        val role = if (email == "admin@eduvod.com" && password == "admin123") {
+//                            "EduVOD_Admin"
+//                        } else {
+//                            "Invalid"
+//                        }
+//
+//                        if (role == "EduVOD_Admin") {
+//                            navController.navigate("dashboard") {
+//                                popUpTo("login") { inclusive = true }
+//                            }
+//                        } else {
+//                            errorMessage = "Access Denied: Not an EduVOD Admin."
+//                        }
+//                    }
 //                },
-//                enabled = loginState != LoginState.Loading,
+//                enabled = !isLoading,
 //                colors = ButtonDefaults.buttonColors(
-//                    containerColor = Color(0xff1565C0),
+//                    containerColor = Color(0xFF1565C0),
 //                    contentColor = Color.White
 //                ),
-//                modifier = Modifier.fillMaxWidth().height(56.dp)
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(56.dp)
 //            ) {
-//                if (loginState == LoginState.Loading) {
+//                if (isLoading) {
 //                    CircularProgressIndicator(color = Color.Blue, strokeWidth = 2.dp)
 //                } else {
 //                    Text("Login")
 //                }
 //            }
+
+            //Retrofit
+            Button(
+                onClick = {
+                    focusManager.clearFocus()
+                    localError = null
+
+                    if (email.isBlank() || password.isBlank()) {
+                        localError = "Please enter both email and password"
+                        return@Button
+                    }
+                    authViewModel.loginUser(email.trim(), password.trim())
+                },
+                enabled = loginState != LoginState.Loading,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xff1565C0),
+                    contentColor = Color.White
+                ),
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            ) {
+                if (loginState == LoginState.Loading) {
+                    CircularProgressIndicator(color = Color.Blue, strokeWidth = 2.dp)
+                } else {
+                    Text("Login")
+                }
+            }
         }
     }
     //Navigate on success
-//    LaunchedEffect(loginState) {
-//        email = ""
-//        password = ""
-//        navController.navigate("dashboard") {
-//            popUpTo("login") { inclusive = true }
-//        }
-//    }
+    LaunchedEffect(loginState) {
+        if (loginState is LoginState.Success) {
+            email = ""
+            password = ""
+            navController.navigate("dashboard") {
+                popUpTo("login") { inclusive = true }
+            }
+            authViewModel.resetState()
+        }
+    }
 }
 
 

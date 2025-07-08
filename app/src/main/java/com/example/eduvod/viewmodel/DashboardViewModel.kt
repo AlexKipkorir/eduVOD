@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 
-//Retrofit
+
 data class DashboardStats(
     val schoolsByRegion: Map<String, Int>,
     val studentsByGender: Map<String, Int>,
@@ -22,6 +22,8 @@ data class DashboardStats(
     val studentsByClass: Map<String, Int>
 )
 
+//Retrofit
+//
 //class DashboardViewModel(
 //    private val repository: DashboardRepository = DashboardRepository()
 //) : ViewModel() {

@@ -26,8 +26,8 @@ import retrofit2.http.*
 
 interface ApiService {
     //Login
-    @POST("auth/login")
-    suspend fun login(@Body request: LoginRequest): Response<ApiResponse<LoginResponseData>>
+    @POST("api/v1/auth/superadmin/login")
+    suspend fun loginSuperAdmin(@Body request: LoginRequest): Response<ApiResponse<LoginResponseData>>
 
     //School Management
     @GET("schools")
@@ -77,14 +77,24 @@ interface ApiService {
     suspend fun blockAdmin(@Body request: AdminBlockRequest): Response<ApiResponse<Unit>>
 
     //User Management
-    @GET("admin-users")
-    suspend fun getAllEduvodAdmins(): Response<ApiResponse<List<AdminUser>>>
+    // Register new super admin
+    @POST("auth/superadmin/register")
+    suspend fun registerSuperAdmin(@Body request: AdminEduvodCreateRequest): Response<ApiResponse<Unit>>
 
-    @POST("admin-users")
-    suspend fun addEduvodAdmin(@Body request: AdminEduvodCreateRequest): Response<ApiResponse<Unit>>
+    // Fetch all users
+    @GET("superadmin/users")
+    suspend fun getAllUsers(): Response<ApiResponse<List<AdminUser>>>
 
-    @POST("admin-user/block")
-    suspend fun blockEduvodAdmin(@Body request: AdminBlockRequest): Response<ApiResponse<Unit>>
+    // Change user status (ACTIVE/BLOCKED/DELETED)
+    @POST("superadmin/users/{id}/status")
+    suspend fun updateUserStatus(
+        @Path("id") id: Long,
+        @Query("status") status: String
+    ): Response<ApiResponse<Unit>>
+
+    // Soft delete user
+    @DELETE("superadmin/users/{id}")
+    suspend fun deleteUser(@Path("id") id: Long): Response<ApiResponse<Unit>>
 
     @POST("admin-users/reset-password")
     suspend fun  resetEduvodAdmin(@Body request: AdminEduvodResetRequest): Response<ApiResponse<Unit>>

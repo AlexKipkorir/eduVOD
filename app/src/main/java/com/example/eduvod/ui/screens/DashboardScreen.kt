@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Business
@@ -61,15 +62,19 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.eduvod.viewmodel.AuthViewModel
 import com.example.eduvod.viewmodel.DashboardViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.runtime.collectAsState
+import com.example.eduvod.viewmodel.LoginState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(navController: NavHostController,
-                    viewModel: DashboardViewModel
+                    viewModel: DashboardViewModel,
+                    authViewModel: AuthViewModel
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -78,7 +83,8 @@ fun DashboardScreen(navController: NavHostController,
         NavItem("Schools Management", Icons.Default.Business, "schools"),
         NavItem("Grades Management", Icons.Default.Grade, "grades"),
         NavItem("User Management", Icons.Default.AdminPanelSettings, "users"),
-        NavItem("Systems Configuration", Icons.Default.Settings, "config")
+        NavItem("Systems Configuration", Icons.Default.Settings, "config"),
+        NavItem("Logout", Icons.AutoMirrored.Filled.ExitToApp, "logout")
     )
 
     //Retrofit
@@ -94,6 +100,17 @@ fun DashboardScreen(navController: NavHostController,
 //        }
 //    }
 
+    val loginState by authViewModel.loginState.collectAsState()
+
+    LaunchedEffect(loginState) {
+        if (loginState is LoginState.LoggedOut) {
+            navController.navigate("login") {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
+
     ModalNavigationDrawer(
         drawerContent = {
             ModalDrawerSheet {
@@ -103,7 +120,19 @@ fun DashboardScreen(navController: NavHostController,
                         label = { Text(item.label) },
                         icon = { Icon(item.icon, contentDescription = item.label) },
                         selected = false,
-                        onClick = { navController.navigate(item.route) },
+                        onClick = {
+                            scope.launch {
+                                drawerState.close()
+                                if (item.route == "logout") {
+                                    authViewModel.logout()
+                                    navController.navigate("login") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                } else {
+                                    navController.navigate(item.route)
+                                }
+                            }
+                        },
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                     )
                 }

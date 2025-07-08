@@ -38,7 +38,7 @@ fun UserManagementScreen(
 
     val filteredAdmins = viewModel.admins.filter {
         it.email.contains(searchQuery, ignoreCase = true)
-    }.sortedBy { it.isBlocked }
+    }.sortedBy { it.status != "ACTIVE" }
 
     val pagedAdmins = filteredAdmins.drop(page * pageSize).take(pageSize)
     val hasNextPage = (page + 1) * pageSize < filteredAdmins.size
@@ -66,7 +66,7 @@ fun UserManagementScreen(
                 },
                 modifier = Modifier.background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xFF0D47A1), Color(0xFF1565C0)) // 0xFF0D47A1 is now the top color
+                        colors = listOf(Color(0xFF0D47A1), Color(0xFF1565C0))
                     )
                 ),
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -127,18 +127,22 @@ fun UserManagementScreen(
                                         Column {
                                             Text(admin.email, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                             Text(
-                                                text = if (admin.isBlocked) "Blocked" else "Active",
-                                                color = if (admin.isBlocked) Color.Red else Color(0xFF2E7D32),
+                                                text = admin.status,
+                                                color = when (admin.status) {
+                                                    "ACTIVE" -> Color(0xFF2E7D32)
+                                                    "BLOCKED" -> Color.Red
+                                                    else -> Color.Gray
+                                                },
                                                 fontSize = 14.sp
                                             )
                                         }
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         IconButton(onClick = {
-                                            viewModel.toggleBlock(admin)
+                                            viewModel.toggleUserStatus(admin)
                                         }) {
                                             Icon(
-                                                imageVector = if (admin.isBlocked) Icons.Default.LockOpen else Icons.Default.Block,
+                                                imageVector = if (admin.status == "BLOCKED") Icons.Default.LockOpen else Icons.Default.Block,
                                                 tint = Color.Red,
                                                 contentDescription = "Block/Unblock"
                                             )
@@ -151,6 +155,16 @@ fun UserManagementScreen(
                                                 imageVector = Icons.Default.Refresh,
                                                 tint = Color(0xFF2E7D32),
                                                 contentDescription = "Reset Password"
+                                            )
+                                        }
+
+                                        IconButton(onClick = {
+                                            viewModel.deleteUser(admin.id)
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                tint = Color.Gray,
+                                                contentDescription = "Delete User"
                                             )
                                         }
                                     }
@@ -181,13 +195,12 @@ fun UserManagementScreen(
         AddAdminDialog(
             onDismiss = { showAddDialog = false },
             onConfirm = { email, password ->
-                viewModel.addAdmin(email, password)
+                viewModel.registerSuperAdmin(email, password)
                 showAddDialog = false
             }
         )
     }
 }
-
 @Composable
 fun AddAdminDialog(
     onDismiss: () -> Unit,

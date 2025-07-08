@@ -48,11 +48,11 @@ class AuthViewModel (
                 if (response.isSuccessful && response.body() != null) {
                     val data = response.body()!!.data
                     if (data != null){
-                        //Save token & user data to Datastore
+
                         userPrefs.saveUserSession(
                             token = data.token ?: "",
-                            email = data.email ?: "",
-                            userId = data.id ?: -1
+                            email = email,
+                            userId = -1
                         )
                     }
                     _loginState.value = LoginState.Success(response.body()!!.data)

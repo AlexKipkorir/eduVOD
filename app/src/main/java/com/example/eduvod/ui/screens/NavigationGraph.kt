@@ -34,8 +34,14 @@ fun AppNavHost(navController: NavHostController) {
         }
         composable("dashboard") {
             val dashboardViewModel: DashboardViewModel = viewModel()
+            val authViewModel: AuthViewModel = viewModel()
 
-            DashboardScreen(navController, viewModel = dashboardViewModel)
+            DashboardScreen(
+                navController = navController,
+                viewModel = dashboardViewModel,
+                authViewModel = authViewModel
+            )
+
         }
         composable("Schools Management") { SchoolManagementScreen(navController) }
         composable("add_school?schoolName={schoolName}") { backStackEntry ->

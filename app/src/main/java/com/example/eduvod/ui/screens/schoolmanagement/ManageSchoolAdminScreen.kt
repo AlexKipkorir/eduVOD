@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.eduvod.viewmodel.SchoolAdmin
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import kotlinx.coroutines.launch
 
@@ -122,34 +121,34 @@ fun ManageSchoolAdminsScreen(
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 //OG
-                items(admins) { admin ->
-                    AdminCard(
-                        admin = admin,
-                        onBlock = {
-                            admin.isBlocked = !admin.isBlocked
-                        },
-                        onReset = {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Password reset for ${admin.email}")
-                            }
-                        }
-                    )
-                }
-                //Retrofit
-//                items(allAdmins) { admin ->
+//                items(admins) { admin ->
 //                    AdminCard(
-//                        admin = AdminAccount(admin.email, admin.isBlocked),
+//                        admin = admin,
 //                        onBlock = {
-//                            viewModel.blockAdmin(admin.email, !admin.isBlocked)
+//                            admin.isBlocked = !admin.isBlocked
 //                        },
 //                        onReset = {
-//                            viewModel.resetAdmin(admin.email)
 //                            scope.launch {
 //                                snackbarHostState.showSnackbar("Password reset for ${admin.email}")
 //                            }
 //                        }
 //                    )
 //                }
+                //Retrofit
+                items(allAdmins) { admin ->
+                    AdminCard(
+                        admin = AdminAccount(admin.email, admin.isBlocked),
+                        onBlock = {
+                            viewModel.blockAdmin(admin.email, !admin.isBlocked)
+                        },
+                        onReset = {
+                            viewModel.resetAdmin(admin.email)
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Password reset for ${admin.email}")
+                            }
+                        }
+                    )
+                }
             }
         }
     }
@@ -231,7 +230,7 @@ fun ManageSchoolAdminsScreen(
 
 @Composable
 fun AdminCard(
-    admin: SchoolAdmin,
+    admin: AdminAccount,
     onBlock: () -> Unit,
     onReset: () -> Unit
 ) {

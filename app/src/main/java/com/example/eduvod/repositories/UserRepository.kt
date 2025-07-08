@@ -9,19 +9,22 @@ import com.example.eduvod.viewmodel.AdminUser
 import retrofit2.Response
 
 class UserRepository {
-
     private val api = ApiClient.apiService
 
-    suspend fun getAllEduvodAdmins(): Response<ApiResponse<List<AdminUser>>> {
-        return api.getAllEduvodAdmins()
+    suspend fun registerSuperAdmin(request: AdminEduvodCreateRequest): Response<ApiResponse<Unit>> {
+        return api.registerSuperAdmin(request)
     }
 
-    suspend fun addEduvodAdmins(request: AdminEduvodCreateRequest): Response<ApiResponse<Unit>> {
-        return api.addEduvodAdmin(request)
+    suspend fun getAllUsers(): Response<ApiResponse<List<AdminUser>>> {
+        return api.getAllUsers()
     }
 
-    suspend fun blockEduvodAdmin(request: AdminBlockRequest): Response<ApiResponse<Unit>> {
-        return api.blockEduvodAdmin(request)
+    suspend fun updateUserStatus(id: Long, status: String): Response<ApiResponse<Unit>> {
+        return api.updateUserStatus(id, status)
+    }
+
+    suspend fun deleteUser(id: Long): Response<ApiResponse<Unit>> {
+        return api.deleteUser(id)
     }
 
     suspend fun resetEduvodAdmin(request: AdminEduvodResetRequest): Response<ApiResponse<Unit>> {

@@ -62,7 +62,7 @@ fun SplashScreen(
 //    LaunchedEffect(loginState) {
 //        when (loginState) {
 //            is LoginState.LoggedIn -> {
-//                delay(1000) // Smooth transition
+//                delay(1000)
 //                navController.navigate("dashboard") {
 //                    popUpTo("splash") { inclusive = true }
 //                }

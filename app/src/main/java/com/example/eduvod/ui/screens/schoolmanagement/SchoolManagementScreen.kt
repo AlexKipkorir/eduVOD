@@ -118,50 +118,15 @@ fun SchoolManagementScreen(
     var selectedFileName by remember { mutableStateOf<String?>(null) }
 
     //OG
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { it ->
-            val cursor = context.contentResolver.query(it, null, null, null, null)
-            cursor?.use {
-                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (it.moveToFirst()) {
-                    selectedFileName = it.getString(nameIndex)
-                }
-            }
-        }
-    }
-    LaunchedEffect(selectedFileName) {
-        selectedFileName?.let {
-            snackbarHostState.showSnackbar("Selected file: $it")
-        }
-    }
-
-    //Retrofit
 //    val filePickerLauncher = rememberLauncherForActivityResult(
 //        contract = ActivityResultContracts.GetContent()
 //    ) { uri: Uri? ->
-//        uri?.let {
-//            val contentResolver = context.contentResolver
-//            val inputStream = contentResolver.openInputStream(it)
-//            val fileName = contentResolver.query(it, null, null, null, null)?.use { cursor ->
-//                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-//                if (cursor.moveToFirst()) cursor.getString(nameIndex) else "file.xlsx"
-//            } ?: "file.xlsx"
-//
-//            inputStream?.let { stream ->
-//                val bytes = stream.readBytes()
-//                val requestBody = RequestBody.create(
-//                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".toMediaTypeOrNull(),
-//                    bytes
-//                )
-//                val multipart = MultipartBody.Part.createFormData("file", fileName, requestBody)
-//
-//                scope.launch {
-//                    val success = viewModel.importSchoolFile(multipart)
-//                    snackbarHostState.showSnackbar(
-//                        if (success) "Schools imported successfully." else "Failed to import schools."
-//                    )
+//        uri?.let { it ->
+//            val cursor = context.contentResolver.query(it, null, null, null, null)
+//            cursor?.use {
+//                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+//                if (it.moveToFirst()) {
+//                    selectedFileName = it.getString(nameIndex)
 //                }
 //            }
 //        }
@@ -171,6 +136,41 @@ fun SchoolManagementScreen(
 //            snackbarHostState.showSnackbar("Selected file: $it")
 //        }
 //    }
+
+    //Retrofit
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val contentResolver = context.contentResolver
+            val inputStream = contentResolver.openInputStream(it)
+            val fileName = contentResolver.query(it, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (cursor.moveToFirst()) cursor.getString(nameIndex) else "file.xlsx"
+            } ?: "file.xlsx"
+
+            inputStream?.let { stream ->
+                val bytes = stream.readBytes()
+                val requestBody = RequestBody.create(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".toMediaTypeOrNull(),
+                    bytes
+                )
+                val multipart = MultipartBody.Part.createFormData("file", fileName, requestBody)
+
+                scope.launch {
+                    val success = viewModel.importSchoolFile(multipart)
+                    snackbarHostState.showSnackbar(
+                        if (success) "Schools imported successfully." else "Failed to import schools."
+                    )
+                }
+            }
+        }
+    }
+    LaunchedEffect(selectedFileName) {
+        selectedFileName?.let {
+            snackbarHostState.showSnackbar("Selected file: $it")
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -234,38 +234,10 @@ fun SchoolManagementScreen(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     //OG
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("School template downloaded.")
-                            }
-                        }
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Download Template")
-                    }
-
-                    //Retrofit
 //                    Button(
 //                        onClick = {
 //                            scope.launch {
-//                                val response = viewModel.downloadSchoolTemplate()
-//                                if (response != null && response.isSuccessful) {
-//                                    val body: ResponseBody? = response.body()
-//                                    if (body != null) {
-//                                        val fileName = "school_template.xlsx"
-//                                        val file = File(context.cacheDir, fileName)
-//                                        file.outputStream().use { output ->
-//                                            body.byteStream().copyTo(output)
-//                                        }
-//                                        snackbarHostState.showSnackbar("Downloaded: ${file.absolutePath}")
-//                                    } else {
-//                                        snackbarHostState.showSnackbar("Empty response body.")
-//                                    }
-//                                } else {
-//                                    snackbarHostState.showSnackbar("Failed to download template.")
-//                                }
+//                                snackbarHostState.showSnackbar("School template downloaded.")
 //                            }
 //                        }
 //                    ) {
@@ -273,17 +245,45 @@ fun SchoolManagementScreen(
 //                        Spacer(modifier = Modifier.width(4.dp))
 //                        Text("Download Template")
 //                    }
+
+                    //Retrofit
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val response = viewModel.downloadSchoolTemplate()
+                                if (response != null && response.isSuccessful) {
+                                    val body: ResponseBody? = response.body()
+                                    if (body != null) {
+                                        val fileName = "school_template.xlsx"
+                                        val file = File(context.cacheDir, fileName)
+                                        file.outputStream().use { output ->
+                                            body.byteStream().copyTo(output)
+                                        }
+                                        snackbarHostState.showSnackbar("Downloaded: ${file.absolutePath}")
+                                    } else {
+                                        snackbarHostState.showSnackbar("Empty response body.")
+                                    }
+                                } else {
+                                    snackbarHostState.showSnackbar("Failed to download template.")
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Default.Download, contentDescription = null)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Download Template")
+                    }
                     Button(
                         //OG
-                        onClick = {
-                            filePickerLauncher.launch("*/*")
-                        }
+//                        onClick = {
+//                            filePickerLauncher.launch("*/*")
+//                        }
 
                         //Retrofit
-//                        onClick = {
-//                            filePickerLauncher.launch(filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-//                                .toString())
-//                        }
+                        onClick = {
+                            filePickerLauncher.launch(filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                                .toString())
+                        }
                     ) {
                         Icon(Icons.Default.Upload, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
