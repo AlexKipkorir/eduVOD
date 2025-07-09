@@ -1,5 +1,6 @@
 package com.example.eduvod.ui.screens.systemconfiguration
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -55,6 +57,7 @@ import androidx.navigation.NavHostController
 import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.ui.graphics.Brush
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,7 +73,6 @@ fun SystemConfigScreen(
     var dialogSection by remember { mutableStateOf("") }
     var oldValue by remember { mutableStateOf("") }
     var inputValue by remember { mutableStateOf("") }
-    var pendingDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
     var searchQuery by remember { mutableStateOf("") }
 
     val configSections = listOf(
@@ -88,9 +90,11 @@ fun SystemConfigScreen(
     )
 
     LaunchedEffect(Unit) {
+        viewModel.initialize()
+
         viewModel.snackbarMessage.collect { message ->
-            if (message != null) {
-                snackbarHostState.showSnackbar(message)
+            message?.let {
+                snackbarHostState.showSnackbar(it)
                 viewModel.clearSnackbar()
             }
         }
@@ -99,13 +103,27 @@ fun SystemConfigScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("System Configuration", color = Color.White) },
+                title = {
+                    Text(
+                        "System Configuration",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0D47A1))
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                ),
+                modifier = Modifier.background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFF1565C0), Color(0xFF0D47A1))
+                    )
+                )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -123,11 +141,18 @@ fun SystemConfigScreen(
             Spacer(Modifier.height(12.dp))
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                configSections.forEach { (title, list) ->
-                    val filtered = list.filter { it.contains(searchQuery, ignoreCase = true) }
+                configSections
+                    .map { (title, list) ->
+                        val filtered = list.filter { it.contains(searchQuery, ignoreCase = true) }
+                        title to filtered
+                    }
+                    .filter { (title, filtered) ->
+                        searchQuery.isBlank() || filtered.isNotEmpty()
+                    }
+                    .forEach { (title, filtered) ->
 
-                    item {
-                        Card(
+                        item {
+                            Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = Color.White),
                             elevation = CardDefaults.cardElevation(2.dp)
@@ -183,7 +208,7 @@ fun SystemConfigScreen(
                                                 fontSize = 16.sp,
                                                 fontWeight = FontWeight.SemiBold
                                             )
-                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Row {
                                                 IconButton(onClick = {
                                                     inputValue = item
                                                     oldValue = item
@@ -192,12 +217,6 @@ fun SystemConfigScreen(
                                                     showDialog = true
                                                 }) {
                                                     Icon(Icons.Default.Edit, contentDescription = "Edit")
-                                                }
-
-                                                IconButton(onClick = {
-                                                    pendingDelete = title to item
-                                                }) {
-                                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
                                                 }
                                             }
                                         }
@@ -219,7 +238,7 @@ fun SystemConfigScreen(
             text = {
                 OutlinedTextField(
                     value = inputValue,
-                    onValueChange = { inputValue = it },
+                    onValueChange = { inputValue = it.trimStart() },
                     label = { Text(dialogSection) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -232,17 +251,19 @@ fun SystemConfigScreen(
                         return@TextButton
                     }
 
-                    val exists = viewModel.sectionList(dialogSection).contains(inputValue)
+                    val exists = viewModel.sectionList(dialogSection)
+                        .any { it.equals(inputValue.trim(), ignoreCase = true) }
+
                     if (!isEditDialog && exists) {
-                        scope.launch { snackbarHostState.showSnackbar("This value already exists.") }
+                        scope.launch { snackbarHostState.showSnackbar("This value already exists in $dialogSection.") }
                         return@TextButton
                     }
 
                     if (isEditDialog) {
-                        viewModel.updateItem(dialogSection, oldValue, inputValue)
+                        viewModel.updateItem(dialogSection, oldValue, inputValue.trim())
                         scope.launch { snackbarHostState.showSnackbar("Updated $dialogSection.") }
                     } else {
-                        viewModel.addItem(dialogSection, inputValue)
+                        viewModel.addItem(dialogSection, inputValue.trim())
                         scope.launch { snackbarHostState.showSnackbar("Added to $dialogSection.") }
                     }
 
@@ -253,38 +274,6 @@ fun SystemConfigScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    // Confirm Delete Dialog
-    pendingDelete?.let { (section, value) ->
-        AlertDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = { Text("Confirm Delete") },
-            text = { Text("Are you sure you want to delete \"$value\" from $section?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteItem(section, value)
-                    scope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = "Deleted \"$value\"",
-                            actionLabel = "Undo"
-                        ).also {
-                            if (it == SnackbarResult.ActionPerformed) {
-                                viewModel.addItem(section, value)
-                            }
-                        }
-                    }
-                    pendingDelete = null
-                }) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) {
                     Text("Cancel")
                 }
             }

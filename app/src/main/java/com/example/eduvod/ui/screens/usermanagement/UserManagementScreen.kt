@@ -1,24 +1,79 @@
 package com.example.eduvod.ui.screens.usermanagement
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.eduvod.AuthViewModelFactory
+import com.example.eduvod.viewmodel.AdminUser
+import com.example.eduvod.viewmodel.AuthViewModel
 import com.example.eduvod.viewmodel.UserManagementViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,22 +82,28 @@ fun UserManagementScreen(
     viewModel: UserManagementViewModel = viewModel()
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    var page by remember { mutableStateOf(0) }
-    val pageSize = 10
+    var selectedStatus by remember { mutableStateOf("ALL") }
 
-    val filteredAdmins = viewModel.admins.filter {
-        it.email.contains(searchQuery, ignoreCase = true)
-    }.sortedBy { it.status != "ACTIVE" }
+    val context = LocalContext.current
+    val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
+    val email by authViewModel.savedEmail.collectAsState(initial = "")
+    val currentUserEmail by viewModel.currentUserEmail.collectAsState()
 
-    val pagedAdmins = filteredAdmins.drop(page * pageSize).take(pageSize)
-    val hasNextPage = (page + 1) * pageSize < filteredAdmins.size
-    val hasPrevPage = page > 0
+    val filteredStatuses = listOf("ALL", "ACTIVE", "BLOCKED", "DELETED")
+
+    val adminsByStatus = viewModel.admins
+        .filter { it.email.contains(searchQuery, ignoreCase = true) }
+        .groupBy { it.status?.uppercase() ?: "UNKNOWN" }
+
+    val expandStates = remember { mutableStateMapOf<String, Boolean>() }
+
+    LaunchedEffect(email) {
+        viewModel.setCurrentUserEmail(email ?: "")
+    }
 
     LaunchedEffect(snackbarMessage) {
         snackbarMessage?.let {
@@ -54,22 +115,27 @@ fun UserManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("EduVOD User Management", color = Color.White) },
+                title = {
+                    Text(
+                        "EduVOD User Management",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                ),
                 modifier = Modifier.background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xFF0D47A1), Color(0xFF1565C0))
+                        colors = listOf(Color(0xFF1565C0), Color(0xFF0D47A1)) // Same order as Grades screen
                     )
-                ),
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
             )
         },
         floatingActionButton = {
@@ -91,100 +157,75 @@ fun UserManagementScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            if (pagedAdmins.isEmpty()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(vertical = 8.dp)
+            ) {
+                filteredStatuses.forEach { status ->
+                    FilterChip(
+                        selected = selectedStatus == status,
+                        onClick = { selectedStatus = status },
+                        label = { Text(status) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (viewModel.admins.isEmpty()) {
                 Text("No admins found.", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             } else {
+                val displayStatuses = when (selectedStatus) {
+                    "ALL" -> listOf("ACTIVE", "BLOCKED", "DELETED", "UNKNOWN")
+                    else -> listOf(selectedStatus)
+                }
+
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    itemsIndexed(pagedAdmins) { _, admin ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(4.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Surface(
-                                            shape = MaterialTheme.shapes.medium,
-                                            color = Color(0xFF0D47A1),
-                                            modifier = Modifier.size(40.dp)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Text(
-                                                    text = admin.email.first().uppercase(),
-                                                    color = Color.White,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column {
-                                            Text(admin.email, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                            Text(
-                                                text = admin.status,
-                                                color = when (admin.status) {
-                                                    "ACTIVE" -> Color(0xFF2E7D32)
-                                                    "BLOCKED" -> Color.Red
-                                                    else -> Color.Gray
-                                                },
-                                                fontSize = 14.sp
-                                            )
-                                        }
-                                    }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        IconButton(onClick = {
-                                            viewModel.toggleUserStatus(admin)
-                                        }) {
-                                            Icon(
-                                                imageVector = if (admin.status == "BLOCKED") Icons.Default.LockOpen else Icons.Default.Block,
-                                                tint = Color.Red,
-                                                contentDescription = "Block/Unblock"
-                                            )
-                                        }
+                    displayStatuses.forEach { status ->
+                        val users = adminsByStatus[status] ?: emptyList()
+                        val expanded = expandStates.getOrPut(status) { true }
 
-                                        IconButton(onClick = {
-                                            viewModel.resetPassword(admin.email)
-                                        }) {
-                                            Icon(
-                                                imageVector = Icons.Default.Refresh,
-                                                tint = Color(0xFF2E7D32),
-                                                contentDescription = "Reset Password"
-                                            )
-                                        }
-
-                                        IconButton(onClick = {
-                                            viewModel.deleteUser(admin.id)
-                                        }) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                tint = Color.Gray,
-                                                contentDescription = "Delete User"
-                                            )
-                                        }
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        expandStates[status] = !expanded
                                     }
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "$status Users",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                )
+                                Icon(
+                                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = if (expanded) "Collapse" else "Expand"
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+
+                        if (expanded) {
+                            items(users.sortedBy { it.email }) { admin ->
+                                currentUserEmail?.let {
+                                    AdminCard(
+                                        admin = admin,
+                                        currentUserEmail = it,
+                                        onDelete = { viewModel.deleteUser(admin.id) },
+                                        onResetPassword = { viewModel.resetPassword(admin.email) },
+                                        onToggleStatus = { viewModel.toggleUserStatus(admin) }
+                                    )
                                 }
                             }
                         }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = { if (hasPrevPage) page-- }) {
-                        Text("Previous")
-                    }
-                    Text("Page ${page + 1}")
-                    TextButton(onClick = { if (hasNextPage) page++ }) {
-                        Text("Next")
                     }
                 }
             }
@@ -194,18 +235,123 @@ fun UserManagementScreen(
     if (showAddDialog) {
         AddAdminDialog(
             onDismiss = { showAddDialog = false },
-            onConfirm = { email, password ->
-                viewModel.registerSuperAdmin(email, password)
+            onConfirm = { username, email, password ->
+                viewModel.registerSuperAdmin(username, email, password)
                 showAddDialog = false
             }
         )
     }
 }
+
+@Composable
+fun AdminCard(
+    admin: AdminUser,
+    currentUserEmail: String,
+    onDelete: () -> Unit,
+    onResetPassword: () -> Unit,
+    onToggleStatus: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = Color(0xFF0D47A1),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = admin.email.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = admin.email.ifBlank { "N/A" },
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = admin.status ?: "UNKNOWN",
+                            color = when (admin.status?.uppercase()) {
+                                "ACTIVE" -> Color(0xFF2E7D32)
+                                "BLOCKED" -> Color.Red
+                                "DELETED" -> Color.Gray
+                                else -> Color.DarkGray
+                            },
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+                        Icon(
+                            imageVector = when (admin.status?.uppercase()) {
+                                "ACTIVE" -> Icons.Default.Check
+                                "BLOCKED" -> Icons.Default.Block
+                                "DELETED" -> Icons.Default.Delete
+                                else -> Icons.Default.Warning
+                            },
+                            contentDescription = null,
+                            tint = Color.LightGray,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onToggleStatus) {
+                    Icon(
+                        imageVector = if (admin.status == "BLOCKED") Icons.Default.LockOpen else Icons.Default.Block,
+                        tint = Color.Red,
+                        contentDescription = "Block/Unblock"
+                    )
+                }
+
+                IconButton(onClick = onResetPassword) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        tint = Color(0xFF2E7D32),
+                        contentDescription = "Reset Password"
+                    )
+                }
+
+                if (admin.email != currentUserEmail && admin.status != "DELETED") {
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            tint = Color.Gray,
+                            contentDescription = "Delete User"
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Divider(color = Color(0xFFEEEEEE))
+        }
+    }
+}
 @Composable
 fun AddAdminDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onConfirm: (String, String, String) -> Unit
 ) {
+    var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -220,6 +366,14 @@ fun AddAdminDialog(
         title = { Text("Add EduVOD Admin") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Username") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
@@ -271,8 +425,8 @@ fun AddAdminDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                if (email.isNotBlank() && passwordsMatch && isValidPassword) {
-                    onConfirm(email, password)
+                if (username.isNotBlank() && email.isNotBlank() && passwordsMatch && isValidPassword) {
+                    onConfirm(username, email, password)
                 }
             }) {
                 Text("Add")
@@ -283,5 +437,5 @@ fun AddAdminDialog(
                 Text("Cancel")
             }
         }
-    )
+   )
 }

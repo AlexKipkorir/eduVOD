@@ -1,9 +1,17 @@
 package com.example.eduvod.retrofit
 
+import com.example.eduvod.model.CountyRequest
+import com.example.eduvod.model.CountyResponse
 import com.example.eduvod.model.Grade
+import com.example.eduvod.model.GradeRequest
+import com.example.eduvod.model.RegionResponse
 import com.example.eduvod.model.RenameStreamRequest
 import com.example.eduvod.model.School
+import com.example.eduvod.model.SimpleItem
+import com.example.eduvod.model.SimpleNameRequest
 import com.example.eduvod.model.Stream
+import com.example.eduvod.model.SubCountyRequest
+import com.example.eduvod.model.SubCountyResponse
 import com.example.eduvod.retrofit.request.LoginRequest
 import com.example.eduvod.retrofit.response.ApiResponse
 import com.example.eduvod.retrofit.response.LoginResponseData
@@ -78,67 +86,110 @@ interface ApiService {
 
     //User Management
     // Register new super admin
-    @POST("auth/superadmin/register")
-    suspend fun registerSuperAdmin(@Body request: AdminEduvodCreateRequest): Response<ApiResponse<Unit>>
+    @POST("/api/v1/auth/superadmin/register")
+    suspend fun registerSuperAdmin(
+        @Body request: AdminEduvodCreateRequest
+    ): Response<ApiResponse<Unit>>
 
     // Fetch all users
-    @GET("superadmin/users")
+    @GET("/api/v1/superadmin/users")
     suspend fun getAllUsers(): Response<ApiResponse<List<AdminUser>>>
 
     // Change user status (ACTIVE/BLOCKED/DELETED)
-    @POST("superadmin/users/{id}/status")
+    @PUT("/api/v1/superadmin/users/{id}/status")
     suspend fun updateUserStatus(
         @Path("id") id: Long,
         @Query("status") status: String
     ): Response<ApiResponse<Unit>>
 
     // Soft delete user
-    @DELETE("superadmin/users/{id}")
+    @DELETE("/api/v1/superadmin/users/{id}")
     suspend fun deleteUser(@Path("id") id: Long): Response<ApiResponse<Unit>>
 
     @POST("admin-users/reset-password")
     suspend fun  resetEduvodAdmin(@Body request: AdminEduvodResetRequest): Response<ApiResponse<Unit>>
 
     //System Configuration
-    @GET("systems-config/{section}")
-    suspend fun getConfigSection(@Path("section") section: String): Response<ApiResponse<List<String>>>
+    // --- School Types ---
+    @GET("/api/v1/superadmin/school-types")
+    suspend fun getSchoolTypes(): Response<ApiResponse<List<SimpleItem>>>
 
-    @POST("system-config/{section}")
-    suspend fun addConfigItem(
-        @Path("section") section: String,
-        @Body item: Map<String, String>
-    ): Response<ApiResponse<Unit>>
+    @POST("/api/v1/superadmin/school-types")
+    suspend fun addSchoolType(@Body item: SimpleNameRequest): Response<SimpleItem>
 
-    @PUT("system-config/{section}")
-    suspend fun updateConfigItem(
-        @Path("section") section: String,
-        @Body body: Map<String, String>
-    ): Response<ApiResponse<Unit>>
 
-    @HTTP(method = "DELETE", path = "system-config/{section}", hasBody = true)
-    suspend fun deleteConfigItem(
-        @Path("section") section: String,
-        @Body item: Map<String, String>
-    ): Response<ApiResponse<Unit>>
+    // --- School Categories ---
+    @GET("/api/v1/superadmin/school-categories")
+    suspend fun getSchoolCategories(): Response<ApiResponse<List<SimpleItem>>>
 
-    @GET("regions")
-    suspend fun getRegions(): List<String>
+    @POST("/api/v1/superadmin/school-categories")
+    suspend fun addSchoolCategory(@Body item: SimpleNameRequest): Response<SimpleItem>
 
-    @GET("regions/{region}/counties")
-    suspend fun getCountiesByRegion(@Path("region") region: String): List<String>
 
-    @GET("counties/{county}/subcounties")
-    suspend fun getSubcountiesByCounty(@Path("county") county: String): List<String>
+    // --- Curriculums ---
+    @GET("/api/v1/superadmin/curriculum")
+    suspend fun getCurriculums(): Response<ApiResponse<List<SimpleItem>>>
+
+    @POST("/api/v1/superadmin/curriculum")
+    suspend fun addCurriculum(@Body item: SimpleNameRequest): Response<SimpleItem>
+
+
+    // --- Regions ---
+    @GET("/api/v1/superadmin/regions")
+    suspend fun getRegions(): Response<ApiResponse<List<RegionResponse>>>
+
+    @POST("/api/v1/superadmin/regions")
+    suspend fun addRegion(@Body item: SimpleNameRequest): Response<ApiResponse<RegionResponse>>
+
+    @PUT("/api/v1/superadmin/regions/{id}")
+    suspend fun updateRegion(@Path("id") id: Long, @Body item: SimpleNameRequest): Response<ApiResponse<RegionResponse>>
+
+    @DELETE("/api/v1/superadmin/regions/{id}")
+    suspend fun deleteRegion(@Path("id") id: Long): Response<ApiResponse<String>>
+
+
+    // --- Counties ---
+    @GET("/api/v1/superadmin/counties")
+    suspend fun getCounties(): Response<ApiResponse<List<CountyResponse>>>
+
+    @GET("/api/v1/superadmin/regions/{regionId}/counties")
+    suspend fun getCountiesByRegion(@Path("regionId") regionId: Long): Response<ApiResponse<List<CountyResponse>>>
+
+    @POST("/api/v1/superadmin/counties")
+    suspend fun addCounty(@Body item: CountyRequest): Response<ApiResponse<CountyResponse>>
+
+    @PUT("/api/v1/superadmin/counties/{id}")
+    suspend fun updateCounty(@Path("id") id: Long, @Body item: CountyRequest): Response<ApiResponse<CountyResponse>>
+
+    @DELETE("/api/v1/superadmin/counties/{id}")
+    suspend fun deleteCounty(@Path("id") id: Long): Response<ApiResponse<String>>
+
+
+    // --- SubCounties ---
+    @GET("/api/v1/superadmin/subcounties")
+    suspend fun getSubCounties(): Response<ApiResponse<List<SubCountyResponse>>>
+
+    @GET("/api/v1/superadmin/counties/{countyId}/subcounties")
+    suspend fun getSubCountiesByCounty(@Path("countyId") countyId: Long): Response<ApiResponse<List<SubCountyResponse>>>
+
+    @POST("/api/v1/superadmin/subcounties")
+    suspend fun addSubCounty(@Body item: SubCountyRequest): Response<ApiResponse<SubCountyResponse>>
+
+    @PUT("/api/v1/superadmin/subcounties/{id}")
+    suspend fun updateSubCounty(@Path("id") id: Long, @Body item: SubCountyRequest): Response<ApiResponse<SubCountyResponse>>
+
+    @DELETE("/api/v1/superadmin/subcounties/{id}")
+    suspend fun deleteSubCounty(@Path("id") id: Long): Response<ApiResponse<String>>
 
     //Grades Management
-    @GET("grades")
+    @GET("/api/v1/superadmin/grades")
     suspend fun getAllGrades(): Response<ApiResponse<List<Grade>>>
 
-    @POST("grades")
-    suspend fun addGrade(@Body grade: Grade): Response<ApiResponse<Grade>>
+    @POST("/api/v1/superadmin/grades")
+    suspend fun addGrade(@Body request: GradeRequest): Response<ApiResponse<Grade>>
 
-    @DELETE("grades/{name}")
-    suspend fun deleteGrade(@Path("name") name: String): Response<ApiResponse<Unit>>
+    @DELETE("/api/v1/superadmin/grades/{id}")
+    suspend fun deleteGrade(@Path("id") id: Int): Response<ApiResponse<String>>
 
     //Stream Management
     @POST("grades/{gradeName}/streams")

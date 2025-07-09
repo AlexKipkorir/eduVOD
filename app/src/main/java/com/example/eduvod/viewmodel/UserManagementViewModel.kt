@@ -1,9 +1,15 @@
 package com.example.eduvod.viewmodel
 
 import android.util.Log
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import com.example.eduvod.AuthViewModelFactory
 import com.example.eduvod.repositories.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,10 +22,12 @@ data class AdminUser(
     val email: String,
     val role: String,
     val schoolName: String?,
-    val status: String
+    val status: String?,
+    val deletedAt: String?
 )
 
 data class AdminEduvodCreateRequest(
+    val username: String,
     val email: String,
     val password: String
 )
@@ -106,11 +114,19 @@ class UserManagementViewModel(
 ) : ViewModel() {
 
     val admins = mutableStateListOf<AdminUser>()
+
     private val _snackbarMessage = MutableStateFlow<String?>(null)
     val snackbarMessage: StateFlow<String?> = _snackbarMessage
 
+    private val _currentUserEmail = MutableStateFlow<String?>(null)
+    val currentUserEmail: StateFlow<String?> = _currentUserEmail
+
     init {
         fetchAllAdmins()
+    }
+
+    fun setCurrentUserEmail(email: String) {
+        _currentUserEmail.value = email
     }
 
     fun fetchAllAdmins() {
@@ -118,9 +134,16 @@ class UserManagementViewModel(
             try {
                 val response = repository.getAllUsers()
                 if (response.isSuccessful) {
-                    response.body()?.data?.let {
+                    response.body()?.data?.let { rawList ->
+                        val updatedList = rawList.map { admin ->
+                            if (admin.deletedAt != null) {
+                                admin.copy(status = "DELETED")
+                            } else {
+                                admin
+                            }
+                        }
                         admins.clear()
-                        admins.addAll(it)
+                        admins.addAll(updatedList)
                     }
                 } else {
                     _snackbarMessage.value = "Failed to load admins."
@@ -130,11 +153,10 @@ class UserManagementViewModel(
             }
         }
     }
-
-    fun registerSuperAdmin(email: String, password: String) {
+    fun registerSuperAdmin(username: String, email: String, password: String) {
         viewModelScope.launch {
             try {
-                val response = repository.registerSuperAdmin(AdminEduvodCreateRequest(email, password))
+                val response = repository.registerSuperAdmin(AdminEduvodCreateRequest(username, email, password))
                 if (response.isSuccessful) {
                     fetchAllAdmins()
                     _snackbarMessage.value = "Super Admin registered."
@@ -182,6 +204,7 @@ class UserManagementViewModel(
             }
         }
     }
+
     fun resetPassword(email: String) {
         viewModelScope.launch {
             try {

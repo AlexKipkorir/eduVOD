@@ -27,7 +27,7 @@ import com.example.eduvod.ui.screens.schoolmanagement.ManageSchoolAdminsScreen
 import com.example.eduvod.ui.screens.schoolmanagement.SchoolDetailsScreen
 import com.example.eduvod.ui.screens.schoolmanagement.SchoolManagementScreen
 import com.example.eduvod.ui.screens.SplashScreen
-import com.example.eduvod.ui.screens.gradesmanagement.StreamViewScreen
+//import com.example.eduvod.ui.screens.gradesmanagement.StreamViewScreen
 import com.example.eduvod.ui.screens.systemconfiguration.SystemConfigScreen
 import com.example.eduvod.ui.screens.usermanagement.UserManagementScreen
 import com.example.eduvod.ui.theme.EduVODTheme
@@ -39,17 +39,37 @@ import android.content.Context
 import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import com.example.eduvod.datastore.UserPreferences
+import com.example.eduvod.retrofit.ApiClient
 import com.example.eduvod.viewmodel.DashboardViewModel
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
+    private lateinit var userPreferences: UserPreferences
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        setContent {
-            EduVODTheme {
-                EduVODApp()
+        userPreferences = UserPreferences(applicationContext)
+
+        lifecycleScope.launch {
+            userPreferences.authToken.collect { token ->
+                if (!token.isNullOrEmpty()) {
+                    ApiClient.setAuthToken(token)
+
+                    setContent {
+                        EduVODTheme {
+                            EduVODApp()
+                        }
+                    }
+
+                    this.cancel()
+                }
             }
         }
     }
@@ -143,10 +163,10 @@ fun EduVODNavHost(
         composable("grades") {
             GradesManagementScreen(navController)
         }
-        composable("view_streams/{gradeName}") { backStackEntry ->
-            val gradeName = backStackEntry.arguments?.getString("gradeName") ?: return@composable
-            StreamViewScreen(navController, gradeName)
-        }
+//        composable("view_streams/{gradeName}") { backStackEntry ->
+//            val gradeName = backStackEntry.arguments?.getString("gradeName") ?: return@composable
+//            StreamViewScreen(navController, gradeName)
+//        }
         composable("school_admins") {
             SchoolAdminsScreen(navController = navController, viewModel = viewModel())
         }

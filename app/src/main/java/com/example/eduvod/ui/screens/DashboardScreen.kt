@@ -66,7 +66,7 @@ import com.example.eduvod.viewmodel.AuthViewModel
 import com.example.eduvod.viewmodel.DashboardViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.collectAsState
 import com.example.eduvod.viewmodel.LoginState
 
@@ -88,17 +88,17 @@ fun DashboardScreen(navController: NavHostController,
     )
 
     //Retrofit
-//    val stats by viewModel.stats.collectAsState()
-//    val snackbar by viewModel.snackbar.collectAsState()
+    val stats by viewModel.stats.collectAsState()
+    val snackbar by viewModel.snackbar.collectAsState()
 
-//    val snackbarHostState = remember { SnackbarHostState() }
-//
-//    LaunchedEffect(snackbar) {
-//        snackbar?.let {
-//            snackbarHostState.showSnackbar(it)
-//            viewModel.clearSnackbar()
-//        }
-//    }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(snackbar) {
+        snackbar?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSnackbar()
+        }
+    }
 
     val loginState by authViewModel.loginState.collectAsState()
 
@@ -162,64 +162,6 @@ fun DashboardScreen(navController: NavHostController,
         )
         { innerPadding ->
             //Retrofit
-//            Column(
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .padding(innerPadding)
-//                    .verticalScroll(rememberScrollState())
-//                    .padding(16.dp),
-//                verticalArrangement = Arrangement.spacedBy(20.dp)
-//            ) {
-//                SectionTitle("Schools by Region")
-//                StaggeredAnimatedCard(index = 0) {
-//                    stats?.let { ScrollableDataCard(data = it.schoolsByRegion, icon = Icons.Default.LocationCity) }
-//                }
-//
-//                SectionTitle("Students by Gender")
-//                StaggeredAnimatedCard(index = 1) {
-//                    TwoColumnDataCard(
-//                        "Male" to (stats?.studentsByGender?.get("Male") ?: "0"),
-//                        "Female" to (stats?.studentsByGender?.get("Female") ?: "0"),
-//                        icon = Icons.Default.Group
-//                    )
-//                }
-//
-//                SectionTitle("Differently Abled Students")
-//                StaggeredAnimatedCard(index = 2) {
-//                    TwoColumnDataCard(
-//                        "Male" to (stats?.differentlyAbled?.get("Male") ?: "0"),
-//                        "Female" to (stats?.differentlyAbled?.get("Female") ?: "0"),
-//                        icon = Icons.Default.Accessibility
-//                    )
-//                }
-//
-//                SectionTitle("Teachers by Gender")
-//                StaggeredAnimatedCard(index = 3) {
-//                    TwoColumnDataCard(
-//                        "Male" to (stats?.teachersByGender?.get("Male") ?: "0"),
-//                        "Female" to (stats?.teachersByGender?.get("Female") ?: "0"),
-//                        icon = Icons.Default.Person
-//                    )
-//                }
-//
-//                SectionTitle("Number of Guardians")
-//                StaggeredAnimatedCard(index = 4) {
-//                    stats?.let {
-//                        SimpleDataCard(
-//                            label = "Total Guardians",
-//                            value = it.guardiansCount.toString(),
-//                            icon = Icons.Default.FamilyRestroom
-//                        )
-//                    }
-//                }
-//
-//                SectionTitle("Students by Class/Grade/Stream")
-//                StaggeredAnimatedCard(index = 5) {
-//                    stats?.let { ScrollableDataCard(data = it.studentsByClass, icon = Icons.Default.School) }
-//                }
-//            }
-
-            //OG
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -230,14 +172,14 @@ fun DashboardScreen(navController: NavHostController,
             ) {
                 SectionTitle("Schools by Region")
                 StaggeredAnimatedCard(index = 0) {
-                    ScrollableDataCard(data = viewModel.schoolsByRegion, icon = Icons.Default.LocationCity)
+                    stats?.let { ScrollableDataCard(data = it.schoolsByRegion, icon = Icons.Default.LocationCity) }
                 }
 
                 SectionTitle("Students by Gender")
                 StaggeredAnimatedCard(index = 1) {
                     TwoColumnDataCard(
-                        "Male" to (viewModel.studentsByGender["Male"] ?: "0"),
-                        "Female" to (viewModel.studentsByGender["Female"] ?: "0"),
+                        "Male" to (stats?.studentsByGender?.get("Male") ?: "0"),
+                        "Female" to (stats?.studentsByGender?.get("Female") ?: "0"),
                         icon = Icons.Default.Group
                     )
                 }
@@ -245,8 +187,8 @@ fun DashboardScreen(navController: NavHostController,
                 SectionTitle("Differently Abled Students")
                 StaggeredAnimatedCard(index = 2) {
                     TwoColumnDataCard(
-                        "Male" to (viewModel.differentlyAbledStudents["Male"] ?: "0"),
-                        "Female" to (viewModel.differentlyAbledStudents["Female"] ?: "0"),
+                        "Male" to (stats?.differentlyAbled?.get("Male") ?: "0"),
+                        "Female" to (stats?.differentlyAbled?.get("Female") ?: "0"),
                         icon = Icons.Default.Accessibility
                     )
                 }
@@ -254,26 +196,84 @@ fun DashboardScreen(navController: NavHostController,
                 SectionTitle("Teachers by Gender")
                 StaggeredAnimatedCard(index = 3) {
                     TwoColumnDataCard(
-                        "Male" to (viewModel.teachersByGender["Male"] ?: "0"),
-                        "Female" to (viewModel.teachersByGender["Female"] ?: "0"),
+                        "Male" to (stats?.teachersByGender?.get("Male") ?: "0"),
+                        "Female" to (stats?.teachersByGender?.get("Female") ?: "0"),
                         icon = Icons.Default.Person
                     )
                 }
 
                 SectionTitle("Number of Guardians")
                 StaggeredAnimatedCard(index = 4) {
-                    SimpleDataCard(
-                        label = "Total Guardians",
-                        value = viewModel.totalGuardian,
-                        icon = Icons.Default.FamilyRestroom
-                    )
+                    stats?.let {
+                        SimpleDataCard(
+                            label = "Total Guardians",
+                            value = it.guardiansCount.toString(),
+                            icon = Icons.Default.FamilyRestroom
+                        )
+                    }
                 }
 
                 SectionTitle("Students by Class/Grade/Stream")
                 StaggeredAnimatedCard(index = 5) {
-                    ScrollableDataCard(data = viewModel.studentsByClassStream, icon = Icons.Default.School)
+                    stats?.let { ScrollableDataCard(data = it.studentsByClass, icon = Icons.Default.School) }
                 }
             }
+
+            //OG
+//            Column(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .padding(innerPadding)
+//                    .verticalScroll(rememberScrollState())
+//                    .padding(16.dp),
+//                verticalArrangement = Arrangement.spacedBy(20.dp)
+//            ) {
+//                SectionTitle("Schools by Region")
+//                StaggeredAnimatedCard(index = 0) {
+//                    ScrollableDataCard(data = viewModel.schoolsByRegion, icon = Icons.Default.LocationCity)
+//                }
+//
+//                SectionTitle("Students by Gender")
+//                StaggeredAnimatedCard(index = 1) {
+//                    TwoColumnDataCard(
+//                        "Male" to (viewModel.studentsByGender["Male"] ?: "0"),
+//                        "Female" to (viewModel.studentsByGender["Female"] ?: "0"),
+//                        icon = Icons.Default.Group
+//                    )
+//                }
+//
+//                SectionTitle("Differently Abled Students")
+//                StaggeredAnimatedCard(index = 2) {
+//                    TwoColumnDataCard(
+//                        "Male" to (viewModel.differentlyAbledStudents["Male"] ?: "0"),
+//                        "Female" to (viewModel.differentlyAbledStudents["Female"] ?: "0"),
+//                        icon = Icons.Default.Accessibility
+//                    )
+//                }
+//
+//                SectionTitle("Teachers by Gender")
+//                StaggeredAnimatedCard(index = 3) {
+//                    TwoColumnDataCard(
+//                        "Male" to (viewModel.teachersByGender["Male"] ?: "0"),
+//                        "Female" to (viewModel.teachersByGender["Female"] ?: "0"),
+//                        icon = Icons.Default.Person
+//                    )
+//                }
+//
+//                SectionTitle("Number of Guardians")
+//                StaggeredAnimatedCard(index = 4) {
+//                    SimpleDataCard(
+//                        label = "Total Guardians",
+//                        value = viewModel.totalGuardian,
+//                        icon = Icons.Default.FamilyRestroom
+//                    )
+//                }
+//
+//                SectionTitle("Students by Class/Grade/Stream")
+//                StaggeredAnimatedCard(index = 5) {
+//                    ScrollableDataCard(data = viewModel.studentsByClassStream, icon = Icons.Default.School)
+//                }
+//            }
         }
     }
 }
@@ -356,7 +356,7 @@ fun TwoColumnDataCard(vararg values: Pair<String, Any>, icon: ImageVector) {
 }
 @Composable
 fun ScrollableDataCard(
-    data: List<Pair<String, String>>,
+    data: Map<String, Int>,
     icon: ImageVector,
     maxHeight: Dp = 300.dp
 ) {
@@ -370,16 +370,24 @@ fun ScrollableDataCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Icon(icon, contentDescription = null, tint = Color(0xFF1565C0))
             Spacer(modifier = Modifier.height(8.dp))
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                data.forEach { (label, value) ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(label, color = Color.Black)
-                        Text(value, fontWeight = FontWeight.Bold, color = Color(0xFF0D47A1))
+            Column(modifier = Modifier.padding(16.dp)) {
+                Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF1565C0))
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    data.forEach { (label, value) ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = label.toString(), color = Color.Black)
+                            Text(
+                                text = value.toString(),
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0D47A1)
+                            )
+                        }
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
                     }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
                 }
             }
         }

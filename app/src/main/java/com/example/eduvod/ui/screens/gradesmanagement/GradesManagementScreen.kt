@@ -1,8 +1,7 @@
 package com.example.eduvod.ui.screens.gradesmanagement
 
 import android.net.Uri
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,13 +16,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.eduvod.R
 import com.example.eduvod.model.Grade
 import com.example.eduvod.viewmodel.GradesViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,16 +40,23 @@ fun GradesManagementScreen(
 
     var showDialog by remember { mutableStateOf(false) }
     var newGrade by remember { mutableStateOf("") }
-    var selectedCurriculum by remember { mutableStateOf("CBC") }
+    var selectedCurriculum by remember { mutableStateOf(viewMap.curriculums.firstOrNull()?.name ?: "") }
     var expanded by remember { mutableStateOf(false) }
 
-    val gradeList = viewMap.grades
-    val groupedGrades = gradeList.groupBy { it.curriculum }
-    val curriculumOptions = viewMap.allCurriculums
+    val searchQuery = remember { mutableStateOf("") }
+    var searchJob by remember { mutableStateOf<Job?>(null) }
+
+    var selectedCurriculumTab by remember { mutableStateOf(viewMap.curriculums.firstOrNull()?.name ?: "") }
+
+    val grades = viewMap.grades.filter {
+        it.curriculum == selectedCurriculumTab &&
+                it.name.contains(searchQuery.value.trim(), ignoreCase = true)
+    }
+
+    val curriculumTabs = viewMap.curriculums.map { it.name }
     var gradeToDelete by remember { mutableStateOf<Grade?>(null) }
 
 
-    //Retrofit
     LaunchedEffect(Unit) {
         viewMap.snackbarMessage.collect { message ->
             message?.let {
@@ -92,64 +102,77 @@ fun GradesManagementScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color(0xFFF4F9FC)
     ) { padding ->
+        Column(modifier = Modifier
+            .padding(padding)
+            .padding(16.dp)) {
 
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                Text(
-                    text = "Available Grades",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 18.sp,
-                        color = Color(0xFF0D47A1),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                )
-            }
+            if (curriculumTabs.isNotEmpty()) {
+                val selectedIndex = curriculumTabs.indexOf(selectedCurriculumTab)
+                    .takeIf { it >= 0 } ?: 0
+                selectedCurriculumTab = curriculumTabs[selectedIndex]
 
-            if (gradeList.isEmpty()) {
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(top = 64.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(Icons.Default.School, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(64.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("No grades added yet.", color = Color.Gray)
+                ScrollableTabRow(
+                    selectedTabIndex = selectedIndex,
+                    edgePadding = 0.dp
+                ) {
+                    curriculumTabs.forEachIndexed { index, name ->
+                        Tab(
+                            selected = selectedIndex == index,
+                            onClick = {
+                                selectedCurriculumTab = name
+                            },
+                            text = {
+                                Text("$name (${viewMap.grades.count { it.curriculum == name }})")
+                            }
+                        )
                     }
                 }
             } else {
-                groupedGrades.forEach { (curriculum, grades) ->
-                    item {
-                        Text(
-                            text = curriculum,
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1565C0)
-                            ),
-                            modifier = Modifier.padding(top = 12.dp)
-                        )
-                    }
+                Text(
+                    "No curriculums available",
+                    modifier = Modifier.padding(16.dp),
+                    color = Color.Gray
+                )
+            }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = searchQuery.value,
+                onValueChange = {
+                    searchQuery.value = it
+                    searchJob?.cancel()
+                    searchJob = scope.launch {
+                        delay(300)
+                    }
+                },
+                label = { Text("Search Grade") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (grades.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Default.School, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(64.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("No grades found.", color = Color.Gray)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Tap '+' to add your first grade.", color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(grades) { grade ->
-                        val bgColor = when (grade.curriculum) {
-                            "CBC" -> Color(0xFFE3F2FD)
-                            "8-4-4" -> Color(0xFFFFF9C4)
-                            "British" -> Color(0xFFF3E5F5)
-                            "IGCSE" -> Color(0xFFFFEBEE)
-                            else -> Color.White
-                        }
+                        val bgColor = viewMap.getCurriculumColor(grade.curriculum)
+
 
                         Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .shadow(4.dp, shape = RoundedCornerShape(16.dp)),
-                            elevation = CardDefaults.cardElevation(4.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = bgColor),
                             border = BorderStroke(1.dp, Color(0xFFE0E0E0))
@@ -162,30 +185,10 @@ fun GradesManagementScreen(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("Curriculum: ${grade.curriculum}", color = Color.Gray, fontSize = 14.sp)
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("${grade.streams.size} stream(s)", color = Color.Gray, fontSize = 14.sp)
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    IconButton(onClick = {
-                                        navController.navigate("view_streams/${Uri.encode(grade.name)}")
-                                    }) {
-                                        Icon(
-                                            Icons.Default.Visibility,
-                                            contentDescription = "View Stream",
-                                            tint = Color(0xFF1565C0)
-                                        )
-                                    }
-
-                                    IconButton(onClick = {
-                                        gradeToDelete = grade
-                                    }) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = "Delete Grade",
-                                            tint = Color.Black
-                                        )
-                                    }
+                                IconButton(onClick = { gradeToDelete = grade }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Black)
                                 }
                             }
                         }
@@ -219,19 +222,17 @@ fun GradesManagementScreen(
                             readOnly = true,
                             label = { Text("Curriculum") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
                         DropdownMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false }
                         ) {
-                            curriculumOptions.forEach { option ->
+                            viewMap.curriculums.forEach { item ->
                                 DropdownMenuItem(
-                                    text = { Text(option) },
+                                    text = { Text(item.name) },
                                     onClick = {
-                                        selectedCurriculum = option
+                                        selectedCurriculum = item.name
                                         expanded = false
                                     }
                                 )
@@ -243,14 +244,7 @@ fun GradesManagementScreen(
             confirmButton = {
                 ElevatedButton(onClick = {
                     if (newGrade.isNotBlank()) {
-                        viewMap.addGrade(
-                            Grade(
-                                name = newGrade,
-                                curriculum = selectedCurriculum,
-                                streams = mutableStateListOf(),
-                                hasSchool = false
-                            )
-                        )
+                        viewMap.addGrade(newGrade, selectedCurriculum)
                         showDialog = false
                         newGrade = ""
                     }
@@ -265,11 +259,12 @@ fun GradesManagementScreen(
             }
         )
     }
+
     gradeToDelete?.let { grade ->
         AlertDialog(
             onDismissRequest = { gradeToDelete = null },
             title = { Text("Confirm Deletion") },
-            text = { Text("Are you sure you want to delete '${grade.name}'? This action cannot be undone.") },
+            text = { Text("Are you sure you want to delete '${grade.name}'?") },
             confirmButton = {
                 TextButton(onClick = {
                     viewMap.deleteGrade(grade)
@@ -292,6 +287,3 @@ fun GradesManagementScreen(
         )
     }
 }
-
-
-

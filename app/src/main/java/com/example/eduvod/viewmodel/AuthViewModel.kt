@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.eduvod.datastore.UserPreferences
 import com.example.eduvod.repositories.LoginRepository
+import com.example.eduvod.retrofit.ApiClient
 import com.example.eduvod.retrofit.request.LoginRequest
 import com.example.eduvod.retrofit.response.ApiResponse
 import com.example.eduvod.retrofit.response.LoginResponseData
@@ -23,7 +24,7 @@ sealed class LoginState {
     object LoggedOut : LoginState()
 }
 
-class AuthViewModel (
+class AuthViewModel(
     private val context: Context,
     private val repository: LoginRepository = LoginRepository()
 ) : ViewModel() {
@@ -47,13 +48,17 @@ class AuthViewModel (
 
                 if (response.isSuccessful && response.body() != null) {
                     val data = response.body()!!.data
-                    if (data != null){
+                    if (data != null) {
+                        val token = data.token ?: ""
 
+                        // Save to shared preferences
                         userPrefs.saveUserSession(
-                            token = data.token ?: "",
+                            token = token,
                             email = email,
                             userId = -1
                         )
+                        // Inject token into API client
+                        ApiClient.setAuthToken(token)
                     }
                     _loginState.value = LoginState.Success(response.body()!!.data)
                 } else {
@@ -66,6 +71,7 @@ class AuthViewModel (
             }
         }
     }
+
     fun resetState() {
         _loginState.value = LoginState.Idle
     }
@@ -80,31 +86,13 @@ class AuthViewModel (
     fun checkIfLoggedIn() {
         viewModelScope.launch {
             val token = savedToken.first()
-            _loginState.value = if (!token.isNullOrBlank()) LoginState.LoggedIn else LoginState.LoggedOut
+            if (!token.isNullOrBlank()) {
+                // Re-inject token when user is already logged in
+                ApiClient.setAuthToken(token)
+                _loginState.value = LoginState.LoggedIn
+            } else {
+                _loginState.value = LoginState.LoggedOut
+            }
         }
     }
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
