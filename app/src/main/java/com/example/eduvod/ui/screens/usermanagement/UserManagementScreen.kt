@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -101,6 +103,8 @@ fun UserManagementScreen(
 
     val expandStates = remember { mutableStateMapOf<String, Boolean>() }
 
+    val isLoading by viewModel.isLoading.collectAsState()
+
     LaunchedEffect(email) {
         viewModel.setCurrentUserEmail(email ?: "")
     }
@@ -149,80 +153,95 @@ fun UserManagementScreen(
         containerColor = Color(0xFFF4F9FC)
     ) { padding ->
         Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                label = { Text("Search by Email") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 8.dp)
-            ) {
-                filteredStatuses.forEach { status ->
-                    FilterChip(
-                        selected = selectedStatus == status,
-                        onClick = { selectedStatus = status },
-                        label = { Text(status) }
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.White.copy(alpha = 0.6f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = Color(0xFF0D47A1),
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(48.dp)
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (viewModel.admins.isEmpty()) {
-                Text("No admins found.", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             } else {
-                val displayStatuses = when (selectedStatus) {
-                    "ALL" -> listOf("ACTIVE", "BLOCKED", "DELETED", "UNKNOWN")
-                    else -> listOf(selectedStatus)
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search by Email") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
+                    filteredStatuses.forEach { status ->
+                        FilterChip(
+                            selected = selectedStatus == status,
+                            onClick = { selectedStatus = status },
+                            label = { Text(status) }
+                        )
+                    }
                 }
 
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    displayStatuses.forEach { status ->
-                        val users = adminsByStatus[status] ?: emptyList()
-                        val expanded = expandStates.getOrPut(status) { true }
+                Spacer(modifier = Modifier.height(8.dp))
 
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        expandStates[status] = !expanded
-                                    }
-                                    .padding(vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "$status Users",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp
-                                )
-                                Icon(
-                                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                    contentDescription = if (expanded) "Collapse" else "Expand"
-                                )
+                if (viewModel.admins.isEmpty()) {
+                    Text("No admins found.", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                } else {
+                    val displayStatuses = when (selectedStatus) {
+                        "ALL" -> listOf("ACTIVE", "BLOCKED", "DELETED", "UNKNOWN")
+                        else -> listOf(selectedStatus)
+                    }
+
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        displayStatuses.forEach { status ->
+                            val users = adminsByStatus[status] ?: emptyList()
+                            val expanded = expandStates.getOrPut(status) { true }
+
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            expandStates[status] = !expanded
+                                        }
+                                        .padding(vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "$status Users",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    )
+                                    Icon(
+                                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = if (expanded) "Collapse" else "Expand"
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
                             }
 
-                            Spacer(modifier = Modifier.height(4.dp))
-                        }
-
-                        if (expanded) {
-                            items(users.sortedBy { it.email }) { admin ->
-                                currentUserEmail?.let {
-                                    AdminCard(
-                                        admin = admin,
-                                        currentUserEmail = it,
-                                        onDelete = { viewModel.deleteUser(admin.id) },
-                                        onResetPassword = { viewModel.resetPassword(admin.email) },
-                                        onToggleStatus = { viewModel.toggleUserStatus(admin) }
-                                    )
+                            if (expanded) {
+                                items(users.sortedBy { it.email }) { admin ->
+                                    currentUserEmail?.let {
+                                        AdminCard(
+                                            admin = admin,
+                                            currentUserEmail = it,
+                                            onDelete = { viewModel.deleteUser(admin.id) },
+                                            onResetPassword = { viewModel.resetPassword(admin.email) },
+                                            onToggleStatus = { viewModel.toggleUserStatus(admin) }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -231,7 +250,6 @@ fun UserManagementScreen(
             }
         }
     }
-
     if (showAddDialog) {
         AddAdminDialog(
             onDismiss = { showAddDialog = false },

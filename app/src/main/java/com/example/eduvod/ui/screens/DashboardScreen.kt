@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
@@ -67,6 +68,7 @@ import com.example.eduvod.viewmodel.DashboardViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import com.example.eduvod.viewmodel.LoginState
 
@@ -92,6 +94,8 @@ fun DashboardScreen(navController: NavHostController,
     val snackbar by viewModel.snackbar.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(snackbar) {
         snackbar?.let {
@@ -124,10 +128,7 @@ fun DashboardScreen(navController: NavHostController,
                             scope.launch {
                                 drawerState.close()
                                 if (item.route == "logout") {
-                                    authViewModel.logout()
-                                    navController.navigate("login") {
-                                        popUpTo(0) { inclusive = true }
-                                    }
+                                    showLogoutDialog = true
                                 } else {
                                     navController.navigate(item.route)
                                 }
@@ -274,6 +275,34 @@ fun DashboardScreen(navController: NavHostController,
 //                    ScrollableDataCard(data = viewModel.studentsByClassStream, icon = Icons.Default.School)
 //                }
 //            }
+        }
+
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = { Text("Confirm Logout") },
+                text = { Text("Are you sure you want to log out?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showLogoutDialog = false
+                        scope.launch {
+                            authViewModel.logout()
+                            delay(300)
+                            navController.navigate("login") {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    }) {
+                        Text("Logout", color = Color.Red)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

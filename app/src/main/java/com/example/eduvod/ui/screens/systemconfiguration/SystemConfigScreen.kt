@@ -1,7 +1,11 @@
 package com.example.eduvod.ui.screens.systemconfiguration
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,6 +31,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +62,7 @@ import androidx.navigation.NavHostController
 import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.Brush
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,6 +95,8 @@ fun SystemConfigScreen(
         "Region / Diocese" to Icons.Default.Place
     )
 
+    val isLoading by viewModel.isLoading.collectAsState()
+
     LaunchedEffect(Unit) {
         viewModel.initialize()
 
@@ -116,107 +124,110 @@ fun SystemConfigScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 modifier = Modifier.background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF1565C0), Color(0xFF0D47A1))
-                    )
+                    Brush.verticalGradient(listOf(Color(0xFF1565C0), Color(0xFF0D47A1)))
                 )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color(0xFFF4F9FC)
     ) { padding ->
-        Column(Modifier.padding(padding).padding(16.dp)) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                label = { Text("Search across all sections") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth()
-            )
 
-            Spacer(Modifier.height(12.dp))
+        Box(Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .padding(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search across all sections") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                configSections
-                    .map { (title, list) ->
-                        val filtered = list.filter { it.contains(searchQuery, ignoreCase = true) }
-                        title to filtered
-                    }
-                    .filter { (title, filtered) ->
-                        searchQuery.isBlank() || filtered.isNotEmpty()
-                    }
-                    .forEach { (title, filtered) ->
+                Spacer(Modifier.height(12.dp))
 
-                        item {
-                            Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(2.dp)
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Row(
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    configSections
+                        .map { (title, list) ->
+                            val filtered = list.filter { it.contains(searchQuery, ignoreCase = true) }
+                            title to filtered
+                        }
+                        .filter { (_, filtered) ->
+                            searchQuery.isBlank() || filtered.isNotEmpty()
+                        }
+                        .forEach { (title, filtered) ->
+                            item {
+                                Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    elevation = CardDefaults.cardElevation(2.dp)
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            sectionIcons[title] ?: Icons.Default.Settings,
-                                            contentDescription = title,
-                                            tint = Color(0xFF0D47A1),
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            title,
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF0D47A1)
-                                        )
-                                    }
-
-                                    IconButton(onClick = {
-                                        inputValue = ""
-                                        oldValue = ""
-                                        dialogSection = title
-                                        isEditDialog = false
-                                        showDialog = true
-                                    }) {
-                                        Icon(Icons.Default.Add, contentDescription = "Add")
-                                    }
-                                }
-
-                                Spacer(Modifier.height(8.dp))
-
-                                if (filtered.isEmpty()) {
-                                    Text("No entries found.", color = Color.Gray)
-                                } else {
-                                    filtered.forEach { item ->
+                                    Column(Modifier.padding(16.dp)) {
                                         Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 6.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
-                                                item,
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                            Row {
-                                                IconButton(onClick = {
-                                                    inputValue = item
-                                                    oldValue = item
-                                                    dialogSection = title
-                                                    isEditDialog = true
-                                                    showDialog = true
-                                                }) {
-                                                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    sectionIcons[title] ?: Icons.Default.Settings,
+                                                    contentDescription = title,
+                                                    tint = Color(0xFF0D47A1),
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(
+                                                    title,
+                                                    fontSize = 20.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF0D47A1)
+                                                )
+                                            }
+
+                                            IconButton(onClick = {
+                                                inputValue = ""
+                                                oldValue = ""
+                                                dialogSection = title
+                                                isEditDialog = false
+                                                showDialog = true
+                                            }) {
+                                                Icon(Icons.Default.Add, contentDescription = "Add")
+                                            }
+                                        }
+
+                                        Spacer(Modifier.height(8.dp))
+
+                                        if (filtered.isEmpty()) {
+                                            Text("No entries found.", color = Color.Gray)
+                                        } else {
+                                            filtered.forEach { item ->
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 6.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        item,
+                                                        fontSize = 16.sp,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+                                                    Row {
+                                                        IconButton(onClick = {
+                                                            inputValue = item
+                                                            oldValue = item
+                                                            dialogSection = title
+                                                            isEditDialog = true
+                                                            showDialog = true
+                                                        }) {
+                                                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -224,12 +235,32 @@ fun SystemConfigScreen(
                                 }
                             }
                         }
+                }
+            }
+            AnimatedVisibility(
+                visible = isLoading,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xAAFFFFFF)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(
+                            color = Color(0xFF1565C0),
+                            strokeWidth = 4.dp,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Loading configuration...", color = Color(0xFF1565C0))
                     }
                 }
             }
         }
     }
-
     // Add/Edit Dialog
     if (showDialog) {
         AlertDialog(

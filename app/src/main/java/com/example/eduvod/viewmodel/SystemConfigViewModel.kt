@@ -12,6 +12,7 @@ import com.example.eduvod.retrofit.response.ApiResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import retrofit2.Response
+import kotlinx.coroutines.delay
 
 //OG
 //class SystemConfigViewModel : ViewModel() {
@@ -193,6 +194,8 @@ class SystemConfigViewModel(
 
     val snackbarMessage = MutableStateFlow<String?>(null)
 
+    val isLoading = MutableStateFlow(false)
+
     fun initialize() {
         loadAll()
         loadRegions()
@@ -209,6 +212,8 @@ class SystemConfigViewModel(
 
     private fun loadRegions() {
         viewModelScope.launch {
+            val startTime = System.currentTimeMillis()
+            isLoading.value = true
             try {
                 val response = repository.getRegions()
                 if (response.isSuccessful) {
@@ -219,6 +224,10 @@ class SystemConfigViewModel(
                 }
             } catch (e: Exception) {
                 snackbarMessage.value = "Failed to load regions: ${e.localizedMessage}"
+            } finally {
+                val elapsedTime = System.currentTimeMillis() - startTime
+                delay(maxOf(0, 1000 - elapsedTime))
+                isLoading.value = false
             }
         }
     }
@@ -226,6 +235,8 @@ class SystemConfigViewModel(
     fun loadCounties(regionName: String) {
         selectedRegion.value = regionName
         viewModelScope.launch {
+            val startTime = System.currentTimeMillis()
+            isLoading.value = true
             try {
                 val region = repository.getRegions().body()?.data?.find { it.name == regionName }
                 if (region != null) {
@@ -240,6 +251,10 @@ class SystemConfigViewModel(
                 }
             } catch (e: Exception) {
                 snackbarMessage.value = "Failed to load counties: ${e.localizedMessage}"
+            } finally {
+                val elapsedTime = System.currentTimeMillis() - startTime
+                delay(maxOf(0, 1000 - elapsedTime))
+                isLoading.value = false
             }
         }
     }
@@ -247,6 +262,8 @@ class SystemConfigViewModel(
     fun loadSubcounties(countyName: String) {
         selectedCounty.value = countyName
         viewModelScope.launch {
+            val startTime = System.currentTimeMillis()
+            isLoading.value = true
             try {
                 val county = repository.getCounties().body()?.data?.find { it.name == countyName }
                 if (county != null) {
@@ -260,10 +277,13 @@ class SystemConfigViewModel(
                 }
             } catch (e: Exception) {
                 snackbarMessage.value = "Failed to load subcounties: ${e.localizedMessage}"
+            } finally {
+                val elapsedTime = System.currentTimeMillis() - startTime
+                delay(maxOf(0, 1000 - elapsedTime))
+                isLoading.value = false
             }
         }
     }
-
     fun addItem(section: String, value: String) {
         val list = sectionList(section)
         viewModelScope.launch {
@@ -329,6 +349,8 @@ class SystemConfigViewModel(
         list: SnapshotStateList<String>
     ) {
         viewModelScope.launch {
+            val startTime = System.currentTimeMillis()
+            isLoading.value = true
             try {
                 val response = fetch()
                 if (response.isSuccessful) {
@@ -340,10 +362,13 @@ class SystemConfigViewModel(
                 }
             } catch (e: Exception) {
                 snackbarMessage.value = "Load failed: ${e.localizedMessage}"
+            } finally {
+                val elapsedTime = System.currentTimeMillis() - startTime
+                delay(maxOf(0, 1000 - elapsedTime)) // Ensure 1s minimum
+                isLoading.value = false
             }
         }
     }
-
     fun clearSnackbar() {
         snackbarMessage.value = null
     }

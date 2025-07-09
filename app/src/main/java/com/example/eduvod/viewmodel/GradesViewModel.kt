@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
+
 
 //OG
 //class GradesViewModel : ViewModel() {
@@ -120,16 +123,17 @@ import kotlinx.coroutines.launch
 class GradesViewModel(
     private val systemRepository: SystemRepository = SystemRepository(ApiClient.apiService),
     private val gradesRepository: GradesRepository = GradesRepository(ApiClient.apiService)
-
 ) : ViewModel() {
 
     val grades = mutableStateListOf<Grade>()
     val selectedGrade = mutableStateOf<Grade?>(null)
-
     val curriculums = mutableStateListOf<SimpleItem>()
 
     private val _snackbarMessage = MutableStateFlow<String?>(null)
     val snackbarMessage: StateFlow<String?> = _snackbarMessage.asStateFlow()
+
+    private val _isLoading = mutableStateOf(true)
+    val isLoading: State<Boolean> = _isLoading
 
     private val colorPalette = listOf(
         Color(0xFFE3F2FD), // Light Blue
@@ -144,6 +148,12 @@ class GradesViewModel(
 
     private val curriculumColorMap = mutableMapOf<String, Color>()
 
+    // Pagination properties
+    private var currentPage = 1
+    private val pageSize = 20
+    private var isLastPage = false
+    private var isFetching = false
+
     fun getCurriculumColor(curriculum: String): Color {
         return curriculumColorMap.getOrPut(curriculum) {
             val index = curriculumColorMap.size % colorPalette.size
@@ -151,23 +161,36 @@ class GradesViewModel(
         }
     }
 
-
     init {
-        fetchGrades()
         fetchCurriculums()
+        loadInitialGrades()
     }
 
     fun clearSnackbar() {
         _snackbarMessage.value = null
     }
 
-    private fun fetchGrades() {
+    private fun loadInitialGrades() {
+        _isLoading.value = true
         viewModelScope.launch {
+            val startTime = System.currentTimeMillis()
+            fetchGrades(reset = true)
+            val elapsedTime = System.currentTimeMillis() - startTime
+            delay(maxOf(0, 1000 - elapsedTime)) // Ensure minimum 1s loader
+            _isLoading.value = false
+        }
+    }
+
+    private fun fetchGrades(reset: Boolean = false) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val delayJob = launch { delay(1000) }
+
             try {
                 val response = gradesRepository.getGrades()
                 if (response.isSuccessful) {
                     response.body()?.data?.let {
-                        grades.clear()
+                        if (reset) grades.clear()
                         grades.addAll(it)
                     }
                 } else {
@@ -176,9 +199,11 @@ class GradesViewModel(
             } catch (e: Exception) {
                 _snackbarMessage.value = "Error fetching grades: ${e.localizedMessage}"
             }
+
+            delayJob.join()
+            _isLoading.value = false
         }
     }
-
     private fun fetchCurriculums() {
         viewModelScope.launch {
             try {
@@ -204,16 +229,13 @@ class GradesViewModel(
                 _snackbarMessage.value = "Invalid curriculum selected"
                 return@launch
             }
-            val gradeRequest = GradeRequest(
-                name = name,
-                curriculumId = curriculum.id
-            )
+            val gradeRequest = GradeRequest(name = name, curriculumId = curriculum.id)
 
             try {
                 val response = gradesRepository.addGrade(gradeRequest)
                 if (response.isSuccessful) {
                     response.body()?.data?.let {
-                        grades.add(it)
+                        grades.add(0, it) // Add on top
                         _snackbarMessage.value = "Grade added successfully"
                     }
                 } else {
@@ -224,6 +246,7 @@ class GradesViewModel(
             }
         }
     }
+
     fun deleteGrade(grade: Grade) {
         viewModelScope.launch {
             try {
@@ -239,7 +262,6 @@ class GradesViewModel(
             }
         }
     }
-
 
 //    fun addStreamToSelectedGrade(streamName: String) {
 //        val grade = selectedGrade.value ?: return

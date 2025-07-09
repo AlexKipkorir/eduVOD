@@ -51,13 +51,12 @@ class AuthViewModel(
                     if (data != null) {
                         val token = data.token ?: ""
 
-                        // Save to shared preferences
                         userPrefs.saveUserSession(
                             token = token,
                             email = email,
                             userId = -1
                         )
-                        // Inject token into API client
+
                         ApiClient.setAuthToken(token)
                     }
                     _loginState.value = LoginState.Success(response.body()!!.data)

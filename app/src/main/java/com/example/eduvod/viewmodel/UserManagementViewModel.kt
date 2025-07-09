@@ -14,6 +14,7 @@ import com.example.eduvod.repositories.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 
 data class AdminUser(
@@ -121,6 +122,9 @@ class UserManagementViewModel(
     private val _currentUserEmail = MutableStateFlow<String?>(null)
     val currentUserEmail: StateFlow<String?> = _currentUserEmail
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
     init {
         fetchAllAdmins()
     }
@@ -131,6 +135,8 @@ class UserManagementViewModel(
 
     fun fetchAllAdmins() {
         viewModelScope.launch {
+            val startTime = System.currentTimeMillis()
+            _isLoading.value = true
             try {
                 val response = repository.getAllUsers()
                 if (response.isSuccessful) {
@@ -150,9 +156,14 @@ class UserManagementViewModel(
                 }
             } catch (e: Exception) {
                 _snackbarMessage.value = "Network error."
+            } finally {
+                val elapsedTime = System.currentTimeMillis() - startTime
+                delay(maxOf(0, 1000 - elapsedTime)) // ensure minimum 1s loader
+                _isLoading.value = false
             }
         }
     }
+
     fun registerSuperAdmin(username: String, email: String, password: String) {
         viewModelScope.launch {
             try {
