@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,6 +64,7 @@ import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.graphics.Brush
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,22 +82,23 @@ fun SystemConfigScreen(
     var oldValue by remember { mutableStateOf("") }
     var inputValue by remember { mutableStateOf("") }
     var searchQuery by remember { mutableStateOf("") }
+    val expandedSections = remember { mutableStateMapOf<String, Boolean>() }
+
+    val isLoading by viewModel.isLoading.collectAsState()
 
     val configSections = listOf(
-        "School Type" to viewModel.types,
-        "School Category" to viewModel.categories,
-        "Curriculum" to viewModel.curriculums,
-        "Region / Diocese" to viewModel.regions
+        "School Type" to viewModel.types.map { it.name },
+        "School Category" to viewModel.categories.map { it.name },
+        "Curriculum" to viewModel.curriculums.map { it.name },
+        "Region" to viewModel.regions.map { it.name }
     )
 
     val sectionIcons = mapOf(
         "School Type" to Icons.Default.School,
         "School Category" to Icons.Default.AccountBalance,
         "Curriculum" to Icons.Default.MenuBook,
-        "Region / Diocese" to Icons.Default.Place
+        "Region" to Icons.Default.Place
     )
-
-    val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.initialize()
@@ -151,15 +154,11 @@ fun SystemConfigScreen(
                 Spacer(Modifier.height(12.dp))
 
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    configSections
-                        .map { (title, list) ->
-                            val filtered = list.filter { it.contains(searchQuery, ignoreCase = true) }
-                            title to filtered
+                    configSections.forEach { (title, items) ->
+                        val filtered = items.filter {
+                            it.contains(searchQuery, ignoreCase = true)
                         }
-                        .filter { (_, filtered) ->
-                            searchQuery.isBlank() || filtered.isNotEmpty()
-                        }
-                        .forEach { (title, filtered) ->
+                        if (searchQuery.isBlank() || filtered.isNotEmpty()) {
                             item {
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
@@ -168,7 +167,11 @@ fun SystemConfigScreen(
                                 ) {
                                     Column(Modifier.padding(16.dp)) {
                                         Row(
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    expandedSections[title] = !(expandedSections[title] ?: false)
+                                                },
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
@@ -187,7 +190,6 @@ fun SystemConfigScreen(
                                                     color = Color(0xFF0D47A1)
                                                 )
                                             }
-
                                             IconButton(onClick = {
                                                 inputValue = ""
                                                 oldValue = ""
@@ -199,33 +201,36 @@ fun SystemConfigScreen(
                                             }
                                         }
 
-                                        Spacer(Modifier.height(8.dp))
-
-                                        if (filtered.isEmpty()) {
-                                            Text("No entries found.", color = Color.Gray)
-                                        } else {
-                                            filtered.forEach { item ->
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(vertical = 6.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.SpaceBetween
-                                                ) {
-                                                    Text(
-                                                        item,
-                                                        fontSize = 16.sp,
-                                                        fontWeight = FontWeight.SemiBold
-                                                    )
-                                                    Row {
-                                                        IconButton(onClick = {
-                                                            inputValue = item
-                                                            oldValue = item
-                                                            dialogSection = title
-                                                            isEditDialog = true
-                                                            showDialog = true
-                                                        }) {
-                                                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                        AnimatedVisibility(visible = expandedSections[title] == true) {
+                                            Column {
+                                                Spacer(Modifier.height(8.dp))
+                                                if (filtered.isEmpty()) {
+                                                    Text("No entries found.", color = Color.Gray)
+                                                } else {
+                                                    filtered.forEach { item ->
+                                                        Row(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .padding(vertical = 6.dp),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.SpaceBetween
+                                                        ) {
+                                                            Text(
+                                                                text = item,
+                                                                fontSize = 16.sp,
+                                                                fontWeight = FontWeight.SemiBold
+                                                            )
+                                                            Row {
+                                                                IconButton(onClick = {
+                                                                    inputValue = item
+                                                                    oldValue = item
+                                                                    dialogSection = title
+                                                                    isEditDialog = true
+                                                                    showDialog = true
+                                                                }) {
+                                                                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -235,8 +240,10 @@ fun SystemConfigScreen(
                                 }
                             }
                         }
+                    }
                 }
             }
+
             AnimatedVisibility(
                 visible = isLoading,
                 enter = fadeIn(),
@@ -261,11 +268,13 @@ fun SystemConfigScreen(
             }
         }
     }
-    // Add/Edit Dialog
+
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text(if (isEditDialog) "Edit $dialogSection" else "Add $dialogSection") },
+            title = {
+                Text(if (isEditDialog) "Edit $dialogSection" else "Add $dialogSection")
+            },
             text = {
                 OutlinedTextField(
                     value = inputValue,
@@ -282,11 +291,22 @@ fun SystemConfigScreen(
                         return@TextButton
                     }
 
-                    val exists = viewModel.sectionList(dialogSection)
+                    // Defensive casting to handle different list types safely
+                    val exists = viewModel.sectionList<Any>(dialogSection)
+                        .mapNotNull {
+                            when (it) {
+                                is com.example.eduvod.model.SimpleItem -> it.name
+                                is com.example.eduvod.model.RegionResponse -> it.name
+                                is String -> it
+                                else -> null
+                            }
+                        }
                         .any { it.equals(inputValue.trim(), ignoreCase = true) }
 
                     if (!isEditDialog && exists) {
-                        scope.launch { snackbarHostState.showSnackbar("This value already exists in $dialogSection.") }
+                        scope.launch {
+                            snackbarHostState.showSnackbar("This value already exists in $dialogSection.")
+                        }
                         return@TextButton
                     }
 
@@ -311,3 +331,5 @@ fun SystemConfigScreen(
         )
     }
 }
+
+

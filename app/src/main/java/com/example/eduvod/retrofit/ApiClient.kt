@@ -7,7 +7,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object ApiClient {
-    private const val BASE_URL = "https://eb3f4ff9f3c6.ngrok-free.app/"
+    private const val BASE_URL = "https://581092f6b2e5.ngrok-free.app/"
 
     private var authToken: String? = null
 
@@ -19,7 +19,6 @@ object ApiClient {
                 val original = chain.request()
                 val requestBuilder = original.newBuilder()
 
-                // Add Authorization header if token is set
                 authToken?.let {
                     Log.d("ApiClient", "Using token: $it")
                     requestBuilder.addHeader("Authorization", "Bearer $it")

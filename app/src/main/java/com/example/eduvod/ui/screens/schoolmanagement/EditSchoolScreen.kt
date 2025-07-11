@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
@@ -27,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,40 +43,55 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
+import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
 
 
-@OptIn(ExperimentalMaterial3Api ::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditSchoolScreen(
     navController: NavController,
     schoolName: String,
-    viewModel: SchoolManagementViewModel = viewModel()
+    viewModel: SchoolManagementViewModel = viewModel(),
+    configViewModel: SystemConfigViewModel = viewModel()
 ) {
     val originalSchool = viewModel.getSchoolByName(schoolName)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    //Form state variables
-    var moeRegNo by remember { mutableStateOf(originalSchool?.moeRegNo?: "") }
-    var kpsaRegNo by remember { mutableStateOf(originalSchool?.kpsaRegNo?: "") }
-    var curriculum by remember { mutableStateOf(originalSchool?.curriculum?: "") }
-    var category by remember { mutableStateOf(originalSchool?.category?: "") }
-    var type by remember { mutableStateOf(originalSchool?.type?: "") }
-    var composition by remember { mutableStateOf(originalSchool?.composition?: "") }
-    var mobile by remember { mutableStateOf(originalSchool?.mobile?: "") }
-    var email by remember { mutableStateOf(originalSchool?.email?: "") }
-    var region by remember { mutableStateOf(originalSchool?.region?: "") }
-    var diocese by remember { mutableStateOf(originalSchool?.diocese?: "") }
-    var county by remember { mutableStateOf(originalSchool?.county?: "") }
-    var subCounty by remember { mutableStateOf(originalSchool?.subCounty?: "") }
-    var location by remember { mutableStateOf(originalSchool?.location?: "") }
-    var address by remember { mutableStateOf(originalSchool?.address?: "") }
-    var website by remember { mutableStateOf(originalSchool?.website?: "") }
+    // Load configuration lists if not loaded
+    LaunchedEffect(Unit) {
+        if (configViewModel.curriculums.isEmpty()) configViewModel.initialize()
+        originalSchool?.region?.let { configViewModel.loadCounties(it) }
+        originalSchool?.county?.let { configViewModel.loadSubcounties(it) }
+    }
+
+    val curriculumOptions = configViewModel.curriculums.map { it.name }
+    val categoryOptions = configViewModel.categories.map { it.name }
+    val typeOptions = configViewModel.types.map { it.name }
+    val regionOptions = configViewModel.regions.map { it.name }
+    val countyOptions = configViewModel.counties.map { it.name }
+    val subCountyOptions = configViewModel.subcounties.map { it.name }
+
+    // Form states
+    var moeRegNo by remember { mutableStateOf(originalSchool?.moeRegNo ?: "") }
+    var kpsaRegNo by remember { mutableStateOf(originalSchool?.kpsaRegNo ?: "") }
+    var schoolCurriculum by remember { mutableStateOf(originalSchool?.curriculum ?: "") }
+    var category by remember { mutableStateOf(originalSchool?.category ?: "") }
+    var type by remember { mutableStateOf(originalSchool?.type ?: "") }
+    var composition by remember { mutableStateOf(originalSchool?.composition ?: "") }
+    var mobile by remember { mutableStateOf(originalSchool?.mobile ?: "") }
+    var email by remember { mutableStateOf(originalSchool?.email ?: "") }
+    var website by remember { mutableStateOf(originalSchool?.website ?: "") }
+    var region by remember { mutableStateOf(originalSchool?.region ?: "") }
+    var diocese by remember { mutableStateOf(originalSchool?.diocese ?: "") }
+    var county by remember { mutableStateOf(originalSchool?.county ?: "") }
+    var subCounty by remember { mutableStateOf(originalSchool?.subCounty ?: "") }
+    var location by remember { mutableStateOf(originalSchool?.location ?: "") }
+    var address by remember { mutableStateOf(originalSchool?.address ?: "") }
     var selectedAdmin by remember { mutableStateOf("") }
     val adminOptions = viewModel.getUnassignedAdmins()
     var isDropdownExpanded by remember { mutableStateOf(false) }
-
 
     Scaffold(
         topBar = {
@@ -101,11 +118,11 @@ fun EditSchoolScreen(
 
             SectionInputField("MoE REG NO", moeRegNo) { moeRegNo = it }
             SectionInputField("KPSA REG NO", kpsaRegNo) { kpsaRegNo = it }
-            SectionInputField("Curriculum", curriculum) { curriculum = it }
-            SectionInputField("Category", category) { category = it }
-            SectionInputField("Type", type) { type = it }
-            SectionInputField("Composition", composition) { composition = it }
 
+            DropdownField("Curriculum", curriculumOptions, schoolCurriculum) { schoolCurriculum = it }
+            DropdownField("Category", categoryOptions, category) { category = it }
+            DropdownField("Type", typeOptions, type) { type = it }
+            SectionInputField("Composition", composition) { composition = it }
 
             Divider()
             Text("Contact Info", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0D47A1))
@@ -113,13 +130,22 @@ fun EditSchoolScreen(
             SectionInputField("Email", email, KeyboardType.Email) { email = it }
             SectionInputField("Website", website) { website = it }
 
-
             Divider()
             Text("Location Info", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0D47A1))
-            SectionInputField("Region", region) { region = it }
+            DropdownField("Region", regionOptions, region) {
+                region = it
+                configViewModel.loadCounties(it)
+                county = ""
+                subCounty = ""
+            }
+            DropdownField("County", countyOptions, county) {
+                county = it
+                configViewModel.loadSubcounties(it)
+                subCounty = ""
+            }
+            DropdownField("Sub-County", subCountyOptions, subCounty) { subCounty = it }
+
             SectionInputField("Diocese", diocese) { diocese = it }
-            SectionInputField("County", county) { county = it }
-            SectionInputField("SubCounty", subCounty) { subCounty = it }
             SectionInputField("Location", location) { location = it }
             SectionInputField("Address", address) { address = it }
 
@@ -131,15 +157,10 @@ fun EditSchoolScreen(
                 onValueChange = { selectedAdmin = it },
                 label = { Text("Select Admin Email") },
                 readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
                     IconButton(onClick = { isDropdownExpanded = !isDropdownExpanded }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Dropdown"
-                        )
+                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
                     }
                 }
             )
@@ -165,7 +186,7 @@ fun EditSchoolScreen(
                     val updatedSchool = originalSchool?.copy(
                         moeRegNo = moeRegNo,
                         kpsaRegNo = kpsaRegNo,
-                        curriculum = curriculum,
+                        curriculum = schoolCurriculum,
                         category = category,
                         type = type,
                         composition = composition,
@@ -186,7 +207,7 @@ fun EditSchoolScreen(
                             if (selectedAdmin.isNotBlank()) {
                                 viewModel.reassignAdmin(selectedAdmin, it.name)
                             }
-                            snackbarHostState.showSnackbar("Changes saved for ${originalSchool.name}")
+                            snackbarHostState.showSnackbar("Changes saved for ${it.name}")
                             navController.popBackStack()
                         }
                     }

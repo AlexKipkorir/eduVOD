@@ -4,6 +4,10 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -35,6 +40,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -73,71 +79,42 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.model.School
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
+import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import java.io.File
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SchoolManagementScreen(
     navController: NavHostController,
     viewModel: SchoolManagementViewModel = viewModel(),
+    systemConfigViewModel: SystemConfigViewModel = viewModel()
 ) {
-
     val searchQuery by viewModel.searchQuery
     val selectedRegion by viewModel.selectedRegion
     val selectedType by viewModel.selectedType
-
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+    val isRefreshing by viewModel.isLoading
 
     val schools = viewModel.schools
+    val regionOptions = listOf("ALL") + systemConfigViewModel.regions.map { it.name }
+    val typeOptions = listOf("ALL") + systemConfigViewModel.types.map { it.name }
 
-    val selectedSchool by remember { mutableStateOf<String?>(null) }
-    var showAdminDialog by remember { mutableStateOf(false) }
-
-    val regionOptions = listOf("ALL", "Nairobi", "Mombasa", "Kisumu", "Eldoret", "Garissa", "Isiolo", "Nakuru", "Turkana")
-    val typeOptions = listOf("All", "Primary", "Secondary", "Mixed")
-
-    val context = LocalContext.current
-
-    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
-
-    LaunchedEffect(Unit) {
-        viewModel.snackbarMessage.collect { message ->
-            message?.let {
-                snackbarHostState.showSnackbar(it)
-                viewModel.clearSnackbarMessage()
-            }
-        }
+    val filteredSchools = schools.filter {
+        it.name.contains(searchQuery, ignoreCase = true) &&
+                (selectedRegion == "ALL" || it.region == selectedRegion) &&
+                (selectedType == "ALL" || it.type == selectedType)
     }
 
-    var selectedFileName by remember { mutableStateOf<String?>(null) }
-
-    //OG
-//    val filePickerLauncher = rememberLauncherForActivityResult(
-//        contract = ActivityResultContracts.GetContent()
-//    ) { uri: Uri? ->
-//        uri?.let { it ->
-//            val cursor = context.contentResolver.query(it, null, null, null, null)
-//            cursor?.use {
-//                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-//                if (it.moveToFirst()) {
-//                    selectedFileName = it.getString(nameIndex)
-//                }
-//            }
-//        }
-//    }
-//    LaunchedEffect(selectedFileName) {
-//        selectedFileName?.let {
-//            snackbarHostState.showSnackbar("Selected file: $it")
-//        }
-//    }
-
-    //Retrofit
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -156,7 +133,6 @@ fun SchoolManagementScreen(
                     bytes
                 )
                 val multipart = MultipartBody.Part.createFormData("file", fileName, requestBody)
-
                 scope.launch {
                     val success = viewModel.importSchoolFile(multipart)
                     snackbarHostState.showSnackbar(
@@ -166,9 +142,14 @@ fun SchoolManagementScreen(
             }
         }
     }
-    LaunchedEffect(selectedFileName) {
-        selectedFileName?.let {
-            snackbarHostState.showSnackbar("Selected file: $it")
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchSchoolsWithMinimumDelay()
+        viewModel.snackbarMessage.collect { message ->
+            message?.let {
+                snackbarHostState.showSnackbar(it)
+                viewModel.clearSnackbarMessage()
+            }
         }
     }
 
@@ -177,18 +158,17 @@ fun SchoolManagementScreen(
             TopAppBar(
                 title = {
                     Text(
-                    text = "School Management",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        text = "School Management",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
                     )
-                  )
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-
                     }
                 },
                 actions = {
@@ -201,189 +181,127 @@ fun SchoolManagementScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                icon =  { Icon(Icons.Default.Add, contentDescription = "null") },
-                text = { Text("Add New School")},
-                onClick = {
-                    navController.navigate("add_school")
-                }
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("Add New School") },
+                onClick = { navController.navigate("add_school") }
             )
         },
         containerColor = Color(0xFFF4F9FC),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
-        val filteredSchools = schools.filter {
-            it.name.contains(searchQuery, ignoreCase = true) &&
-                    (selectedRegion == "ALL" || it.region == selectedRegion) &&
-                    (selectedType == "ALL" || it.type == selectedType)
-        }
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)) {
 
-        LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            modifier = Modifier.padding(innerPadding),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                Text(
-                    text = "Import Schools",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        color = Color(0xFF0D47A1),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    //OG
-//                    Button(
-//                        onClick = {
-//                            scope.launch {
-//                                snackbarHostState.showSnackbar("School template downloaded.")
-//                            }
-//                        }
-//                    ) {
-//                        Icon(Icons.Default.Download, contentDescription = null)
-//                        Spacer(modifier = Modifier.width(4.dp))
-//                        Text("Download Template")
-//                    }
-
-                    //Retrofit
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                val response = viewModel.downloadSchoolTemplate()
-                                if (response != null && response.isSuccessful) {
-                                    val body: ResponseBody? = response.body()
-                                    if (body != null) {
-                                        val fileName = "school_template.xlsx"
-                                        val file = File(context.cacheDir, fileName)
-                                        file.outputStream().use { output ->
-                                            body.byteStream().copyTo(output)
-                                        }
-                                        snackbarHostState.showSnackbar("Downloaded: ${file.absolutePath}")
-                                    } else {
-                                        snackbarHostState.showSnackbar("Empty response body.")
-                                    }
-                                } else {
-                                    snackbarHostState.showSnackbar("Failed to download template.")
+            SwipeRefreshContainer(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.fetchSchools() }
+            ) {
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ){
+                    item {
+                        Text("Import Schools", style = MaterialTheme.typography.titleMedium.copy(color = Color(0xFF0D47A1), fontWeight = FontWeight.SemiBold))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(onClick = {
+                                scope.launch {
+                                    val response = viewModel.downloadSchoolTemplate()
+                                    if (response != null && response.isSuccessful) {
+                                        val body = response.body()
+                                        if (body != null) {
+                                            val file = File(context.cacheDir, "school_template.xlsx")
+                                            file.outputStream().use { body.byteStream().copyTo(it) }
+                                            snackbarHostState.showSnackbar("Downloaded: ${file.absolutePath}")
+                                        } else snackbarHostState.showSnackbar("Empty response body.")
+                                    } else snackbarHostState.showSnackbar("Failed to download template.")
                                 }
+                            }) {
+                                Icon(Icons.Default.Download, contentDescription = null)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Download Template")
+                            }
+                            Button(onClick = { filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") }) {
+                                Icon(Icons.Default.Upload, contentDescription = null)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Import Excel")
                             }
                         }
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Download Template")
-                    }
-                    Button(
-                        //OG
-//                        onClick = {
-//                            filePickerLauncher.launch("*/*")
-//                        }
 
-                        //Retrofit
-                        onClick = {
-                            filePickerLauncher.launch(filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                                .toString())
-                        }
-                    ) {
-                        Icon(Icons.Default.Upload, contentDescription = null)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Import Excel")
-                    }
-                }
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                Spacer(modifier = Modifier.height(24.dp))
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.searchQuery.value = it },
+                            label = { Text("Search Schools") },
+                            singleLine = true,
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.searchQuery.value = "" }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear Search")
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                        )
 
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.searchQuery.value = it },
-                    label = { Text("Search Schools") },
-                    singleLine = true,
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.searchQuery.value = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear Search")
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Registered Schools", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            FilterDropdown("Region", regionOptions, selectedRegion) {
+                                viewModel.selectedRegion.value = it
+                            }
+                            FilterDropdown("Type", typeOptions, selectedType) {
+                                viewModel.selectedType.value = it
+                            }
+                            Button(onClick = {
+                                viewModel.searchQuery.value = ""
+                                viewModel.selectedRegion.value = "ALL"
+                                viewModel.selectedType.value = "ALL"
+                            }, modifier = Modifier.align(Alignment.End)) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Reset Filters")
                             }
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                )
-
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Registered Schools",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    FilterDropdown(
-                        label = "Region",
-                        options = regionOptions,
-                        selectedOption = selectedRegion,
-                        onSelected = { viewModel.selectedRegion.value = it }
-                    )
-                    FilterDropdown(
-                        label = "Type",
-                        options = typeOptions,
-                        selectedOption = selectedType,
-                        onSelected = { viewModel.selectedType.value = it }
-                    )
-                    Button(
-                        onClick = {
-                            viewModel.searchQuery.value = ""
-                            viewModel.selectedRegion.value = "ALL"
-                            viewModel.selectedType.value = "ALL"
-                        },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Reset Filters", modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Reset Filters")
+                    }
+                    items(filteredSchools) { school ->
+                        SchoolCard(
+                            school = school,
+                            onView = { navController.navigate("school_details/${Uri.encode(school.name)}") },
+                            onEdit = { navController.navigate("edit_school/${Uri.encode(school.name)}") },
+                            onManageAdmin = { navController.navigate("manage_admins/${Uri.encode(school.name)}") }
+                        )
                     }
                 }
             }
 
-            items(filteredSchools) { school ->
-                SchoolCard(
-                    school = school,
-                    onView = {
-                        navController.navigate("school_details/${Uri.encode(school.name)}")
-                    },
-                    onEdit = {
-                        navController.navigate("edit_school/${Uri.encode(school.name)}")
-                    },
-                    onManageAdmin = {
-                        navController.navigate("manage_admins/${Uri.encode(school.name)}")
-                    }
-                )
-            }
-
-
-        }
-        if (showAdminDialog && selectedSchool != null) {
-            AlertDialog(
-                onDismissRequest = { showAdminDialog = false },
-                title = { Text("Manage Admin for $selectedSchool") },
-                text = {
-                    Column {
-                        Text("• Add Admin")
-                        Text("• Block/Disable Admin")
-                        Text("• Reset Admin Account")
-                    }
-                },
-                confirmButton =  {
-                    TextButton(onClick = { showAdminDialog = false }) {
-                        Text("Close")
+            AnimatedVisibility(
+                visible = isRefreshing,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(Color(0xAAFFFFFF)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(
+                            color = Color(0xFF1565C0),
+                            strokeWidth = 4.dp,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Loading schools...", color = Color(0xFF1565C0))
                     }
                 }
-            )
-
+            }
         }
-
     }
 }
 
@@ -532,6 +450,21 @@ fun FilterDropdown(
                     }
                 )
             }
+        }
+    }
+}
+@Composable
+fun SwipeRefreshContainer(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    SwipeRefresh(
+        state = SwipeRefreshState(isRefreshing),
+        onRefresh = onRefresh,
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            content()
         }
     }
 }

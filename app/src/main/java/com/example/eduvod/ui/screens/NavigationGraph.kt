@@ -64,5 +64,9 @@ fun AppNavHost(navController: NavHostController) {
             val schoolName = it.arguments?.getString("schoolName") ?: ""
             ManageSchoolAdminsScreen(navController, schoolName)
         }
+        composable("edit_school/{schoolName}") { backStackEntry ->
+            val schoolName = backStackEntry.arguments?.getString("schoolName") ?: ""
+            EditSchoolScreen(navController, schoolName)
+        }
     }
 }

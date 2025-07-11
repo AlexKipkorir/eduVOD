@@ -2,7 +2,6 @@ package com.example.eduvod.repositories
 
 import com.example.eduvod.retrofit.ApiClient
 import com.example.eduvod.retrofit.response.ApiResponse
-import com.example.eduvod.viewmodel.AdminBlockRequest
 import com.example.eduvod.viewmodel.AdminEduvodCreateRequest
 import com.example.eduvod.viewmodel.AdminEduvodResetRequest
 import com.example.eduvod.viewmodel.AdminUser

@@ -49,11 +49,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.eduvod.model.School
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
+import com.example.eduvod.viewmodel.SchoolRequest
 import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,6 +80,8 @@ fun AddSchoolScreen(
     val categories = configViewModel.categories
     val curriculums = configViewModel.curriculums
     val regions = configViewModel.regions
+    val counties = configViewModel.counties
+    val subCounties = configViewModel.subcounties
 
     var selectedType by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("") }
@@ -90,22 +91,11 @@ fun AddSchoolScreen(
     var selectedSubCounty by remember { mutableStateOf("") }
     var selectedAdmin by remember { mutableStateOf("") }
 
-    //OG
-//    val counties = configViewModel.regionToCounties[selectedRegion] ?: emptyList()
-//    val subCounties = configViewModel.countyToSubcounties[selectedCounty] ?: emptyList()
-
-    //Retrofit
-    val counties = configViewModel.counties
-    val subCounties = configViewModel.subcounties
-
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = {
-                    Text("Add New School", fontSize = 24.sp, color = Color.White)
-                },
+                title = { Text("Add New School", fontSize = 24.sp, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -125,25 +115,42 @@ fun AddSchoolScreen(
         ) {
             Text("Basic School Information", fontSize = 18.sp, color = Color(0xFF0D47A1))
 
-            CustomTextField("MoE Reg No", moeRegNo) { moeRegNo = it  }
+            CustomTextField("MoE Reg No", moeRegNo) { moeRegNo = it }
             CustomTextField("KPSA Reg No", kpsaRegNo) { kpsaRegNo = it }
             CustomTextField("School Name", schoolName) { schoolName = it }
 
-            DropdownField("Curriculum", curriculums, selectedCurriculum) { selectedCurriculum = it }
-            DropdownField("Category", categories, selectedCategory) { selectedCategory = it }
-            DropdownField("Type",types, selectedType) { selectedType = it }
-            DropdownField("Region", regions, selectedRegion) {
+            DropdownField(
+                label = "Curriculum",
+                options = configViewModel.curriculums.map { it.name },
+                selectedOption = selectedCurriculum
+            ) { selectedCurriculum = it }
+
+            DropdownField(
+                label = "Category",
+                options = configViewModel.categories.map { it.name },
+                selectedOption = selectedCategory
+            ) { selectedCategory = it }
+
+            DropdownField(
+                label = "Type",
+                options = configViewModel.types.map { it.name },
+                selectedOption = selectedType
+            ) { selectedType = it }
+
+            DropdownField("Region", configViewModel.regions.map { it.name }, selectedRegion) {
                 selectedRegion = it
                 configViewModel.loadCounties(it)
                 selectedCounty = ""
                 selectedSubCounty = ""
             }
-            DropdownField("County", counties, selectedCounty) {
+
+            DropdownField("County", configViewModel.counties.map { it.name }, selectedCounty) {
                 selectedCounty = it
                 configViewModel.loadSubcounties(it)
                 selectedSubCounty = ""
             }
-            DropdownField("Sub-County", subCounties, selectedSubCounty) {
+
+            DropdownField("Sub-County", configViewModel.subcounties.map { it.name }, selectedSubCounty) {
                 selectedSubCounty = it
             }
 
@@ -155,7 +162,6 @@ fun AddSchoolScreen(
             Divider()
 
             Text("School Contact Information", fontSize = 18.sp, color = Color(0xFF0D47A1))
-
             CustomTextField("Email", email) { email = it }
             CustomTextField("Mobile", mobile, keyboardType = KeyboardType.Phone) { mobile = it }
 
@@ -172,52 +178,45 @@ fun AddSchoolScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+
             Button(
                 onClick = {
                     when {
-                        schoolName.isBlank() -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("School Name is required.")
-                            }
+                        schoolName.isBlank() -> scope.launch { snackbarHostState.showSnackbar("School Name is required.") }
+                        moeRegNo.isBlank() -> scope.launch { snackbarHostState.showSnackbar("MoE Reg No is required.") }
+                        email.isBlank() -> scope.launch { snackbarHostState.showSnackbar("Email is required.") }
+                        selectedCurriculum.isBlank() || selectedCategory.isBlank() || selectedType.isBlank() ||
+                                selectedRegion.isBlank() || selectedCounty.isBlank() || selectedSubCounty.isBlank() -> {
+                            scope.launch { snackbarHostState.showSnackbar("Please select all dropdowns.") }
                         }
-                        moeRegNo.isBlank() -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("MoERegistration Number is required.")
-                            }
-                        }
-                        email.isBlank() -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Email is required.")
-                            }
-                        }
-                        selectedAdmin.isBlank() -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Admin need to be assigned")
-                            }
-                        }
+                        selectedAdmin.isBlank() -> scope.launch { snackbarHostState.showSnackbar("Admin must be selected.") }
                         else -> {
-                            val newSchool = School(
-                                id = (schoolViewModel.schools.size + 1).toString(),
+                            val curriculumId = configViewModel.curriculums.find { it.name == selectedCurriculum }?.id ?: return@Button
+                            val categoryId = configViewModel.categories.find { it.name == selectedCategory }?.id ?: return@Button
+                            val typeId = configViewModel.types.find { it.name == selectedType }?.id ?: return@Button
+                            val regionId = configViewModel.regions.find { it.name == selectedRegion }?.id ?: return@Button
+                            val countyId = configViewModel.counties.find { it.name == selectedCounty }?.id ?: return@Button
+                            val subCountyId = configViewModel.subcounties.find { it.name == selectedSubCounty }?.id ?: return@Button
+
+                            val newSchool = SchoolRequest(
                                 name = schoolName,
                                 moeRegNo = moeRegNo,
                                 kpsaRegNo = kpsaRegNo,
-                                curriculum = selectedCurriculum,
-                                category = selectedCategory,
-                                type = selectedType,
+                                curriculumId = curriculumId,
+                                categoryId = categoryId,
+                                typeId = typeId,
                                 composition = "Mixed",
-                                mobile = mobile,
+                                phone = mobile,
                                 email = email,
-                                region = selectedRegion,
-                                diocese = dioceses,
-                                county = selectedCounty,
-                                subCounty = selectedSubCounty,
+                                regionId = regionId,
+                                countyId = countyId,
+                                subCountyId = subCountyId,
                                 location = location,
                                 address = address,
-                                website = website,
-                                hasAdmin = true
+                                website = website
                             )
-                            schoolViewModel.addSchool(newSchool, selectedAdmin)
 
+                            schoolViewModel.addSchoolWithAdmin(newSchool, selectedAdmin)
                             navController.navigate("schools") {
                                 popUpTo("add_school") { inclusive = true }
                             }

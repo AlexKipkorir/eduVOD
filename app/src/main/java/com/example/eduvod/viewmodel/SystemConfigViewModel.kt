@@ -4,8 +4,10 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.eduvod.model.Curriculum
+import com.example.eduvod.model.CountyResponse
+import com.example.eduvod.model.RegionResponse
 import com.example.eduvod.model.SimpleItem
+import com.example.eduvod.model.SubCountyResponse
 import com.example.eduvod.repositories.SystemRepository
 import com.example.eduvod.retrofit.ApiClient
 import com.example.eduvod.retrofit.response.ApiResponse
@@ -181,13 +183,12 @@ class SystemConfigViewModel(
     private val repository: SystemRepository = SystemRepository(ApiClient.apiService)
 ) : ViewModel() {
 
-    val types = mutableStateListOf<String>()
-    val categories = mutableStateListOf<String>()
-    val curriculums = mutableStateListOf<String>()
-    val regions = mutableStateListOf<String>()
-
-    val counties = mutableStateListOf<String>()
-    val subcounties = mutableStateListOf<String>()
+    val types = mutableStateListOf<SimpleItem>()
+    val categories = mutableStateListOf<SimpleItem>()
+    val curriculums = mutableStateListOf<SimpleItem>()
+    val regions = mutableStateListOf<RegionResponse>()
+    val counties = mutableStateListOf<CountyResponse>()
+    val subcounties = mutableStateListOf<SubCountyResponse>()
 
     val selectedRegion = MutableStateFlow("")
     val selectedCounty = MutableStateFlow("")
@@ -218,7 +219,7 @@ class SystemConfigViewModel(
                 val response = repository.getRegions()
                 if (response.isSuccessful) {
                     regions.clear()
-                    regions.addAll(response.body()?.data?.map { it.name } ?: emptyList())
+                    regions.addAll(response.body()?.data ?: emptyList())
                 } else {
                     snackbarMessage.value = "Failed to load regions"
                 }
@@ -231,19 +232,18 @@ class SystemConfigViewModel(
             }
         }
     }
-
     fun loadCounties(regionName: String) {
         selectedRegion.value = regionName
         viewModelScope.launch {
             val startTime = System.currentTimeMillis()
             isLoading.value = true
             try {
-                val region = repository.getRegions().body()?.data?.find { it.name == regionName }
+                val region = regions.find { it.name == regionName }
                 if (region != null) {
                     val response = repository.getCountiesByRegion(region.id)
                     if (response.isSuccessful) {
                         counties.clear()
-                        counties.addAll(response.body()?.data?.map { it.name } ?: emptyList())
+                        counties.addAll(response.body()?.data ?: emptyList())
                         subcounties.clear()
                     }
                 } else {
@@ -258,19 +258,18 @@ class SystemConfigViewModel(
             }
         }
     }
-
     fun loadSubcounties(countyName: String) {
         selectedCounty.value = countyName
         viewModelScope.launch {
             val startTime = System.currentTimeMillis()
             isLoading.value = true
             try {
-                val county = repository.getCounties().body()?.data?.find { it.name == countyName }
+                val county = counties.find { it.name == countyName }
                 if (county != null) {
                     val response = repository.getSubCountiesByCounty(county.id)
                     if (response.isSuccessful) {
                         subcounties.clear()
-                        subcounties.addAll(response.body()?.data?.map { it.name } ?: emptyList())
+                        subcounties.addAll(response.body()?.data ?: emptyList())
                     }
                 } else {
                     snackbarMessage.value = "County not found"
@@ -285,21 +284,51 @@ class SystemConfigViewModel(
         }
     }
     fun addItem(section: String, value: String) {
-        val list = sectionList(section)
         viewModelScope.launch {
             try {
-                val success = when (section) {
-                    "School Type" -> repository.addSchoolType(value).isSuccessful
-                    "School Category" -> repository.addSchoolCategory(value).isSuccessful
-                    "Curriculum" -> repository.addCurriculum(value).isSuccessful
-                    "Region / Diocese" -> repository.addRegion(value).isSuccessful
-                    else -> false
-                }
+                when (section) {
+                    "School Type" -> {
+                        val response = repository.addSchoolType(value)
+                        if (response.isSuccessful) {
+                            types.add(SimpleItem(id = -1, name = value)) // ID not returned by backend here
+                        } else {
+                            snackbarMessage.value = "Failed to add school type"
+                        }
+                    }
 
-                if (success) {
-                    list.add(value)
-                } else {
-                    snackbarMessage.value = "Failed to add item to $section"
+                    "School Category" -> {
+                        val response = repository.addSchoolCategory(value)
+                        if (response.isSuccessful) {
+                            categories.add(SimpleItem(id = -1, name = value))
+                        } else {
+                            snackbarMessage.value = "Failed to add school category"
+                        }
+                    }
+
+                    "Curriculum" -> {
+                        val response = repository.addCurriculum(value)
+                        if (response.isSuccessful) {
+                            curriculums.add(SimpleItem(id = -1, name = value))
+                        } else {
+                            snackbarMessage.value = "Failed to add curriculum"
+                        }
+                    }
+
+                    "Region / Diocese" -> {
+                        val response = repository.addRegion(value)
+                        if (response.isSuccessful) {
+                            val newRegion = response.body()?.data
+                            newRegion?.let {
+                                regions.add(it)
+                            } ?: run {
+                                snackbarMessage.value = "Region created but no data returned"
+                            }
+                        } else {
+                            snackbarMessage.value = "Failed to add region"
+                        }
+                    }
+
+                    else -> snackbarMessage.value = "Invalid section: $section"
                 }
             } catch (e: Exception) {
                 snackbarMessage.value = "Error adding to $section: ${e.localizedMessage}"
@@ -308,26 +337,33 @@ class SystemConfigViewModel(
     }
 
     fun updateItem(section: String, oldValue: String, newValue: String) {
-        val list = sectionList(section)
         viewModelScope.launch {
             try {
-                val success = when (section) {
+                when (section) {
                     // These will be implemented later when update APIs are ready
                     // "School Type" -> ...
                     // "School Category" -> ...
                     // "Curriculum" -> ...
                     "Region / Diocese" -> {
-                        val id = repository.getRegions().body()?.data?.find { it.name == oldValue }?.id
-                        id?.let { repository.updateRegion(it, newValue).isSuccessful } ?: false
+                        val region = regions.find { it.name == oldValue }
+                        if (region != null) {
+                            val response = repository.updateRegion(region.id, newValue)
+                            if (response.isSuccessful) {
+                                val index = regions.indexOf(region)
+                                if (index != -1) {
+                                    regions[index] = region.copy(name = newValue)
+                                }
+                            } else {
+                                snackbarMessage.value = "Failed to update region"
+                            }
+                        } else {
+                            snackbarMessage.value = "Region not found"
+                        }
                     }
-                    else -> false
-                }
 
-                if (success) {
-                    val index = list.indexOf(oldValue)
-                    if (index != -1) list[index] = newValue
-                } else {
-                    snackbarMessage.value = "Failed to update $section"
+                    else -> {
+                        snackbarMessage.value = "Update not supported for $section yet"
+                    }
                 }
             } catch (e: Exception) {
                 snackbarMessage.value = "Error updating $section: ${e.localizedMessage}"
@@ -335,18 +371,18 @@ class SystemConfigViewModel(
         }
     }
 
-    fun sectionList(section: String): SnapshotStateList<String> {
+    fun <T> sectionList(section: String): SnapshotStateList<T> {
         return when (section) {
-            "School Type" -> types
-            "School Category" -> categories
-            "Curriculum" -> curriculums
-            "Region / Diocese" -> regions
+            "School Type" -> types as SnapshotStateList<T>
+            "School Category" -> categories as SnapshotStateList<T>
+            "Curriculum" -> curriculums as SnapshotStateList<T>
+            "Region / Diocese" -> regions as SnapshotStateList<T>
             else -> mutableStateListOf()
         }
     }
     private fun loadWrappedSimpleItemList(
         fetch: suspend () -> Response<ApiResponse<List<SimpleItem>>>,
-        list: SnapshotStateList<String>
+        list: SnapshotStateList<SimpleItem>
     ) {
         viewModelScope.launch {
             val startTime = System.currentTimeMillis()
@@ -355,7 +391,7 @@ class SystemConfigViewModel(
                 val response = fetch()
                 if (response.isSuccessful) {
                     list.clear()
-                    list.addAll(response.body()?.data?.map { it.name } ?: emptyList())
+                    list.addAll(response.body()?.data ?: emptyList())
                 } else {
                     val errorBody = response.errorBody()?.string()
                     snackbarMessage.value = "Failed to load configuration list: ${response.code()} - $errorBody"
@@ -364,7 +400,7 @@ class SystemConfigViewModel(
                 snackbarMessage.value = "Load failed: ${e.localizedMessage}"
             } finally {
                 val elapsedTime = System.currentTimeMillis() - startTime
-                delay(maxOf(0, 1000 - elapsedTime)) // Ensure 1s minimum
+                delay(maxOf(0, 1000 - elapsedTime))
                 isLoading.value = false
             }
         }

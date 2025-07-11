@@ -18,7 +18,6 @@ import com.example.eduvod.retrofit.response.LoginResponseData
 import com.example.eduvod.retrofit.response.SchoolResponse
 import com.example.eduvod.viewmodel.AdminUser
 import com.example.eduvod.viewmodel.AdminAssignRequest
-import com.example.eduvod.viewmodel.AdminBlockRequest
 import com.example.eduvod.viewmodel.AdminCreateRequest
 import com.example.eduvod.viewmodel.AdminEduvodCreateRequest
 import com.example.eduvod.viewmodel.AdminEduvodResetRequest
@@ -26,6 +25,7 @@ import com.example.eduvod.viewmodel.AdminResetRequest
 import com.example.eduvod.viewmodel.AdminUnassignRequest
 import com.example.eduvod.viewmodel.DashboardStats
 import com.example.eduvod.viewmodel.SchoolAdmin
+import com.example.eduvod.viewmodel.SchoolRequest
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -38,51 +38,58 @@ interface ApiService {
     suspend fun loginSuperAdmin(@Body request: LoginRequest): Response<ApiResponse<LoginResponseData>>
 
     //School Management
-    @GET("schools")
+    // -------------------- SCHOOL MANAGEMENT --------------------
+
+    @GET("api/v1/superadmin/schools")
     suspend fun getSchools(): Response<ApiResponse<List<School>>>
 
-    @POST("schools")
-    suspend fun addSchool(@Body school: School): Response<ApiResponse<SchoolResponse>>
+    @POST("api/v1/superadmin/schools")
+    suspend fun addSchool(@Body request: SchoolRequest): Response<ApiResponse<SchoolResponse>>
 
-    @PUT("schools/{id}")
-    suspend fun updateSchool(@Path("id") id: Int, @Body school: School): Response<ApiResponse<School>>
+    @PUT("api/v1/superadmin/schools/{id}")
+    suspend fun updateSchool(@Path("id") id: Int, @Body request: School): Response<ApiResponse<School>>
 
-    @GET("schools/{id}")
+    @GET("api/v1/superadmin/schools/{id}")
     suspend fun getSchoolById(@Path("id") id: Int): Response<ApiResponse<School>>
 
-    @POST("schools/{id}/assign-admin")
-    suspend fun assignAdmin(@Path("id") id: Int, @Body adminEmail: Map<String, String>): Response<ApiResponse<Unit>>
+    @DELETE("api/v1/superadmin/schools/{id}")
+    suspend fun deleteSchool(@Path("id") id: Int): Response<ApiResponse<Unit>>
 
-    @DELETE("schools/{id}/admin")
-    suspend fun unassignAdmin(@Path("id") id: Int): Response<ApiResponse<Unit>>
-
-    @GET("schools/template/download")
+    @GET("api/v1/superadmin/schools/template-download")
     suspend fun downloadTemplate(): Response<ResponseBody>
 
     @Multipart
-    @POST
+    @POST("api/v1/superadmin/schools/template-import")
     suspend fun importSchools(@Part file: MultipartBody.Part): Response<ApiResponse<Unit>>
 
-    @DELETE("schools/{id}")
-    suspend fun deleteSchool(@Path("id") id: Int): Response<ApiResponse<Unit>>
+    // -------------------- SCHOOL ADMIN MANAGEMENT --------------------
 
-    @GET("school-admins")
+    @GET("api/v1/superadmin/school-admins")
     suspend fun getAllSchoolAdmins(): Response<ApiResponse<List<SchoolAdmin>>>
 
-    @POST("school-admins")
+    @POST("api/v1/superadmin/school-admins")
     suspend fun addSchoolAdmin(@Body request: AdminCreateRequest): Response<ApiResponse<SchoolAdmin>>
 
-    @POST("school-admins/assign")
-    suspend fun assignAdmin(@Body request: AdminAssignRequest): Response<ApiResponse<Unit>>
+    @PUT("api/v1/superadmin/school-admins/{id}/status")
+    suspend fun updateSchoolAdminStatus(
+        @Path("id") id: Int,
+        @Query("status") status: String
+    ): Response<ApiResponse<Unit>>
 
-    @POST("school-admin/unassign")
+    @PUT("api/v1/superadmin/school-admins/{id}/password")
+    suspend fun resetPassword(
+        @Path("id") id: Int,
+        @Body request: AdminResetRequest
+    ): Response<ApiResponse<Unit>>
+
+    @PUT("api/v1/superadmin/school-admins/assign-school")
+    suspend fun assignAdminToSchool(@Body request: AdminAssignRequest): Response<ApiResponse<Unit>>
+
+    @POST("api/v1/superadmin/school-admins/unassign")
     suspend fun unassignAdmin(@Body request: AdminUnassignRequest): Response<ApiResponse<Unit>>
 
-    @POST("school-admins/reset-password")
-    suspend fun resetPassword(@Body request: AdminResetRequest): Response<ApiResponse<Unit>>
-
-    @POST("school-admins/block")
-    suspend fun blockAdmin(@Body request: AdminBlockRequest): Response<ApiResponse<Unit>>
+    @DELETE("api/v1/superadmin/school-admins/{id}")
+    suspend fun deleteSchoolAdmin(@Path("id") id: String): Response<ApiResponse<Unit>>
 
     //User Management
     // Register new super admin

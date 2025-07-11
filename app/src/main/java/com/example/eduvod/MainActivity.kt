@@ -170,6 +170,10 @@ fun EduVODNavHost(
         composable("school_admins") {
             SchoolAdminsScreen(navController = navController, viewModel = viewModel())
         }
+        composable("edit_school/{schoolName}") { backStackEntry ->
+            val schoolName = backStackEntry.arguments?.getString("schoolName") ?: ""
+            EditSchoolScreen(navController, schoolName)
+        }
     }
 }
 

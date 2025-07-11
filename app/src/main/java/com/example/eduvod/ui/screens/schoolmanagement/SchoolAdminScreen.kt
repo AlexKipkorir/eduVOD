@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,12 +15,12 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -62,22 +61,27 @@ fun SchoolAdminsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    var showDialog by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
     var emailInput by remember { mutableStateOf("") }
 
     var searchQuery by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("ALL") }
     val filterOptions = listOf("ALL", "Assigned", "Unassigned")
+
     var showReassignDialog by remember { mutableStateOf(false) }
     var selectedSchool by remember { mutableStateOf("") }
-
     var selectedAdmin by remember { mutableStateOf<SchoolAdmin?>(null) }
 
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var adminToDelete by remember { mutableStateOf<SchoolAdmin?>(null) }
+
     val filteredAdmins = viewModel.schoolAdmins.filter {
-        (filter == "ALL") || (filter == "Assigned" && it.assignedSchool != null) || (filter == "Unassigned" && it.assignedSchool == null)
-    }.filter {
-        it.email.contains(searchQuery, ignoreCase = true)
-    }
+        when (filter) {
+            "Assigned" -> it.assignedSchool != null
+            "Unassigned" -> it.assignedSchool == null
+            else -> true
+        }
+    }.filter { it.email.contains(searchQuery, ignoreCase = true) }
 
     Scaffold(
         topBar = {
@@ -85,7 +89,7 @@ fun SchoolAdminsScreen(
                 title = { Text("School Administrators", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0D47A1))
@@ -93,7 +97,7 @@ fun SchoolAdminsScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showDialog = true },
+                onClick = { showAddDialog = true },
                 containerColor = Color(0xFF1565C0),
                 contentColor = Color.White
             ) {
@@ -109,14 +113,13 @@ fun SchoolAdminsScreen(
 
             Text("View and assign admins here", fontSize = 16.sp, color = Color.Black, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
-            Divider()
-            Spacer(modifier = Modifier.height(8.dp))
+
             OutlinedTextField(
                 value = searchQuery,
-                onValueChange = { searchQuery=it },
+                onValueChange = { searchQuery = it },
                 label = { Text("Search Admins") },
                 trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
+                    if (searchQuery.isNotBlank()) {
                         IconButton(onClick = { searchQuery = "" }) {
                             Icon(Icons.Default.Close, contentDescription = null)
                         }
@@ -124,6 +127,7 @@ fun SchoolAdminsScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             )
+
             Spacer(modifier = Modifier.height(8.dp))
 
             FilterDropdown(
@@ -134,37 +138,50 @@ fun SchoolAdminsScreen(
             )
 
             Spacer(modifier = Modifier.height(12.dp))
-            Divider()
-            Spacer(modifier = Modifier.height(8.dp))
             Text("Registered Admins", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.height(12.dp))
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(filteredAdmins) { admin ->
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp)) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF1565C0), modifier = Modifier.size(18.dp))
-                            Text(admin.email, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text(admin.email, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF1565C0))
+                            }
+
                             Text(
                                 text = admin.assignedSchool?.let { "Assigned to: $it" } ?: "Unassigned",
                                 color = if (admin.assignedSchool != null) Color(0xFF2E7D32) else Color.Gray,
                                 fontSize = 14.sp
                             )
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                if(admin.assignedSchool != null) {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Button(onClick = { viewModel.unassignAdmin(admin.email) }) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                if (admin.assignedSchool != null) {
+                                    Button(onClick = {
+                                        viewModel.unassignAdmin(admin.email)
+                                        scope.launch { snackbarHostState.showSnackbar("Admin unassigned") }
+                                    }) {
                                         Icon(Icons.Default.Clear, contentDescription = null)
                                         Text("Unassign")
                                     }
                                 } else {
                                     Button(onClick = {
-                                        showReassignDialog = true
                                         selectedAdmin = admin
+                                        selectedSchool = ""
+                                        showReassignDialog = true
                                     }) {
                                         Icon(Icons.Default.PersonAdd, contentDescription = null)
                                         Text("Assign")
                                     }
+                                }
+
+                                IconButton(onClick = {
+                                    adminToDelete = admin
+                                    showDeleteDialog = true
+                                }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete Admin", tint = Color.Red)
                                 }
                             }
                         }
@@ -174,9 +191,9 @@ fun SchoolAdminsScreen(
         }
     }
 
-    if (showDialog) {
+    if (showAddDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
+            onDismissRequest = { showAddDialog = false },
             title = { Text("Add Admin") },
             text = {
                 OutlinedTextField(
@@ -187,26 +204,29 @@ fun SchoolAdminsScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     modifier = Modifier.fillMaxWidth()
                 )
-
             },
             confirmButton = {
                 TextButton(onClick = {
                     if (emailInput.isNotBlank()) {
-                        val added = viewModel.addAdmin(emailInput)
+                        val added = viewModel.addAdmin(
+                            username = emailInput.substringBefore("@"),
+                            email = emailInput,
+                            schoolId = ""
+                        )
                         scope.launch {
                             snackbarHostState.showSnackbar(
                                 if (added) "Admin added successfully." else "Admin already exists."
                             )
                         }
                         if (added) emailInput = ""
-                        showDialog = false
+                        showAddDialog = false
                     }
                 }) {
                     Text("Add")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
+                TextButton(onClick = { showAddDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -218,6 +238,7 @@ fun SchoolAdminsScreen(
             onDismissRequest = {
                 showReassignDialog = false
                 selectedSchool = ""
+                selectedAdmin = null
             },
             title = { Text("Assign Admin") },
             text = {
@@ -244,9 +265,10 @@ fun SchoolAdminsScreen(
                             viewModel.reassignAdmin(it.email, selectedSchool)
                             scope.launch {
                                 snackbarHostState.showSnackbar("Assigned to $selectedSchool")
-                                selectedSchool = ""
                             }
                         }
+                        selectedSchool = ""
+                        selectedAdmin = null
                         showReassignDialog = false
                     },
                     enabled = selectedSchool.isNotBlank()
@@ -256,8 +278,40 @@ fun SchoolAdminsScreen(
             },
             dismissButton = {
                 TextButton(onClick = {
-                    showReassignDialog = false
                     selectedSchool = ""
+                    selectedAdmin = null
+                    showReassignDialog = false
+                }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showDeleteDialog && adminToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteDialog = false
+                adminToDelete = null
+            },
+            title = { Text("Delete Admin") },
+            text = { Text("Are you sure you want to delete ${adminToDelete!!.email}?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteAdmin(adminToDelete!!.email)
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Admin deleted successfully.")
+                    }
+                    adminToDelete = null
+                    showDeleteDialog = false
+                }) {
+                    Text("Delete", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    adminToDelete = null
+                    showDeleteDialog = false
                 }) {
                     Text("Cancel")
                 }
@@ -265,7 +319,6 @@ fun SchoolAdminsScreen(
         )
     }
 }
-
 @Composable
 fun SchoolDropdown(
     label: String,
@@ -273,32 +326,32 @@ fun SchoolDropdown(
     selectedOption: String,
     onSelected: (String) -> Unit
 ) {
-
     var expanded by remember { mutableStateOf(false) }
 
-    Column {
-        OutlinedTextField(
-            value = selectedOption,
-            onValueChange = {},
-            label = { Text("Selected School") },
-            readOnly = true,
-            modifier = Modifier.fillMaxWidth(),
-            trailingIcon = {
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+    OutlinedTextField(
+        value = selectedOption,
+        onValueChange = {},
+        label = { Text(label) },
+        readOnly = true,
+        modifier = Modifier.fillMaxWidth(),
+        trailingIcon = {
+            IconButton(onClick = { expanded = !expanded }) {
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+            }
+        }
+    )
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false }
+    ) {
+        options.forEach { option ->
+            DropdownMenuItem(
+                text = { Text(option) },
+                onClick = {
+                    onSelected(option)
+                    expanded = false
                 }
-            }
-        )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        onSelected(option)
-                        expanded = false
-                    }
-                )
-            }
+            )
         }
     }
 }

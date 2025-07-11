@@ -15,12 +15,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -58,7 +61,6 @@ data class AdminAccount(
     var isBlocked: Boolean = false
 )
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageSchoolAdminsScreen(
@@ -66,33 +68,29 @@ fun ManageSchoolAdminsScreen(
     schoolName: String?,
     viewModel: SchoolManagementViewModel = viewModel()
 ) {
-
-    val admins = viewModel.schoolAdmins
-
-    val allAdmins = viewModel.schoolAdmins.filter { it.assignedSchool == schoolName }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     var showAddDialog by remember { mutableStateOf(false) }
-
-    val snackbarHostState= remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    val currentSchool = viewModel.getSchoolByName(schoolName ?: "")
-
-    val unassignedAdmins = viewModel.getUnassignedAdmins()
+    var showConfirmUnassign by remember { mutableStateOf(false) }
     var selectedAdminEmail by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val isLoading by viewModel.isLoading
+    val currentSchool = viewModel.getSchoolByName(schoolName ?: "")
+    val allAdmins = viewModel.schoolAdmins.filter {
+        it.assignedSchool == schoolName && it.email.contains(searchQuery, ignoreCase = true)
+    }
+    val unassignedAdmins = viewModel.getUnassignedAdmins()
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Admins - ${schoolName ?: "Unknown"}",
-                        color = Color.White
-                    )
-                },
+                title = { Text("Admins - ${schoolName ?: "Unknown"}", color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack()}) {
-                       Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xff0D47A1))
@@ -117,60 +115,68 @@ fun ManageSchoolAdminsScreen(
                 style = MaterialTheme.typography.titleMedium
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                //OG
-//                items(admins) { admin ->
-//                    AdminCard(
-//                        admin = admin,
-//                        onBlock = {
-//                            admin.isBlocked = !admin.isBlocked
-//                        },
-//                        onReset = {
-//                            scope.launch {
-//                                snackbarHostState.showSnackbar("Password reset for ${admin.email}")
-//                            }
-//                        }
-//                    )
-//                }
-                //Retrofit
-                items(allAdmins) { admin ->
-                    AdminCard(
-                        admin = AdminAccount(admin.email, admin.isBlocked),
-                        onBlock = {
-                            viewModel.blockAdmin(admin.email, !admin.isBlocked)
-                        },
-                        onReset = {
-                            viewModel.resetAdmin(admin.email)
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Password reset for ${admin.email}")
-                            }
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Search Admins") },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = null)
                         }
-                    )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(allAdmins) { admin ->
+                        AdminCard(
+                            admin = AdminAccount(admin.email, admin.isBlocked),
+                            onBlock = {
+                                viewModel.blockAdmin(admin.email, !admin.isBlocked)
+                            },
+                            onReset = {
+                                viewModel.resetAdmin(admin.email)
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Password reset for ${admin.email}")
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
     }
-
+    // Assign Admin Dialog
     if (showAddDialog) {
         AlertDialog(
-            onDismissRequest = { showAddDialog = false },
+            onDismissRequest = {
+                showAddDialog = false
+                selectedAdminEmail = ""
+            },
             title = { Text("Assign Admin") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (unassignedAdmins.isEmpty()) {
-                        Text("No unassigned admins available.")
-                    } else {
-                        var expanded by remember { mutableStateOf(false) }
+                if (unassignedAdmins.isEmpty()) {
+                    Text("No unassigned admins available.")
+                } else {
+                    var expanded by remember { mutableStateOf(false) }
 
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
                             value = selectedAdminEmail,
                             onValueChange = {},
                             label = { Text("Select Admin") },
                             readOnly = true,
                             trailingIcon = {
-                                IconButton(onClick = { expanded = true }) {
+                                IconButton(onClick = { expanded = !expanded }) {
                                     Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                                 }
                             },
@@ -198,17 +204,15 @@ fun ManageSchoolAdminsScreen(
                 TextButton(
                     onClick = {
                         if (selectedAdminEmail.isNotBlank()) {
-                            viewModel.reassignAdmin(selectedAdminEmail, schoolName ?: "")
-                            viewModel.assignAdmin(schoolName ?: "")
-                            showAddDialog = false
-                            selectedAdminEmail = ""
                             scope.launch {
+                                viewModel.setLoading(true)
+                                viewModel.reassignAdmin(selectedAdminEmail, schoolName ?: "")
+                                viewModel.fetchAdmins() // Auto-refresh
+                                viewModel.setLoading(false)
                                 snackbarHostState.showSnackbar("Admin assigned successfully.")
                             }
-                        } else {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Please select an admin.")
-                            }
+                            showAddDialog = false
+                            selectedAdminEmail = ""
                         }
                     },
                     enabled = selectedAdminEmail.isNotBlank()
@@ -226,8 +230,42 @@ fun ManageSchoolAdminsScreen(
             }
         )
     }
-}
 
+    // Unassign Confirmation Dialog
+    if (showConfirmUnassign && selectedAdminEmail.isNotBlank()) {
+        AlertDialog(
+            onDismissRequest = {
+                showConfirmUnassign = false
+                selectedAdminEmail = ""
+            },
+            title = { Text("Confirm Unassign") },
+            text = { Text("Are you sure you want to unassign this admin from $schoolName?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch {
+                        viewModel.setLoading(true)
+                        viewModel.unassignAdmin(selectedAdminEmail)
+                        viewModel.fetchAdmins() // Auto-refresh
+                        viewModel.setLoading(false)
+                        snackbarHostState.showSnackbar("Admin unassigned")
+                    }
+                    showConfirmUnassign = false
+                    selectedAdminEmail = ""
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showConfirmUnassign = false
+                    selectedAdminEmail = ""
+                }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
 @Composable
 fun AdminCard(
     admin: AdminAccount,

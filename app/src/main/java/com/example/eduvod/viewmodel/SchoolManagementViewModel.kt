@@ -7,36 +7,53 @@ import androidx.lifecycle.viewModelScope
 import com.example.eduvod.model.School
 import com.example.eduvod.repositories.SchoolRepository
 import com.example.eduvod.ui.screens.schoolmanagement.AdminAccount
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.Response
 
-data class AdminCreateRequest(
+data class SchoolRequest(
+    val moeRegNo: String,
+    val kpsaRegNo: String,
+    val name: String,
+    val curriculumId: Int,
+    val categoryId: Int,
+    val typeId: Int,
+    val composition: String,
+    val phone: String,
     val email: String,
-    val password: String)
-
-data class AdminAssignRequest(
-    val email: String,
-    val schoolId: Int
+    val regionId: Long,
+    val countyId: Long,
+    val subCountyId: Long,
+    val location: String,
+    val address: String,
+    val website: String
 )
 
+data class AdminCreateRequest(
+    val username: String,
+    val email: String,
+    val password: String,
+    val schoolId: String
+)
+data class AdminAssignRequest(
+    val schoolAdminId: String,
+    val schoolId: Int
+)
 data class AdminUnassignRequest(
     val email: String
 )
-
-data class AdminBlockRequest(
-    val email: String,
-    val block: Boolean
+data class AdminStatusUpdateRequest(
+    val status: String
 )
 
 data class AdminResetRequest(
-    val email: String
+    val adminId: Int,
+    val newPassword: String
 )
 
-
-//Retrofit
 data class SchoolAdmin(
     val id: Int,
     val email: String,
@@ -58,6 +75,25 @@ class SchoolManagementViewModel(
 
     val schools = mutableStateListOf<School>()
     val schoolAdmins = mutableStateListOf<SchoolAdmin>()
+
+    fun setLoading(value: Boolean) {
+        isLoading.value = value
+    }
+    val isLoading = mutableStateOf(false)
+
+    fun fetchSchoolsWithMinimumDelay() {
+        viewModelScope.launch {
+            isLoading.value = true
+            val startTime = System.currentTimeMillis()
+
+            fetchSchools() // your existing fetch method
+
+            val elapsed = System.currentTimeMillis() - startTime
+            val remaining = 1000 - elapsed
+            if (remaining > 0) delay(remaining)
+            isLoading.value = false
+        }
+    }
 
     init {
         fetchSchools()
@@ -83,10 +119,10 @@ class SchoolManagementViewModel(
         }
     }
 
-    fun addSchool(school: School, adminEmail: String) {
+    fun addSchool(request: SchoolRequest, adminEmail: String) {
         viewModelScope.launch {
             try {
-                val response = repository.addSchool(school)
+                val response = repository.addSchool(request)
                 if (response.isSuccessful && response.body()?.statusCode == 0) {
                     val addedSchool = response.body()?.data
                     if (addedSchool != null) {
@@ -105,15 +141,15 @@ class SchoolManagementViewModel(
         }
     }
 
-    fun updateSchool(id: Int, school: School) {
+    fun updateSchool(id: Int, request: School) {
         viewModelScope.launch {
             try {
-                val response = repository.updateSchool(id, school)
+                val response = repository.updateSchool(id, request)
                 if (response.isSuccessful) {
-                    val updatedSchool = response.body()?.data
+                    val updated = response.body()?.data
                     val index = schools.indexOfFirst { it.id == id.toString() }
-                    if (index != -1 && updatedSchool != null) {
-                        schools[index] = updatedSchool
+                    if (index != -1 && updated != null) {
+                        schools[index] = updated
                     }
                 } else {
                     snackbarMessage.value = "Failed to update school."
@@ -198,11 +234,18 @@ class SchoolManagementViewModel(
             }
         }
     }
-    fun addAdmin(email: String): Boolean {
+    fun addAdmin(username: String, email: String, schoolId: String): Boolean {
         if (schoolAdmins.any { it.email.equals(email, ignoreCase = true) }) return false
+
         viewModelScope.launch {
             try {
-                repository.addSchoolAdmin(AdminCreateRequest(email, "123456"))
+                val request = AdminCreateRequest(
+                    username = username,
+                    email = email,
+                    password = "123456",
+                    schoolId = schoolId
+                )
+                repository.addSchoolAdmin(request)
                 fetchAdmins()
             } catch (e: Exception) {
                 snackbarMessage.value = "Error adding admin: ${e.localizedMessage}"
@@ -237,23 +280,74 @@ class SchoolManagementViewModel(
     fun getUnassignedAdmins(): List<String> {
         return schoolAdmins.filter { it.assignedSchool == null }.map { it.email }
     }
+    fun addSchoolWithAdmin(request: SchoolRequest, adminEmail: String) {
+        viewModelScope.launch {
+            try {
+                val response = repository.addSchool(request)
+                if (response.isSuccessful && response.body()?.statusCode == 0) {
+                    val addedSchool = response.body()?.data
+                    if (addedSchool != null) {
+                        repository.assignAdminToSchool(
+                            AdminAssignRequest(adminEmail, addedSchool.id)
+                        )
+                        fetchSchools()
+                        fetchAdmins()
+                    } else {
+                        snackbarMessage.value = "School added but no data returned."
+                    }
+                } else {
+                    snackbarMessage.value = "Failed to add school."
+                }
+            } catch (e: Exception) {
+                snackbarMessage.value = "Error adding school: ${e.localizedMessage}"
+            }
+        }
+    }
 
     fun blockAdmin(email: String, block: Boolean) {
         viewModelScope.launch {
             try {
-                repository.blockOrUnblockAdmin(AdminBlockRequest(email, block))
-                fetchAdmins()
+                val admin = schoolAdmins.find { it.email.equals(email, ignoreCase = true) }
+                if (admin != null) {
+                    val status = if (block) "BLOCKED" else "ACTIVE"
+                    repository.updateAdminStatus(admin.id, status)
+                    fetchAdmins()
+                } else {
+                    snackbarMessage.value = "Admin not found."
+                }
             } catch (e: Exception) {
                 snackbarMessage.value = "Error blocking admin: ${e.localizedMessage}"
             }
         }
     }
+
     fun resetAdmin(email: String) {
         viewModelScope.launch {
             try {
-                repository.resetAdminPassword(AdminResetRequest(email))
+                val admin = schoolAdmins.find { it.email.equals(email, ignoreCase = true) }
+                if (admin != null) {
+                    repository.resetAdminPassword(admin.id, AdminResetRequest(admin.id, "123456"))
+                    snackbarMessage.value = "Password reset."
+                } else {
+                    snackbarMessage.value = "Admin not found."
+                }
             } catch (e: Exception) {
                 snackbarMessage.value = "Error resetting password: ${e.localizedMessage}"
+            }
+        }
+    }
+    fun deleteAdmin(email: String) {
+        viewModelScope.launch {
+            try {
+                val response = repository.deleteSchoolAdmin(email)
+                if (response.isSuccessful) {
+                    schoolAdmins.removeAll { it.email == email }
+                    snackbarMessage.value = "Admin deleted successfully"
+                } else {
+                    snackbarMessage.value = "Failed to delete admin"
+                }
+            } catch (e: Exception) {
+                snackbarMessage.value = "Error deleting admin: ${e.localizedMessage}"
             }
         }
     }

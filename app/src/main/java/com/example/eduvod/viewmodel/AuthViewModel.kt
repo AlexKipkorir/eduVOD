@@ -16,16 +16,16 @@ import kotlinx.coroutines.launch
 import retrofit2.Response
 
 sealed class LoginState {
-    object Idle : LoginState()
-    object Loading : LoginState()
+    data object Idle : LoginState()
+    data object Loading : LoginState()
     data class Success(val data: LoginResponseData?) : LoginState()
     data class Error(val message: String) : LoginState()
-    object LoggedIn : LoginState()
-    object LoggedOut : LoginState()
+    data object LoggedIn : LoginState()
+    data object LoggedOut : LoginState()
 }
 
 class AuthViewModel(
-    private val context: Context,
+    context: Context,
     private val repository: LoginRepository = LoginRepository()
 ) : ViewModel() {
 
@@ -34,7 +34,7 @@ class AuthViewModel(
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> = _loginState
 
-    val savedToken = userPrefs.authToken
+    private val savedToken = userPrefs.authToken
     val savedEmail = userPrefs.userEmail
     val savedUserId = userPrefs.userId
 
