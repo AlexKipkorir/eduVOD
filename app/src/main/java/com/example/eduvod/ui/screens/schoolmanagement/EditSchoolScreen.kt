@@ -46,7 +46,6 @@ import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditSchoolScreen(
@@ -55,13 +54,13 @@ fun EditSchoolScreen(
     viewModel: SchoolManagementViewModel = viewModel(),
     configViewModel: SystemConfigViewModel = viewModel()
 ) {
-    val originalSchool = viewModel.getSchoolByName(schoolName)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Load configuration lists if not loaded
+    val originalSchool by remember { mutableStateOf(viewModel.getSchoolByName(schoolName)) }
+
     LaunchedEffect(Unit) {
-        if (configViewModel.curriculums.isEmpty()) configViewModel.initialize()
+        configViewModel.initialize()
         originalSchool?.region?.let { configViewModel.loadCounties(it) }
         originalSchool?.county?.let { configViewModel.loadSubcounties(it) }
     }
@@ -73,7 +72,6 @@ fun EditSchoolScreen(
     val countyOptions = configViewModel.counties.map { it.name }
     val subCountyOptions = configViewModel.subcounties.map { it.name }
 
-    // Form states
     var moeRegNo by remember { mutableStateOf(originalSchool?.moeRegNo ?: "") }
     var kpsaRegNo by remember { mutableStateOf(originalSchool?.kpsaRegNo ?: "") }
     var schoolCurriculum by remember { mutableStateOf(originalSchool?.curriculum ?: "") }
@@ -89,6 +87,7 @@ fun EditSchoolScreen(
     var subCounty by remember { mutableStateOf(originalSchool?.subCounty ?: "") }
     var location by remember { mutableStateOf(originalSchool?.location ?: "") }
     var address by remember { mutableStateOf(originalSchool?.address ?: "") }
+
     var selectedAdmin by remember { mutableStateOf("") }
     val adminOptions = viewModel.getUnassignedAdmins()
     var isDropdownExpanded by remember { mutableStateOf(false) }
@@ -203,7 +202,7 @@ fun EditSchoolScreen(
 
                     updatedSchool?.let {
                         scope.launch {
-                            viewModel.updateSchool(it.moeRegNo.toIntOrNull() ?: return@launch, it)
+                            viewModel.updateSchool(it.id, it)
                             if (selectedAdmin.isNotBlank()) {
                                 viewModel.reassignAdmin(selectedAdmin, it.name)
                             }

@@ -141,24 +141,25 @@ class UserManagementViewModel(
                 val response = repository.getAllUsers()
                 if (response.isSuccessful) {
                     response.body()?.data?.let { rawList ->
-                        val updatedList = rawList.map { admin ->
-                            if (admin.deletedAt != null) {
-                                admin.copy(status = "DELETED")
-                            } else {
-                                admin
+                        val filteredList = rawList
+                            .filter { it.role == "SUPER_ADMIN" }
+                            .map { admin ->
+                                if (admin.deletedAt != null) {
+                                    admin.copy(status = "DELETED")
+                                } else admin
                             }
-                        }
+
                         admins.clear()
-                        admins.addAll(updatedList)
+                        admins.addAll(filteredList)
                     }
                 } else {
-                    _snackbarMessage.value = "Failed to load admins."
+                    _snackbarMessage.value = "Failed to load super admins."
                 }
             } catch (e: Exception) {
                 _snackbarMessage.value = "Network error."
             } finally {
                 val elapsedTime = System.currentTimeMillis() - startTime
-                delay(maxOf(0, 1000 - elapsedTime)) // ensure minimum 1s loader
+                delay(maxOf(0, 1000 - elapsedTime))
                 _isLoading.value = false
             }
         }

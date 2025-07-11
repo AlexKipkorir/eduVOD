@@ -45,12 +45,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.eduvod.viewmodel.SchoolAdmin
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
+import android.util.Patterns
 import kotlinx.coroutines.launch
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,6 +77,11 @@ fun SchoolAdminsScreen(
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var adminToDelete by remember { mutableStateOf<SchoolAdmin?>(null) }
+
+    var usernameInput by remember { mutableStateOf("") }
+    var passwordInput by remember { mutableStateOf("") }
+    var confirmPasswordInput by remember { mutableStateOf("") }
+
 
     val filteredAdmins = viewModel.schoolAdmins.filter {
         when (filter) {
@@ -194,32 +202,94 @@ fun SchoolAdminsScreen(
     if (showAddDialog) {
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
-            title = { Text("Add Admin") },
+            title = { Text("Add New Admin") },
             text = {
-                OutlinedTextField(
-                    value = emailInput,
-                    onValueChange = { emailInput = it },
-                    label = { Text("Email Address") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = usernameInput,
+                        onValueChange = { usernameInput = it },
+                        label = { Text("Username") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = emailInput,
+                        onValueChange = { emailInput = it },
+                        label = { Text("Email Address") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = passwordInput,
+                        onValueChange = { passwordInput = it },
+                        label = { Text("Password (min 6 characters)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = confirmPasswordInput,
+                        onValueChange = { confirmPasswordInput = it },
+                        label = { Text("Confirm Password") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (emailInput.isNotBlank()) {
-                        val added = viewModel.addAdmin(
-                            username = emailInput.substringBefore("@"),
-                            email = emailInput,
-                            schoolId = ""
-                        )
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                if (added) "Admin added successfully." else "Admin already exists."
-                            )
+                    when {
+                        usernameInput.isBlank() ||
+                                emailInput.isBlank() ||
+                                passwordInput.isBlank() ||
+                                confirmPasswordInput.isBlank() -> {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("All fields are required.")
+                            }
                         }
-                        if (added) emailInput = ""
-                        showAddDialog = false
+
+                        !Patterns.EMAIL_ADDRESS.matcher(emailInput).matches() -> {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Please enter a valid email address.")
+                            }
+                        }
+
+                        passwordInput.length < 6 -> {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Password must be at least 6 characters.")
+                            }
+                        }
+
+                        passwordInput != confirmPasswordInput -> {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Passwords do not match.")
+                            }
+                        }
+
+                        else -> {
+                            val added = viewModel.addAdmin(
+                                username = usernameInput.trim(),
+                                email = emailInput.trim(),
+                                password = passwordInput,
+                                schoolId = "" // Update if assigning directly
+                            )
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    if (added) "Admin added successfully." else "Admin already exists or failed."
+                                )
+                            }
+                            if (added) {
+                                usernameInput = ""
+                                emailInput = ""
+                                passwordInput = ""
+                                confirmPasswordInput = ""
+                            }
+                            showAddDialog = false
+                        }
                     }
                 }) {
                     Text("Add")
@@ -232,6 +302,7 @@ fun SchoolAdminsScreen(
             }
         )
     }
+
 
     if (showReassignDialog && selectedAdmin != null) {
         AlertDialog(

@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,12 +77,6 @@ fun AddSchoolScreen(
     var address by remember { mutableStateOf("") }
     var website by remember { mutableStateOf("") }
 
-    val types = configViewModel.types
-    val categories = configViewModel.categories
-    val curriculums = configViewModel.curriculums
-    val regions = configViewModel.regions
-    val counties = configViewModel.counties
-    val subCounties = configViewModel.subcounties
 
     var selectedType by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("") }
@@ -90,6 +85,10 @@ fun AddSchoolScreen(
     var selectedCounty by remember { mutableStateOf("") }
     var selectedSubCounty by remember { mutableStateOf("") }
     var selectedAdmin by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        configViewModel.initialize()
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -167,7 +166,7 @@ fun AddSchoolScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("Assign Admin", fontWeight = FontWeight.SemiBold, color = Color(0xFF0D47A1))
+            Text("Assign Admin (Optional)", fontWeight = FontWeight.SemiBold, color = Color(0xFF0D47A1))
             Spacer(modifier = Modifier.height(6.dp))
 
             AdminDropdown(
@@ -189,7 +188,6 @@ fun AddSchoolScreen(
                                 selectedRegion.isBlank() || selectedCounty.isBlank() || selectedSubCounty.isBlank() -> {
                             scope.launch { snackbarHostState.showSnackbar("Please select all dropdowns.") }
                         }
-                        selectedAdmin.isBlank() -> scope.launch { snackbarHostState.showSnackbar("Admin must be selected.") }
                         else -> {
                             val curriculumId = configViewModel.curriculums.find { it.name == selectedCurriculum }?.id ?: return@Button
                             val categoryId = configViewModel.categories.find { it.name == selectedCategory }?.id ?: return@Button
@@ -216,7 +214,7 @@ fun AddSchoolScreen(
                                 website = website
                             )
 
-                            schoolViewModel.addSchoolWithAdmin(newSchool, selectedAdmin)
+                            schoolViewModel.addSchool(newSchool)
                             navController.navigate("schools") {
                                 popUpTo("add_school") { inclusive = true }
                             }
