@@ -144,6 +144,7 @@ fun SchoolManagementScreen(
     }
 
     LaunchedEffect(Unit) {
+        systemConfigViewModel.initialize()
         viewModel.fetchSchoolsWithMinimumDelay()
         viewModel.snackbarMessage.collect { message ->
             message?.let {

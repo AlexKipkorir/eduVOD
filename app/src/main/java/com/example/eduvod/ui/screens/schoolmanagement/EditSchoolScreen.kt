@@ -1,6 +1,9 @@
 package com.example.eduvod.ui.screens.schoolmanagement
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,7 +48,6 @@ import androidx.navigation.NavController
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditSchoolScreen(
@@ -57,14 +59,16 @@ fun EditSchoolScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    val originalSchool by remember { mutableStateOf(viewModel.getSchoolByName(schoolName)) }
+    val originalSchool = remember { viewModel.getSchoolByName(schoolName) }
 
-    LaunchedEffect(Unit) {
+    // Initialize region/county/subcounty lists
+    LaunchedEffect(originalSchool) {
         configViewModel.initialize()
         originalSchool?.region?.let { configViewModel.loadCounties(it) }
         originalSchool?.county?.let { configViewModel.loadSubcounties(it) }
     }
 
+    // Dropdown options
     val curriculumOptions = configViewModel.curriculums.map { it.name }
     val categoryOptions = configViewModel.categories.map { it.name }
     val typeOptions = configViewModel.types.map { it.name }
@@ -72,25 +76,47 @@ fun EditSchoolScreen(
     val countyOptions = configViewModel.counties.map { it.name }
     val subCountyOptions = configViewModel.subcounties.map { it.name }
 
-    var moeRegNo by remember { mutableStateOf(originalSchool?.moeRegNo ?: "") }
-    var kpsaRegNo by remember { mutableStateOf(originalSchool?.kpsaRegNo ?: "") }
-    var schoolCurriculum by remember { mutableStateOf(originalSchool?.curriculum ?: "") }
-    var category by remember { mutableStateOf(originalSchool?.category ?: "") }
-    var type by remember { mutableStateOf(originalSchool?.type ?: "") }
-    var composition by remember { mutableStateOf(originalSchool?.composition ?: "") }
-    var mobile by remember { mutableStateOf(originalSchool?.mobile ?: "") }
-    var email by remember { mutableStateOf(originalSchool?.email ?: "") }
-    var website by remember { mutableStateOf(originalSchool?.website ?: "") }
-    var region by remember { mutableStateOf(originalSchool?.region ?: "") }
-    var diocese by remember { mutableStateOf(originalSchool?.diocese ?: "") }
-    var county by remember { mutableStateOf(originalSchool?.county ?: "") }
-    var subCounty by remember { mutableStateOf(originalSchool?.subCounty ?: "") }
-    var location by remember { mutableStateOf(originalSchool?.location ?: "") }
-    var address by remember { mutableStateOf(originalSchool?.address ?: "") }
+    // Form fields
+    var moeRegNo by remember { mutableStateOf("") }
+    var kpsaRegNo by remember { mutableStateOf("") }
+    var schoolCurriculum by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("") }
+    var composition by remember { mutableStateOf("") }
+    var mobile by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var website by remember { mutableStateOf("") }
+    var region by remember { mutableStateOf("") }
+    var diocese by remember { mutableStateOf("") }
+    var county by remember { mutableStateOf("") }
+    var subCounty by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
 
     var selectedAdmin by remember { mutableStateOf("") }
     val adminOptions = viewModel.getUnassignedAdmins()
-    var isDropdownExpanded by remember { mutableStateOf(false) }
+    var isAdminDropdownExpanded by remember { mutableStateOf(false) }
+
+    // Prefill only once
+    LaunchedEffect(Unit) {
+        originalSchool?.let {
+            moeRegNo = it.moeRegNo
+            kpsaRegNo = it.kpsaRegNo
+            schoolCurriculum = it.curriculum
+            category = it.category
+            type = it.type
+            composition = it.composition
+            mobile = it.mobile
+            email = it.email
+            website = it.website
+            region = it.region
+            diocese = it.diocese
+            county = it.county
+            subCounty = it.subCounty
+            location = it.location
+            address = it.address
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -151,30 +177,38 @@ fun EditSchoolScreen(
             Divider()
             Text("Assign Admin (Optional)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0D47A1))
 
-            OutlinedTextField(
-                value = selectedAdmin,
-                onValueChange = { selectedAdmin = it },
-                label = { Text("Select Admin Email") },
-                readOnly = true,
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = {
-                    IconButton(onClick = { isDropdownExpanded = !isDropdownExpanded }) {
-                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
-                    }
-                }
-            )
-            DropdownMenu(
-                expanded = isDropdownExpanded,
-                onDismissRequest = { isDropdownExpanded = false }
-            ) {
-                adminOptions.forEach { adminEmail ->
-                    DropdownMenuItem(
-                        text = { Text(adminEmail) },
-                        onClick = {
-                            selectedAdmin = adminEmail
-                            isDropdownExpanded = false
+            Box {
+                OutlinedTextField(
+                    value = selectedAdmin,
+                    onValueChange = {},
+                    label = { Text("Select Admin Email") },
+                    readOnly = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isAdminDropdownExpanded = true },
+                    trailingIcon = {
+                        IconButton(onClick = { isAdminDropdownExpanded = !isAdminDropdownExpanded }) {
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
                         }
-                    )
+                    }
+                )
+
+                DropdownMenu(
+                    expanded = isAdminDropdownExpanded,
+                    onDismissRequest = { isAdminDropdownExpanded = false },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White)
+                ) {
+                    adminOptions.forEach { adminEmail ->
+                        DropdownMenuItem(
+                            text = { Text(adminEmail) },
+                            onClick = {
+                                selectedAdmin = adminEmail
+                                isAdminDropdownExpanded = false
+                            }
+                        )
+                    }
                 }
             }
 

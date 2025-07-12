@@ -72,7 +72,6 @@ fun AddSchoolScreen(
     var schoolName by remember { mutableStateOf(prefillSchoolName ?: "") }
     var mobile by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var dioceses by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var website by remember { mutableStateOf("") }
@@ -153,7 +152,6 @@ fun AddSchoolScreen(
                 selectedSubCounty = it
             }
 
-            CustomTextField("Diocese", dioceses) { dioceses = it }
             CustomTextField("Location", location) { location = it }
             CustomTextField("Address", address) { address = it }
             CustomTextField("Website", website) { website = it }
