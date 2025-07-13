@@ -63,9 +63,7 @@ fun EditSchoolScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-
     var originalSchool by remember { mutableStateOf<School?>(null) }
-
 
     LaunchedEffect(viewModel.schools, schoolName) {
         originalSchool = viewModel.getSchoolByName(schoolName)

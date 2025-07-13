@@ -136,12 +136,14 @@ class UserManagementViewModel(
         viewModelScope.launch {
             val startTime = System.currentTimeMillis()
             _isLoading.value = true
+
             try {
                 val response = repository.getAllUsers()
+
                 if (response.isSuccessful) {
                     response.body()?.data?.let { rawList ->
                         val filteredList = rawList
-                            .filter { it.role == "SUPER_ADMIN" }
+                            .filter { it.role.equals("SUPER_ADMIN", ignoreCase = true) }
                             .map { admin ->
                                 if (admin.deletedAt != null) {
                                     admin.copy(status = "DELETED")
@@ -154,11 +156,13 @@ class UserManagementViewModel(
                 } else {
                     _snackbarMessage.value = "Failed to load super admins."
                 }
+
             } catch (e: Exception) {
-                _snackbarMessage.value = "Network error."
+                _snackbarMessage.value = "Network error: ${e.localizedMessage ?: "Unknown error"}"
             } finally {
-                val elapsedTime = System.currentTimeMillis() - startTime
-                delay(maxOf(0, 1000 - elapsedTime))
+                val elapsed = System.currentTimeMillis() - startTime
+                val remaining = maxOf(0, 1000 - elapsed)
+                delay(remaining)
                 _isLoading.value = false
             }
         }

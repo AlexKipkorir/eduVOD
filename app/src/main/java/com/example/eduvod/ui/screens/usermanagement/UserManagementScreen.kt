@@ -99,7 +99,6 @@ fun UserManagementScreen(
     val currentUserEmail by viewModel.currentUserEmail.collectAsState()
 
     val filteredStatuses = listOf("ALL", "ACTIVE", "BLOCKED", "DELETED")
-
     val adminsByStatus = viewModel.admins
         .filter { it.email.contains(searchQuery, ignoreCase = true) }
         .groupBy { it.status?.uppercase() ?: "UNKNOWN" }
@@ -107,6 +106,7 @@ fun UserManagementScreen(
     val expandStates = remember { mutableStateMapOf<String, Boolean>() }
 
     val isLoading by viewModel.isLoading.collectAsState()
+
 
     LaunchedEffect(email) {
         viewModel.setCurrentUserEmail(email ?: "")
@@ -140,7 +140,7 @@ fun UserManagementScreen(
                 ),
                 modifier = Modifier.background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xFF1565C0), Color(0xFF0D47A1)) // Same order as Grades screen
+                        colors = listOf(Color(0xFF1565C0), Color(0xFF0D47A1))
                     )
                 )
             )
@@ -155,9 +155,11 @@ fun UserManagementScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color(0xFFF4F9FC)
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-            if (isLoading) {
-                androidx.compose.animation.AnimatedVisibility(
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+
+
+                AnimatedVisibility(
                     visible = isLoading,
                     enter = fadeIn(),
                     exit = fadeOut()
@@ -179,7 +181,7 @@ fun UserManagementScreen(
                         }
                     }
                 }
-            } else {
+
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
@@ -189,6 +191,7 @@ fun UserManagementScreen(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
+
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -205,6 +208,7 @@ fun UserManagementScreen(
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
+
 
                 if (viewModel.admins.isEmpty()) {
                     Text("No admins found.", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
@@ -223,9 +227,7 @@ fun UserManagementScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable {
-                                            expandStates[status] = !expanded
-                                        }
+                                        .clickable { expandStates[status] = !expanded }
                                         .padding(vertical = 8.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
@@ -240,7 +242,6 @@ fun UserManagementScreen(
                                         contentDescription = if (expanded) "Collapse" else "Expand"
                                     )
                                 }
-
                                 Spacer(modifier = Modifier.height(4.dp))
                             }
 
@@ -263,6 +264,7 @@ fun UserManagementScreen(
             }
         }
     }
+
     if (showAddDialog) {
         AddAdminDialog(
             onDismiss = { showAddDialog = false },
