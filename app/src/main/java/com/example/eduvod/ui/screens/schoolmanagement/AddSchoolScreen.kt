@@ -212,9 +212,27 @@ fun AddSchoolScreen(
                                 website = website
                             )
 
-                            schoolViewModel.addSchool(newSchool)
-                            navController.navigate("schools") {
-                                popUpTo("add_school") { inclusive = true }
+                            scope.launch {
+                                val addedSchool = schoolViewModel.addSchoolAndReturn(newSchool)
+
+                                if (addedSchool != null) {
+                                    // Optionally assign admin if selected
+                                    if (selectedAdmin.isNotBlank()) {
+                                        schoolViewModel.assignAdminToSchool(
+                                            email = selectedAdmin,
+                                            schoolName = addedSchool.name
+                                        )
+                                        snackbarHostState.showSnackbar("School added & admin assigned.")
+                                    } else {
+                                        snackbarHostState.showSnackbar("School added successfully.")
+                                    }
+
+                                    navController.navigate("schools") {
+                                        popUpTo("add_school") { inclusive = true }
+                                    }
+                                } else {
+                                    snackbarHostState.showSnackbar("Failed to add school.")
+                                }
                             }
                         }
                     }
@@ -223,6 +241,7 @@ fun AddSchoolScreen(
             ) {
                 Text("Submit School")
             }
+
         }
     }
 }

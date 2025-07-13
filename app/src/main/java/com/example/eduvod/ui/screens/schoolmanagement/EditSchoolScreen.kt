@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,6 +39,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.eduvod.model.School
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
@@ -59,22 +63,14 @@ fun EditSchoolScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    val originalSchool = remember { viewModel.getSchoolByName(schoolName) }
 
-    // Initialize region/county/subcounty lists
-    LaunchedEffect(originalSchool) {
+    var originalSchool by remember { mutableStateOf<School?>(null) }
+
+
+    LaunchedEffect(viewModel.schools, schoolName) {
+        originalSchool = viewModel.getSchoolByName(schoolName)
         configViewModel.initialize()
-        originalSchool?.region?.let { configViewModel.loadCounties(it) }
-        originalSchool?.county?.let { configViewModel.loadSubcounties(it) }
     }
-
-    // Dropdown options
-    val curriculumOptions = configViewModel.curriculums.map { it.name }
-    val categoryOptions = configViewModel.categories.map { it.name }
-    val typeOptions = configViewModel.types.map { it.name }
-    val regionOptions = configViewModel.regions.map { it.name }
-    val countyOptions = configViewModel.counties.map { it.name }
-    val subCountyOptions = configViewModel.subcounties.map { it.name }
 
     // Form fields
     var moeRegNo by remember { mutableStateOf("") }
@@ -97,8 +93,16 @@ fun EditSchoolScreen(
     val adminOptions = viewModel.getUnassignedAdmins()
     var isAdminDropdownExpanded by remember { mutableStateOf(false) }
 
-    // Prefill only once
-    LaunchedEffect(Unit) {
+    // Dropdown options
+    val curriculumOptions = configViewModel.curriculums.map { it.name }
+    val categoryOptions = configViewModel.categories.map { it.name }
+    val typeOptions = configViewModel.types.map { it.name }
+    val regionOptions = configViewModel.regions.map { it.name }
+    val countyOptions = configViewModel.counties.map { it.name }
+    val subCountyOptions = configViewModel.subcounties.map { it.name }
+
+    // Prefill once originalSchool is available
+    LaunchedEffect(originalSchool) {
         originalSchool?.let {
             moeRegNo = it.moeRegNo
             kpsaRegNo = it.kpsaRegNo
@@ -115,7 +119,17 @@ fun EditSchoolScreen(
             subCounty = it.subCounty
             location = it.location
             address = it.address
+
+            configViewModel.loadCounties(it.region)
+            configViewModel.loadSubcounties(it.county)
         }
+    }
+
+    if (originalSchool == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
     }
 
     Scaffold(
@@ -238,7 +252,7 @@ fun EditSchoolScreen(
                         scope.launch {
                             viewModel.updateSchool(it.id, it)
                             if (selectedAdmin.isNotBlank()) {
-                                viewModel.reassignAdmin(selectedAdmin, it.name)
+                                viewModel.assignAdminToSchool(selectedAdmin, it.name)
                             }
                             snackbarHostState.showSnackbar("Changes saved for ${it.name}")
                             navController.popBackStack()

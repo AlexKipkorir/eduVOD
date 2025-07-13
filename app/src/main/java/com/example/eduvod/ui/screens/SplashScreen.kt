@@ -37,7 +37,6 @@ fun SplashScreen(
     navController: NavHostController,
     authViewModel: AuthViewModel
 ) {
-    // Fade animation
     val fadeAnim = rememberInfiniteTransition(label = "fadeAnimation")
     val alpha by fadeAnim.animateFloat(
         initialValue = 0.3f,
@@ -50,34 +49,32 @@ fun SplashScreen(
     )
 
     val loginState by authViewModel.loginState.collectAsState()
-    // Navigate after 2.5 seconds
+
+    // Trigger login check when screen launches
     LaunchedEffect(Unit) {
-        delay(2500)
-        navController.navigate("login") {
-            popUpTo("splash") { inclusive = true }
+        authViewModel.checkIfLoggedIn()
+    }
+
+    // Handle navigation after login state is determined
+    LaunchedEffect(loginState) {
+        when (loginState) {
+            is LoginState.LoggedIn -> {
+                delay(1000) // Minimum splash display time
+                navController.navigate("dashboard") {
+                    popUpTo("splash") { inclusive = true }
+                }
+            }
+            is LoginState.LoggedOut -> {
+                delay(1000)
+                navController.navigate("login") {
+                    popUpTo("splash") { inclusive = true }
+                }
+            }
+            else -> Unit
         }
     }
 
-    //Check if user is loggedIn
-//    LaunchedEffect(loginState) {
-//        when (loginState) {
-//            is LoginState.LoggedIn -> {
-//                delay(1000)
-//                navController.navigate("dashboard") {
-//                    popUpTo("splash") { inclusive = true }
-//                }
-//            }
-//            is LoginState.LoggedOut -> {
-//                delay(1000)
-//                navController.navigate("login") {
-//                    popUpTo("splash") { inclusive = true }
-//                }
-//            }
-//            else -> {}
-//        }
-//    }
-
-    // UI
+    // Splash UI
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -95,7 +92,6 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Fading Caption
             Text(
                 text = "Equal Education for All",
                 style = MaterialTheme.typography.bodyLarge.copy(
@@ -107,8 +103,6 @@ fun SplashScreen(
         }
     }
 }
-
-
 @Preview(showBackground = true)
 @Composable
 fun SplashScreenPreview() {

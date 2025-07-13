@@ -2,7 +2,7 @@
 accompanistNavigationAnimation = "0.34.0"
 accompanistPlaceholderMaterial = "0.35.0-alpha"
 accompanistSwiperefresh = "<latest-version>"
-agp = "8.8.2"
+agp = "8.11.1"
 converterGson = "2.9.0"
 datastorePreferences = "1.1.7"
 kotlin = "2.1.0"

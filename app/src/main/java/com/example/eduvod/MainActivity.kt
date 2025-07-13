@@ -49,31 +49,27 @@ import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
-    private lateinit var userPreferences: UserPreferences
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        userPreferences = UserPreferences(applicationContext)
 
+        val userPreferences = UserPreferences(applicationContext)
         lifecycleScope.launch {
-            userPreferences.authToken.collect { token ->
-                if (!token.isNullOrEmpty()) {
-                    ApiClient.setAuthToken(token)
+            val token = userPreferences.authToken.firstOrNull()
+            if (!token.isNullOrEmpty()) {
+                ApiClient.setAuthToken(token)
+            }
+        }
 
-                    setContent {
-                        EduVODTheme {
-                            EduVODApp()
-                        }
-                    }
-
-                    this.cancel()
-                }
+        setContent {
+            EduVODTheme {
+                EduVODApp()
             }
         }
     }
 }
+
 class AuthViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AuthViewModel::class.java)) {
@@ -104,8 +100,8 @@ fun EduVODNavHost(
     contentPadding: PaddingValues,
     authViewModel: AuthViewModel
 ) {
-    val context = LocalContext.current
-    val authViewModel = remember { AuthViewModel(context) }
+//    val context = LocalContext.current
+//    val authViewModel = remember { AuthViewModel(context) }
     val dashboardViewModel: DashboardViewModel = viewModel()
 
     AnimatedNavHost(
@@ -120,8 +116,6 @@ fun EduVODNavHost(
             SplashScreen(navController = navController, authViewModel = authViewModel)
         }
         composable("login") {
-            val context = LocalContext.current
-            val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
             LoginScreen(navController = navController, authViewModel = authViewModel)
         }
         composable("dashboard") {

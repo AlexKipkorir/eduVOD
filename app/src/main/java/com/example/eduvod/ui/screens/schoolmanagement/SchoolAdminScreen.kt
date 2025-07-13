@@ -52,6 +52,8 @@ import androidx.navigation.NavHostController
 import com.example.eduvod.viewmodel.SchoolAdmin
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import android.util.Patterns
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.launch
 
 
@@ -82,7 +84,6 @@ fun SchoolAdminsScreen(
     var passwordInput by remember { mutableStateOf("") }
     var confirmPasswordInput by remember { mutableStateOf("") }
 
-
     val filteredAdmins = viewModel.schoolAdmins.filter {
         when (filter) {
             "Assigned" -> it.assignedSchool != null
@@ -90,6 +91,13 @@ fun SchoolAdminsScreen(
             else -> true
         }
     }.filter { it.email.contains(searchQuery, ignoreCase = true) }
+
+    LaunchedEffect(viewModel.snackbarMessage.collectAsState().value) {
+        viewModel.snackbarMessage.value?.let {
+            scope.launch { snackbarHostState.showSnackbar(it) }
+            viewModel.clearSnackbarMessage()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -169,7 +177,6 @@ fun SchoolAdminsScreen(
                                 if (admin.assignedSchool != null) {
                                     Button(onClick = {
                                         viewModel.unassignAdmin(admin.email)
-                                        scope.launch { snackbarHostState.showSnackbar("Admin unassigned") }
                                     }) {
                                         Icon(Icons.Default.Clear, contentDescription = null)
                                         Text("Unassign")
@@ -198,7 +205,6 @@ fun SchoolAdminsScreen(
             }
         }
     }
-
     if (showAddDialog) {
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
@@ -303,7 +309,6 @@ fun SchoolAdminsScreen(
         )
     }
 
-
     if (showReassignDialog && selectedAdmin != null) {
         AlertDialog(
             onDismissRequest = {
@@ -333,10 +338,7 @@ fun SchoolAdminsScreen(
                 TextButton(
                     onClick = {
                         selectedAdmin?.let {
-                            viewModel.reassignAdmin(it.email, selectedSchool)
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Assigned to $selectedSchool")
-                            }
+                            viewModel.assignAdminToSchool(it.email, selectedSchool)
                         }
                         selectedSchool = ""
                         selectedAdmin = null
@@ -370,9 +372,6 @@ fun SchoolAdminsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteAdmin(adminToDelete!!.email)
-                    scope.launch {
-                        snackbarHostState.showSnackbar("Admin deleted successfully.")
-                    }
                     adminToDelete = null
                     showDeleteDialog = false
                 }) {
@@ -390,6 +389,7 @@ fun SchoolAdminsScreen(
         )
     }
 }
+
 @Composable
 fun SchoolDropdown(
     label: String,

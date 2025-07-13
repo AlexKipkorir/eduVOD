@@ -120,24 +120,13 @@ class SchoolManagementViewModel(
         }
     }
 
-    fun addSchool(request: SchoolRequest, adminEmail: String? = null) {
+    fun addSchool(request: SchoolRequest) {
         viewModelScope.launch {
             try {
                 val response = repository.addSchool(request)
                 if (response.isSuccessful && response.body()?.statusCode == 0) {
-                    val addedSchool = response.body()?.data
-                    if (addedSchool != null) {
-                        fetchSchools()
-                        if (!adminEmail.isNullOrBlank()) {
-                            val adminId = schoolAdmins.find { it.email == adminEmail }?.id
-                            if (adminId != null) {
-                                repository.assignAdminToSchool(
-                                    AdminAssignRequest(adminId.toLong(), addedSchool.id)
-                                )
-                            }
-                        }
-                        fetchAdmins()
-                    }
+                    fetchSchools()
+                    snackbarMessage.value = "School added successfully."
                 } else {
                     snackbarMessage.value = "Failed to add school."
                 }
@@ -272,46 +261,39 @@ class SchoolManagementViewModel(
             }
         }
     }
-    fun reassignAdmin(email: String, schoolName: String) {
-        val schoolId: Int = getSchoolByName(schoolName)?.id ?: return
-        val adminId: Int = schoolAdmins.find { it.email == email }?.id ?: return
+    fun assignAdminToSchool(email: String, schoolName: String) {
+        val schoolId = getSchoolByName(schoolName)?.id ?: return
+        val admin = schoolAdmins.find { it.email.equals(email, ignoreCase = true) } ?: return
 
         viewModelScope.launch {
             try {
-                repository.assignAdminToSchool(AdminAssignRequest(adminId.toLong(), schoolId))
-                fetchAdmins()
-            } catch (e: Exception) {
-                snackbarMessage.value = "Error reassigning admin: ${e.localizedMessage}"
-            }
-        }
-    }
-    fun getUnassignedAdmins(): List<String> {
-        return schoolAdmins.filter { it.assignedSchool == null }.map { it.email }
-    }
-    fun addSchoolWithAdmin(request: SchoolRequest, adminEmail: String) {
-        viewModelScope.launch {
-            try {
-                val response = repository.addSchool(request)
-                if (response.isSuccessful && response.body()?.statusCode == 0) {
-                    val addedSchool = response.body()?.data
-                    val adminId = schoolAdmins.find { it.email == adminEmail }?.id
+                val response = repository.assignAdminToSchool(
+                    AdminAssignRequest(
+                        schoolAdminId = admin.id.toLong(),
+                        schoolId = schoolId
+                    )
+                )
 
-                    if (addedSchool != null && adminId != null) {
-                        repository.assignAdminToSchool(
-                            AdminAssignRequest(adminId.toLong(), addedSchool.id)
-                        )
-                        fetchSchools()
-                        fetchAdmins()
-                    } else {
-                        snackbarMessage.value = "School added but admin ID not found."
+                if (response.isSuccessful && response.body()?.statusCode == 200) {
+                    // Update local state
+                    val index = schoolAdmins.indexOfFirst { it.email.equals(email, ignoreCase = true) }
+                    if (index != -1) {
+                        schoolAdmins[index] = schoolAdmins[index].copy(assignedSchool = schoolName)
                     }
+
+                    snackbarMessage.value = "Admin assigned successfully"
+                    fetchAdmins()
                 } else {
-                    snackbarMessage.value = "Failed to add school."
+                    snackbarMessage.value = "Failed to assign admin"
                 }
             } catch (e: Exception) {
-                snackbarMessage.value = "Error adding school: ${e.localizedMessage}"
+                snackbarMessage.value = "Error assigning admin: ${e.localizedMessage}"
             }
         }
+    }
+
+    fun getUnassignedAdmins(): List<String> {
+        return schoolAdmins.filter { it.assignedSchool == null }.map { it.email }
     }
     fun blockAdmin(email: String, block: Boolean) {
         viewModelScope.launch {
@@ -360,6 +342,19 @@ class SchoolManagementViewModel(
             }
         }
     }
+    suspend fun addSchoolAndReturn(request: SchoolRequest): School? {
+        return try {
+            val response = repository.addSchool(request)
+            if (response.isSuccessful && response.body()?.statusCode == 0) {
+                val added = response.body()?.data
+                fetchSchools()
+                added
+            } else null
+        } catch (e: Exception) {
+            null
+        } as School?
+    }
+
     fun clearSnackbarMessage() {
         snackbarMessage.value = null
     }

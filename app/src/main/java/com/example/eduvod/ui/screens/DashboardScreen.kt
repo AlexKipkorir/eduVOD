@@ -288,8 +288,8 @@ fun DashboardScreen(navController: NavHostController,
                         scope.launch {
                             authViewModel.logout()
                             delay(300)
-                            navController.navigate("login") {
-                                popUpTo(0) { inclusive = true }
+                            navController.navigate("splash") {
+                                popUpTo("dashboard") { inclusive = true }
                                 launchSingleTop = true
                             }
                         }

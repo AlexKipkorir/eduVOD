@@ -206,7 +206,7 @@ fun ManageSchoolAdminsScreen(
                         if (selectedAdminEmail.isNotBlank()) {
                             scope.launch {
                                 viewModel.setLoading(true)
-                                viewModel.reassignAdmin(selectedAdminEmail, schoolName ?: "")
+                                viewModel.assignAdminToSchool(selectedAdminEmail, schoolName ?: "")
                                 viewModel.fetchAdmins() // Auto-refresh
                                 viewModel.setLoading(false)
                                 snackbarHostState.showSnackbar("Admin assigned successfully.")
