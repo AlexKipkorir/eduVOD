@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,6 +34,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -43,6 +46,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -74,9 +78,10 @@ import com.example.eduvod.viewmodel.LoginState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(navController: NavHostController,
-                    viewModel: DashboardViewModel,
-                    authViewModel: AuthViewModel
+fun DashboardScreen(
+    navController: NavHostController,
+    viewModel: DashboardViewModel,
+    authViewModel: AuthViewModel
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -89,10 +94,8 @@ fun DashboardScreen(navController: NavHostController,
         NavItem("Logout", Icons.AutoMirrored.Filled.ExitToApp, "logout")
     )
 
-    //Retrofit
     val stats by viewModel.stats.collectAsState()
     val snackbar by viewModel.snackbar.collectAsState()
-
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -105,7 +108,6 @@ fun DashboardScreen(navController: NavHostController,
     }
 
     val loginState by authViewModel.loginState.collectAsState()
-
     LaunchedEffect(loginState) {
         if (loginState is LoginState.LoggedOut) {
             navController.navigate("login") {
@@ -114,12 +116,47 @@ fun DashboardScreen(navController: NavHostController,
         }
     }
 
+    // Drawer colors
+    val drawerColors = NavigationDrawerItemDefaults.colors(
+        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        unselectedContainerColor = Color.Transparent,
+        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        selectedIconColor = MaterialTheme.colorScheme.primary,
+        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 
     ModalNavigationDrawer(
+        drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
-                Text("Admin Menu", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
-                navItems.forEach { item ->
+            ModalDrawerSheet(
+                modifier = Modifier.width(280.dp),
+                drawerContainerColor = MaterialTheme.colorScheme.surface
+            ) {
+                // Drawer header
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(24.dp)
+                ) {
+                    Text(
+                        text = "eduVOD Admin",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Management Portal",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                    )
+                }
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                navItems.dropLast(1).forEach { item ->
                     NavigationDrawerItem(
                         label = { Text(item.label) },
                         icon = { Icon(item.icon, contentDescription = item.label) },
@@ -127,25 +164,47 @@ fun DashboardScreen(navController: NavHostController,
                         onClick = {
                             scope.launch {
                                 drawerState.close()
-                                if (item.route == "logout") {
-                                    showLogoutDialog = true
-                                } else {
-                                    navController.navigate(item.route)
-                                }
+                                navController.navigate(item.route)
                             }
                         },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        colors = drawerColors,
+                        shape = MaterialTheme.shapes.medium
                     )
                 }
+
+                Spacer(modifier = Modifier.weight(1f))
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                // Logout item
+                NavigationDrawerItem(
+                    label = { Text("Logout") },
+                    icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout") },
+                    selected = false,
+                    onClick = {
+                        scope.launch {
+                            drawerState.close()
+                            showLogoutDialog = true
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    colors = drawerColors,
+                    shape = MaterialTheme.shapes.medium
+                )
             }
-        },
-        drawerState = drawerState
+        }
     ) {
         Scaffold(
             topBar = {
                 TopAppBar(
                     title = {
-                        Text("eduVOD Admin Dashboard", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp))
+                        Text(
+                            "eduVOD Admin Dashboard",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 22.sp
+                            )
+                        )
                     },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
@@ -159,10 +218,9 @@ fun DashboardScreen(navController: NavHostController,
                     )
                 )
             },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             containerColor = Color(0xFFF4F8FC)
-        )
-        { innerPadding ->
-            //Retrofit
+        ) { innerPadding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -219,62 +277,6 @@ fun DashboardScreen(navController: NavHostController,
                     stats?.let { ScrollableDataCard(data = it.studentsByClass, icon = Icons.Default.School) }
                 }
             }
-
-            //OG
-//            Column(
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .padding(innerPadding)
-//                    .verticalScroll(rememberScrollState())
-//                    .padding(16.dp),
-//                verticalArrangement = Arrangement.spacedBy(20.dp)
-//            ) {
-//                SectionTitle("Schools by Region")
-//                StaggeredAnimatedCard(index = 0) {
-//                    ScrollableDataCard(data = viewModel.schoolsByRegion, icon = Icons.Default.LocationCity)
-//                }
-//
-//                SectionTitle("Students by Gender")
-//                StaggeredAnimatedCard(index = 1) {
-//                    TwoColumnDataCard(
-//                        "Male" to (viewModel.studentsByGender["Male"] ?: "0"),
-//                        "Female" to (viewModel.studentsByGender["Female"] ?: "0"),
-//                        icon = Icons.Default.Group
-//                    )
-//                }
-//
-//                SectionTitle("Differently Abled Students")
-//                StaggeredAnimatedCard(index = 2) {
-//                    TwoColumnDataCard(
-//                        "Male" to (viewModel.differentlyAbledStudents["Male"] ?: "0"),
-//                        "Female" to (viewModel.differentlyAbledStudents["Female"] ?: "0"),
-//                        icon = Icons.Default.Accessibility
-//                    )
-//                }
-//
-//                SectionTitle("Teachers by Gender")
-//                StaggeredAnimatedCard(index = 3) {
-//                    TwoColumnDataCard(
-//                        "Male" to (viewModel.teachersByGender["Male"] ?: "0"),
-//                        "Female" to (viewModel.teachersByGender["Female"] ?: "0"),
-//                        icon = Icons.Default.Person
-//                    )
-//                }
-//
-//                SectionTitle("Number of Guardians")
-//                StaggeredAnimatedCard(index = 4) {
-//                    SimpleDataCard(
-//                        label = "Total Guardians",
-//                        value = viewModel.totalGuardian,
-//                        icon = Icons.Default.FamilyRestroom
-//                    )
-//                }
-//
-//                SectionTitle("Students by Class/Grade/Stream")
-//                StaggeredAnimatedCard(index = 5) {
-//                    ScrollableDataCard(data = viewModel.studentsByClassStream, icon = Icons.Default.School)
-//                }
-//            }
         }
 
         if (showLogoutDialog) {
