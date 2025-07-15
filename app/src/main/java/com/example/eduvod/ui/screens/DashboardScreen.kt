@@ -277,6 +277,62 @@ fun DashboardScreen(
                     stats?.let { ScrollableDataCard(data = it.studentsByClass, icon = Icons.Default.School) }
                 }
             }
+
+                 //OG
+               // Column(
+                       // modifier = Modifier
+                        // .fillMaxSize()
+         // .padding(innerPadding)
+        // .verticalScroll(rememberScrollState())
+        // .padding(16.dp),
+        // verticalArrangement = Arrangement.spacedBy(20.dp)
+        // ) {
+        // SectionTitle("Schools by Region")
+        // StaggeredAnimatedCard(index = 0) {
+        // ScrollableDataCard(data = viewModel.schoolsByRegion, icon = Icons.Default.LocationCity)
+        // }
+        // SectionTitle("Students by Gender")
+        // StaggeredAnimatedCard(index = 1) {
+        // TwoColumnDataCard(
+        // "Male" to (viewModel.studentsByGender["Male"] ?: "0"),
+        // "Female" to (viewModel.studentsByGender["Female"] ?: "0"),
+        // icon = Icons.Default.Group
+        // )
+        // }
+        //
+        // SectionTitle("Differently Abled Students")
+        // StaggeredAnimatedCard(index = 2) {
+        // TwoColumnDataCard(
+        // "Male" to (viewModel.differentlyAbledStudents["Male"] ?: "0"),
+        // "Female" to (viewModel.differentlyAbledStudents["Female"] ?: "0"),
+        // icon = Icons.Default.Accessibility
+        // )
+        // }
+        //
+        // SectionTitle("Teachers by Gender")
+        // StaggeredAnimatedCard(index = 3) {
+        // TwoColumnDataCard(
+        // "Male" to (viewModel.teachersByGender["Male"] ?: "0"),
+        // "Female" to (viewModel.teachersByGender["Female"] ?: "0"),
+        // icon = Icons.Default.Person
+        // )
+         // }
+        //
+        // SectionTitle("Number of Guardians")
+        // StaggeredAnimatedCard(index = 4) {
+        // SimpleDataCard(
+        // label = "Total Guardians",
+        // value = viewModel.totalGuardian,
+        // icon = Icons.Default.FamilyRestroom
+        // )
+        // }
+        //
+        // SectionTitle("Students by Class/Grade/Stream")
+        // StaggeredAnimatedCard(index = 5) {
+        // ScrollableDataCard(data = viewModel.studentsByClassStream, icon = Icons.Default.School)
+        // }
+        // }
+
         }
 
         if (showLogoutDialog) {

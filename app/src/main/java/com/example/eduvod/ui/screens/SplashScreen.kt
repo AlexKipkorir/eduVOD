@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -31,6 +33,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.eduvod.viewmodel.AuthViewModel
 import com.example.eduvod.viewmodel.LoginState
 import kotlinx.coroutines.delay
+import com.example.eduvod.R
 
 @Composable
 fun SplashScreen(
@@ -82,6 +85,12 @@ fun SplashScreen(
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+            Image(
+                painter = painterResource(id = R.drawable.eduvod_logo_3),
+                contentDescription = "App Logo"
+            )
+
             Text(
                 text = "eduVOD",
                 style = MaterialTheme.typography.headlineLarge.copy(

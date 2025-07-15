@@ -86,8 +86,8 @@ fun SchoolAdminsScreen(
 
     val filteredAdmins = viewModel.schoolAdmins.filter {
         when (filter) {
-            "Assigned" -> it.assignedSchool != null
-            "Unassigned" -> it.assignedSchool == null
+            "Assigned" -> it.schoolName != null
+            "Unassigned" -> it.schoolName == null
             else -> true
         }
     }.filter { it.email.contains(searchQuery, ignoreCase = true) }
@@ -168,13 +168,13 @@ fun SchoolAdminsScreen(
                             }
 
                             Text(
-                                text = admin.assignedSchool?.let { "Assigned to: $it" } ?: "Unassigned",
-                                color = if (admin.assignedSchool != null) Color(0xFF2E7D32) else Color.Gray,
+                                text = admin.schoolName?.let { "Assigned to: $it" } ?: "Unassigned",
+                                color = if (admin.schoolName != null) Color(0xFF2E7D32) else Color.Gray,
                                 fontSize = 14.sp
                             )
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                if (admin.assignedSchool != null) {
+                                if (admin.schoolName != null) {
                                     Button(onClick = {
                                         viewModel.unassignAdmin(admin.email)
                                     }) {
@@ -323,7 +323,7 @@ fun SchoolAdminsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     val unassignedSchools = viewModel.schools.filter { school ->
-                        viewModel.schoolAdmins.none { it.assignedSchool == school.name }
+                        viewModel.schoolAdmins.none { it.schoolName == school.name }
                     }
 
                     SchoolDropdown(

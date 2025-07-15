@@ -57,9 +57,10 @@ data class AdminResetRequest(
 
 data class SchoolAdmin(
     val id: Int,
+    val username: String,
     val email: String,
-    var isBlocked: Boolean,
-    val assignedSchool: String?
+    val schoolName: String?,
+    val status: String
 )
 
 class SchoolManagementViewModel(
@@ -254,7 +255,7 @@ class SchoolManagementViewModel(
                 repository.unassignAdmin(AdminUnassignRequest(adminEmail))
                 val index = schoolAdmins.indexOfFirst { it.email == adminEmail }
                 if (index != -1) {
-                    schoolAdmins[index] = schoolAdmins[index].copy(assignedSchool = null)
+                    schoolAdmins[index] = schoolAdmins[index].copy(schoolName = null)
                 }
             } catch (e: Exception) {
                 snackbarMessage.value = "Error unassigning admin: ${e.localizedMessage}"
@@ -275,12 +276,6 @@ class SchoolManagementViewModel(
                 )
 
                 if (response.isSuccessful && response.body()?.statusCode == 200) {
-                    // Update local state
-                    val index = schoolAdmins.indexOfFirst { it.email.equals(email, ignoreCase = true) }
-                    if (index != -1) {
-                        schoolAdmins[index] = schoolAdmins[index].copy(assignedSchool = schoolName)
-                    }
-
                     snackbarMessage.value = "Admin assigned successfully"
                     fetchAdmins()
                 } else {
@@ -292,8 +287,9 @@ class SchoolManagementViewModel(
         }
     }
 
+
     fun getUnassignedAdmins(): List<String> {
-        return schoolAdmins.filter { it.assignedSchool == null }.map { it.email }
+        return schoolAdmins.filter { it.schoolName == null }.map { it.email }
     }
     fun blockAdmin(email: String, block: Boolean) {
         viewModelScope.launch {

@@ -79,7 +79,7 @@ fun ManageSchoolAdminsScreen(
     val isLoading by viewModel.isLoading
     val currentSchool = viewModel.getSchoolByName(schoolName ?: "")
     val allAdmins = viewModel.schoolAdmins.filter {
-        it.assignedSchool == schoolName && it.email.contains(searchQuery, ignoreCase = true)
+        it.schoolName == schoolName && it.email.contains(searchQuery, ignoreCase = true)
     }
     val unassignedAdmins = viewModel.getUnassignedAdmins()
 
@@ -139,9 +139,13 @@ fun ManageSchoolAdminsScreen(
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(allAdmins) { admin ->
                         AdminCard(
-                            admin = AdminAccount(admin.email, admin.isBlocked),
+                            admin = AdminAccount(
+                                email = admin.email,
+                                isBlocked = admin.status != "ACTIVE"
+                            ),
                             onBlock = {
-                                viewModel.blockAdmin(admin.email, !admin.isBlocked)
+                                val shouldBlock = admin.status == "ACTIVE"
+                                viewModel.blockAdmin(admin.email, shouldBlock)
                             },
                             onReset = {
                                 viewModel.resetAdmin(admin.email)
