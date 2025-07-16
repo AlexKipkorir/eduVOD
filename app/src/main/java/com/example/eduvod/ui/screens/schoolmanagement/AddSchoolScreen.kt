@@ -213,14 +213,13 @@ fun AddSchoolScreen(
                             )
 
                             scope.launch {
-                                val addedSchool = schoolViewModel.addSchoolAndReturn(newSchool)
+                                val success = schoolViewModel.addSchool(newSchool)
 
-                                if (addedSchool != null) {
-                                    // Optionally assign admin if selected
+                                if (success) {
                                     if (selectedAdmin.isNotBlank()) {
                                         schoolViewModel.assignAdminToSchool(
                                             email = selectedAdmin,
-                                            schoolName = addedSchool.name
+                                            schoolName = schoolName
                                         )
                                         snackbarHostState.showSnackbar("School added & admin assigned.")
                                     } else {

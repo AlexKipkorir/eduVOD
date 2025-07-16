@@ -132,21 +132,23 @@ class SchoolManagementViewModel(
         }
     }
 
-    fun addSchool(request: SchoolRequest) {
-        viewModelScope.launch {
-            try {
-                val response = repository.addSchool(request)
-                if (response.isSuccessful && response.body()?.statusCode == 0) {
-                    fetchSchools()
-                    snackbarMessage.value = "School added successfully."
-                } else {
-                    snackbarMessage.value = "Failed to add school."
-                }
-            } catch (e: Exception) {
-                snackbarMessage.value = "Error adding school: ${e.localizedMessage}"
+    suspend fun addSchool(request: SchoolRequest): School? {
+        return try {
+            val response = repository.addSchool(request)
+            if (response.isSuccessful) {
+                val added = response.body()?.data
+                fetchSchools()
+                added
+            } else {
+                snackbarMessage.value = "Failed to add school."
+                null
             }
-        }
+        } catch (e: Exception) {
+            snackbarMessage.value = "Error adding school: ${e.localizedMessage}"
+            null
+        } as School?
     }
+
 
     fun updateSchool(id: Int, request: School) {
         viewModelScope.launch {
@@ -353,18 +355,6 @@ class SchoolManagementViewModel(
                 snackbarMessage.value = "Error deleting admin: ${e.localizedMessage}"
             }
         }
-    }
-    suspend fun addSchoolAndReturn(request: SchoolRequest): School? {
-        return try {
-            val response = repository.addSchool(request)
-            if (response.isSuccessful && response.body()?.statusCode == 0) {
-                val added = response.body()?.data
-                fetchSchools()
-                added
-            } else null
-        } catch (e: Exception) {
-            null
-        } as School?
     }
 
     fun clearSnackbarMessage() {
