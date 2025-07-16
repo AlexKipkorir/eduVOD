@@ -85,8 +85,8 @@ interface ApiService {
     @PUT("api/v1/superadmin/school-admins/assign-school")
     suspend fun assignAdminToSchool(@Body request: AdminAssignRequest): Response<ApiResponse<Unit>>
 
-    @POST("api/v1/superadmin/school-admins/unassign")
-    suspend fun unassignAdmin(@Body request: AdminUnassignRequest): Response<ApiResponse<Unit>>
+    @PUT("/api/v1/superadmin/school-admins/unassign-school/{schoolAdminId}")
+    suspend fun unassignAdmin(@Path("schoolAdminId") adminId: Long): Response<ApiResponse<Unit>>
 
     @DELETE("api/v1/superadmin/school-admins/{id}")
     suspend fun deleteSchoolAdmin(@Path("id") id: String): Response<ApiResponse<Unit>>

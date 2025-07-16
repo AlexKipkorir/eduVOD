@@ -108,11 +108,8 @@ fun UserManagementScreen(
     val isLoading by viewModel.isLoading.collectAsState()
 
 
-    LaunchedEffect(email) {
-        viewModel.setCurrentUserEmail(email ?: "")
-    }
-
     LaunchedEffect(snackbarMessage) {
+        viewModel.setCurrentUserEmail(email ?: "")
         snackbarMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearSnackbar()

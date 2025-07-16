@@ -267,7 +267,7 @@ fun CustomTextField(
 fun DropdownField(
     label: String,
     options: List<String>,
-    selectedOption: String,
+    selectedOption: String?,
     onSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -275,18 +275,20 @@ fun DropdownField(
     Column {
         Text(label, fontSize = 14.sp, color = Color.Gray)
         Box {
-            OutlinedTextField(
-                value = selectedOption,
-                onValueChange = {},
-                readOnly = true,
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = {
-                    IconButton(onClick = { expanded = true}) {
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown" )
+            selectedOption?.let {
+                OutlinedTextField(
+                    value = it,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        IconButton(onClick = { expanded = true}) {
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown" )
 
+                        }
                     }
-                }
-            )
+                )
+            }
 
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach {

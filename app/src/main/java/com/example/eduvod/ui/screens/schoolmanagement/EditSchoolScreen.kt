@@ -72,20 +72,20 @@ fun EditSchoolScreen(
 
     // Form fields
     var moeRegNo by remember { mutableStateOf("") }
-    var kpsaRegNo by remember { mutableStateOf("") }
-    var schoolCurriculum by remember { mutableStateOf("") }
+    var kpsaRegNo: String? by remember { mutableStateOf("") }
+    var schoolCurriculum: String? by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("") }
     var composition by remember { mutableStateOf("") }
-    var mobile by remember { mutableStateOf("") }
+    var mobile: String? by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var website by remember { mutableStateOf("") }
+    var website: String? by remember { mutableStateOf("") }
     var region by remember { mutableStateOf("") }
-    var diocese by remember { mutableStateOf("") }
+    var diocese: String? by remember { mutableStateOf("") }
     var county by remember { mutableStateOf("") }
     var subCounty by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
+    var location: String? by remember { mutableStateOf("") }
+    var address: String? by remember { mutableStateOf("") }
 
     var selectedAdmin by remember { mutableStateOf("") }
     val adminOptions = viewModel.getUnassignedAdmins()
@@ -269,12 +269,12 @@ fun EditSchoolScreen(
 @Composable
 fun SectionInputField(
     label: String,
-    value: String,
+    value: String?,
     keyboardType: KeyboardType = KeyboardType.Text,
     onValueChange: (String) -> Unit
 ) {
     OutlinedTextField(
-        value = value,
+        value = value ?: "",
         onValueChange = onValueChange,
         label = { Text(label) },
         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = keyboardType),

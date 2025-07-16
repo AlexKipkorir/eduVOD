@@ -69,8 +69,8 @@ class SchoolRepository {
         return api.resetPassword(id, request)
     }
 
-    suspend fun unassignAdmin(request: AdminUnassignRequest): Response<ApiResponse<Unit>> {
-        return apiService.unassignAdmin(request)
+    suspend fun unassignAdmin(adminId: Long): Response<ApiResponse<Unit>> {
+        return apiService.unassignAdmin(adminId)
     }
 
     suspend fun deleteSchoolAdmin(id: String): Response<ApiResponse<Unit>> {

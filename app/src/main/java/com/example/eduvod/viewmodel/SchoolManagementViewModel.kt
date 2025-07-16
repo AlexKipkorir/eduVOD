@@ -44,7 +44,7 @@ data class AdminAssignRequest(
 )
 
 data class AdminUnassignRequest(
-    val email: String
+    val schoolId: String
 )
 data class AdminStatusUpdateRequest(
     val status: String
@@ -106,14 +106,25 @@ class SchoolManagementViewModel(
     fun fetchSchools() {
         viewModelScope.launch {
             try {
-                val response = repository.getSchools()
-                if (response.isSuccessful) {
-                    response.body()?.data?.let {
-                        schools.clear()
-                        schools.addAll(it)
+                val schoolsResponse = repository.getSchools()
+                val adminsResponse = repository.getAllSchoolAdmins()
+
+                if (schoolsResponse.isSuccessful && adminsResponse.isSuccessful) {
+                    val schoolList = schoolsResponse.body()?.data ?: emptyList()
+                    val adminList = adminsResponse.body()?.data ?: emptyList()
+
+                    // Build a set of school names that have an assigned admin
+                    val schoolsWithAdmins = adminList.mapNotNull { it.schoolName }.toSet()
+
+                    val updatedSchools = schoolList.map { school ->
+                        val hasAdmin = school.name in schoolsWithAdmins
+                        school.copy(hasAdmin = hasAdmin)
                     }
+
+                    schools.clear()
+                    schools.addAll(updatedSchools)
                 } else {
-                    snackbarMessage.value = "Failed to load schools."
+                    snackbarMessage.value = "Failed to load schools or admins."
                 }
             } catch (e: Exception) {
                 snackbarMessage.value = "Error fetching schools: ${e.localizedMessage}"
@@ -250,12 +261,18 @@ class SchoolManagementViewModel(
         return true
     }
     fun unassignAdmin(adminEmail: String) {
+        val admin = schoolAdmins.find { it.email.equals(adminEmail, ignoreCase = true) } ?: return
+
         viewModelScope.launch {
             try {
-                repository.unassignAdmin(AdminUnassignRequest(adminEmail))
-                val index = schoolAdmins.indexOfFirst { it.email == adminEmail }
-                if (index != -1) {
-                    schoolAdmins[index] = schoolAdmins[index].copy(schoolName = null)
+                val response = repository.unassignAdmin(admin.id.toLong())
+                if (response.isSuccessful && response.body()?.statusCode == 200) {
+                    val index = schoolAdmins.indexOfFirst { it.email == adminEmail }
+                    if (index != -1) {
+                        schoolAdmins[index] = schoolAdmins[index].copy(schoolName = null)
+                    }
+                } else {
+                    snackbarMessage.value = "Failed to unassign admin"
                 }
             } catch (e: Exception) {
                 snackbarMessage.value = "Error unassigning admin: ${e.localizedMessage}"
@@ -286,7 +303,6 @@ class SchoolManagementViewModel(
             }
         }
     }
-
 
     fun getUnassignedAdmins(): List<String> {
         return schoolAdmins.filter { it.schoolName == null }.map { it.email }
