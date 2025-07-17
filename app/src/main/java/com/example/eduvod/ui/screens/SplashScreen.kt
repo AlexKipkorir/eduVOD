@@ -81,7 +81,7 @@ fun SplashScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1565C0)),
+            .background(Color.White),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -94,7 +94,7 @@ fun SplashScreen(
             Text(
                 text = "eduVOD",
                 style = MaterialTheme.typography.headlineLarge.copy(
-                    color = Color.White,
+                    color = Color(0xFF1565C0),
                     fontWeight = FontWeight.Bold
                 )
             )
@@ -105,7 +105,7 @@ fun SplashScreen(
                 text = "Equal Education for All",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.Medium,
-                    color = Color.White
+                    color = Color(0xFF1565C0)
                 ),
                 modifier = Modifier.alpha(alpha)
             )

@@ -1,5 +1,7 @@
 package com.example.eduvod.retrofit.response
 
+import com.example.eduvod.model.School
+
 data class SchoolResponse(
     val id: Int,
     val name: String,
@@ -20,3 +22,25 @@ data class SchoolResponse(
     val website: String,
     val hasAdmin: Boolean
 )
+fun SchoolResponse.toSchool(): School {
+    return School(
+        id = this.id,
+        name = this.name ?: "",
+        moeRegNo = this.moeRegNo ?: "",
+        kpsaRegNo = this.kpsaRegNo,
+        curriculum = this.curriculum,
+        category = this.category ?: "",
+        type = this.type ?: "",
+        composition = this.composition ?: "",
+        mobile = this.mobile,
+        email = this.email ?: "",
+        region = this.region ?: "",
+        diocese = this.diocese,
+        county = this.county ?: "",
+        subCounty = this.subCounty ?: "",
+        location = this.location,
+        address = this.address,
+        website = this.website,
+        hasAdmin = false
+    )
+}

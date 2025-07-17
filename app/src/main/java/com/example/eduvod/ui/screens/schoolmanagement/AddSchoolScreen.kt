@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -44,8 +46,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -84,6 +89,8 @@ fun AddSchoolScreen(
     var selectedCounty by remember { mutableStateOf("") }
     var selectedSubCounty by remember { mutableStateOf("") }
     var selectedAdmin by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+
 
     LaunchedEffect(Unit) {
         configViewModel.initialize()
@@ -179,12 +186,20 @@ fun AddSchoolScreen(
             Button(
                 onClick = {
                     when {
-                        schoolName.isBlank() -> scope.launch { snackbarHostState.showSnackbar("School Name is required.") }
-                        moeRegNo.isBlank() -> scope.launch { snackbarHostState.showSnackbar("MoE Reg No is required.") }
-                        email.isBlank() -> scope.launch { snackbarHostState.showSnackbar("Email is required.") }
+                        schoolName.isBlank() -> scope.launch {
+                            snackbarHostState.showSnackbar("School Name is required.")
+                        }
+                        moeRegNo.isBlank() -> scope.launch {
+                            snackbarHostState.showSnackbar("MoE Reg No is required.")
+                        }
+                        email.isBlank() -> scope.launch {
+                            snackbarHostState.showSnackbar("Email is required.")
+                        }
                         selectedCurriculum.isBlank() || selectedCategory.isBlank() || selectedType.isBlank() ||
                                 selectedRegion.isBlank() || selectedCounty.isBlank() || selectedSubCounty.isBlank() -> {
-                            scope.launch { snackbarHostState.showSnackbar("Please select all dropdowns.") }
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Please select all dropdowns.")
+                            }
                         }
                         else -> {
                             val curriculumId = configViewModel.curriculums.find { it.name == selectedCurriculum }?.id ?: return@Button
@@ -213,9 +228,9 @@ fun AddSchoolScreen(
                             )
 
                             scope.launch {
+                                isLoading = true
                                 val success = schoolViewModel.addSchool(newSchool)
-
-                                if (success) {
+                                if (success != null) {
                                     if (selectedAdmin.isNotBlank()) {
                                         schoolViewModel.assignAdminToSchool(
                                             email = selectedAdmin,
@@ -232,13 +247,25 @@ fun AddSchoolScreen(
                                 } else {
                                     snackbarHostState.showSnackbar("Failed to add school.")
                                 }
+                                isLoading = false
                             }
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                enabled = !isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
-                Text("Submit School")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Submit School")
+                }
             }
 
         }
@@ -252,14 +279,21 @@ fun CustomTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     onValueChange: (String) -> Unit
 ) {
-        OutlinedTextField(
+    OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth(),
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color(0xFF0D47A1),
+            unfocusedBorderColor = Color.Gray,
+            focusedLabelColor = Color(0xFF0D47A1),
+            cursorColor = Color(0xFF0D47A1)
+        )
     )
-
 }
 
 @Composable
@@ -270,31 +304,56 @@ fun DropdownField(
     onSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
+    val density = LocalDensity.current
 
-    Column {
-        Text(label, fontSize = 14.sp, color = Color.Gray)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+        )
+
         Box {
-            selectedOption?.let {
-                OutlinedTextField(
-                    value = it,
-                    onValueChange = {},
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = {
-                        IconButton(onClick = { expanded = true}) {
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown" )
-
-                        }
-                    }
+            OutlinedTextField(
+                value = selectedOption ?: "",
+                onValueChange = {},
+                readOnly = true,
+                singleLine = true,
+                trailingIcon = {
+                    Icon(
+                        Icons.Default.ArrowDropDown,
+                        contentDescription = null,
+                        modifier = Modifier.clickable { expanded = !expanded },
+                        tint = Color(0xFF0D47A1)
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onGloballyPositioned { coordinates ->
+                        textFieldSize = coordinates.size
+                    },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF0D47A1),
+                    unfocusedBorderColor = Color.Gray,
+                    focusedLabelColor = Color(0xFF0D47A1),
+                    cursorColor = Color(0xFF0D47A1)
                 )
-            }
+            )
 
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                options.forEach {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .width(with(density) { textFieldSize.width.toDp() })
+                    .heightIn(max = 300.dp)
+            ) {
+                options.forEach { item ->
                     DropdownMenuItem(
-                        text = { Text(it) },
+                        text = { Text(item) },
                         onClick = {
-                            onSelected(it)
+                            onSelected(item)
                             expanded = false
                         }
                     )
@@ -303,6 +362,7 @@ fun DropdownField(
         }
     }
 }
+
 
 @Composable
 fun AdminDropdown(
@@ -313,44 +373,58 @@ fun AdminDropdown(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    ) {
-        OutlinedTextField(
-            value = selectedOption,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            trailingIcon = {
-                Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown", Modifier.clickable { expanded = true })
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF0D47A1),
-                unfocusedBorderColor = Color.LightGray
-            )
-        )
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            options.forEach { adminEmail ->
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF1565C0), modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(adminEmail)
-                        }
-                    },
-                    onClick = {
-                        onSelected(adminEmail)
-                        expanded = false
-                    }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(text = label, fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
+        Box {
+            OutlinedTextField(
+                value = selectedOption,
+                onValueChange = {},
+                readOnly = true,
+                singleLine = true,
+                trailingIcon = {
+                    Icon(
+                        Icons.Default.ArrowDropDown,
+                        contentDescription = null,
+                        modifier = Modifier.clickable { expanded = true },
+                        tint = Color(0xFF0D47A1)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF0D47A1),
+                    unfocusedBorderColor = Color.Gray,
+                    focusedLabelColor = Color(0xFF0D47A1),
+                    cursorColor = Color(0xFF0D47A1)
                 )
+            )
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 300.dp)
+            ) {
+                options.forEach { adminEmail ->
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color(0xFF0D47A1),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(adminEmail)
+                            }
+                        },
+                        onClick = {
+                            onSelected(adminEmail)
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     }

@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.eduvod.model.School
 import com.example.eduvod.repositories.SchoolRepository
+import com.example.eduvod.retrofit.response.toSchool
 import com.example.eduvod.ui.screens.schoolmanagement.AdminAccount
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -136,9 +137,10 @@ class SchoolManagementViewModel(
         return try {
             val response = repository.addSchool(request)
             if (response.isSuccessful) {
-                val added = response.body()?.data
+                val addedResponse = response.body()?.data
+                val addedSchool = addedResponse?.toSchool()
                 fetchSchools()
-                added
+                addedSchool
             } else {
                 snackbarMessage.value = "Failed to add school."
                 null
@@ -146,9 +148,8 @@ class SchoolManagementViewModel(
         } catch (e: Exception) {
             snackbarMessage.value = "Error adding school: ${e.localizedMessage}"
             null
-        } as School?
+        }
     }
-
 
     fun updateSchool(id: Int, request: School) {
         viewModelScope.launch {

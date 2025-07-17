@@ -22,3 +22,4 @@ data class School(
     val hasAdmin: Boolean = false
 )
 
+
