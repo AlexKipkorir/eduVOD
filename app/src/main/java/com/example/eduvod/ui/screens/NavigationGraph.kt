@@ -52,9 +52,11 @@ fun AppNavHost(navController: NavHostController) {
                 schoolViewModel = viewModel()
             )
         }
-        composable("edit_school/{schoolName}") {
-            val schoolName = it.arguments?.getString("schoolName") ?: ""
-            EditSchoolScreen(navController, schoolName)
+        composable("edit_school/{schoolId}") { backStackEntry ->
+            val schoolId = backStackEntry.arguments?.getString("schoolId")?.toIntOrNull()
+            if (schoolId != null) {
+                EditSchoolScreen(schoolId = schoolId, navController = navController)
+            }
         }
         composable("school_details/{schoolName}") {
             val schoolName = it.arguments?.getString("schoolName") ?: ""
@@ -64,9 +66,9 @@ fun AppNavHost(navController: NavHostController) {
             val schoolName = it.arguments?.getString("schoolName") ?: ""
             ManageSchoolAdminsScreen(navController, schoolName)
         }
-        composable("edit_school/{schoolName}") { backStackEntry ->
-            val schoolName = backStackEntry.arguments?.getString("schoolName") ?: ""
-            EditSchoolScreen(navController, schoolName)
+        composable("edit_school/{schoolId}") { backStackEntry ->
+            val schoolId = backStackEntry.arguments?.getString("schoolId")?.toIntOrNull() ?: return@composable
+            EditSchoolScreen(navController, schoolId)
         }
     }
 }

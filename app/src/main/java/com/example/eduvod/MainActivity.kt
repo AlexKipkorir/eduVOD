@@ -147,9 +147,9 @@ fun EduVODNavHost(
             val schoolName = backStackEntry.arguments?.getString("schoolName")
             ManageSchoolAdminsScreen(navController, schoolName)
         }
-        composable("edit_school/{schoolName}") { backStackEntry ->
-            val schoolName = backStackEntry.arguments?.getString("schoolName") ?: return@composable
-            EditSchoolScreen(navController, schoolName)
+        composable("edit_school/{schoolId}") { backStackEntry ->
+            val schoolId = backStackEntry.arguments?.getString("schoolId")?.toIntOrNull() ?: return@composable
+            EditSchoolScreen(navController, schoolId)
         }
         composable("users") {
             UserManagementScreen(navController)
@@ -164,9 +164,9 @@ fun EduVODNavHost(
         composable("school_admins") {
             SchoolAdminsScreen(navController = navController, viewModel = viewModel())
         }
-        composable("edit_school/{schoolName}") { backStackEntry ->
-            val schoolName = backStackEntry.arguments?.getString("schoolName") ?: ""
-            EditSchoolScreen(navController, schoolName)
+        composable("edit_school/{schoolId}") { backStackEntry ->
+            val schoolId = backStackEntry.arguments?.getString("schoolId")?.toIntOrNull() ?: return@composable
+            EditSchoolScreen(navController, schoolId)
         }
     }
 }

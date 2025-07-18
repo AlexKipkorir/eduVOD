@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.Response
+import androidx.compose.runtime.State
 
 data class SchoolRequest(
     val moeRegNo: String,
@@ -78,6 +79,8 @@ class SchoolManagementViewModel(
 
     val schools = mutableStateListOf<School>()
     val schoolAdmins = mutableStateListOf<SchoolAdmin>()
+    private val _selectedSchool = mutableStateOf<School?>(null)
+    val selectedSchool: State<School?> = _selectedSchool
 
     fun setLoading(value: Boolean) {
         isLoading.value = value
@@ -114,7 +117,6 @@ class SchoolManagementViewModel(
                     val schoolList = schoolsResponse.body()?.data ?: emptyList()
                     val adminList = adminsResponse.body()?.data ?: emptyList()
 
-                    // Build a set of school names that have an assigned admin
                     val schoolsWithAdmins = adminList.mapNotNull { it.schoolName }.toSet()
 
                     val updatedSchools = schoolList.map { school ->
@@ -169,12 +171,18 @@ class SchoolManagementViewModel(
             }
         }
     }
-    suspend fun fetchSchoolById(id: Int): School? {
-        return try {
-            val response = repository.getSchoolById(id)
-            if (response.isSuccessful) response.body()?.data else null
-        } catch (e: Exception) {
-            null
+    fun fetchSchoolById(id: Int) {
+        viewModelScope.launch {
+            try {
+                val response = repository.getSchoolById(id)
+                if (response.isSuccessful) {
+                    _selectedSchool.value = response.body()?.data
+                } else {
+                    _selectedSchool.value = null
+                }
+            } catch (e: Exception) {
+                _selectedSchool.value = null
+            }
         }
     }
 
