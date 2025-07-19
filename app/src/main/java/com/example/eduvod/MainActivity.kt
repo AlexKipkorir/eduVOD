@@ -1,6 +1,7 @@
 package com.example.eduvod
 
 import android.os.Bundle
+import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -9,50 +10,46 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
-import com.example.eduvod.ui.screens.schoolmanagement.AddSchoolScreen
-import com.example.eduvod.ui.screens.DashboardScreen
-import com.example.eduvod.ui.screens.schoolmanagement.EditSchoolScreen
-import com.example.eduvod.ui.screens.gradesmanagement.GradesManagementScreen
-import com.example.eduvod.ui.screens.LoginScreen
-import com.example.eduvod.ui.screens.schoolmanagement.ManageSchoolAdminsScreen
-import com.example.eduvod.ui.screens.schoolmanagement.SchoolDetailsScreen
-import com.example.eduvod.ui.screens.schoolmanagement.SchoolManagementScreen
-import com.example.eduvod.ui.screens.SplashScreen
-//import com.example.eduvod.ui.screens.gradesmanagement.StreamViewScreen
-import com.example.eduvod.ui.screens.systemconfiguration.SystemConfigScreen
-import com.example.eduvod.ui.screens.usermanagement.UserManagementScreen
-import com.example.eduvod.ui.theme.EduVODTheme
-import com.google.accompanist.navigation.animation.AnimatedNavHost
-import com.google.accompanist.navigation.animation.composable
-import com.example.eduvod.ui.screens.schoolmanagement.SchoolAdminsScreen
-import com.example.eduvod.viewmodel.AuthViewModel
-import android.content.Context
-import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.example.eduvod.datastore.UserPreferences
 import com.example.eduvod.retrofit.ApiClient
+import com.example.eduvod.ui.screens.*
+import com.example.eduvod.ui.screens.gradesmanagement.GradesManagementScreen
+import com.example.eduvod.ui.screens.schoolmanagement.*
+import com.example.eduvod.ui.screens.systemconfiguration.CurriculumScreen
+import com.example.eduvod.ui.screens.systemconfiguration.RegionScreen
+import com.example.eduvod.ui.screens.systemconfiguration.SchoolCategoryScreen
+import com.example.eduvod.ui.screens.systemconfiguration.SystemConfigScreen
+import com.example.eduvod.ui.screens.usermanagement.UserManagementScreen
+import com.example.eduvod.ui.theme.EduVODTheme
+import com.example.eduvod.viewmodel.AuthViewModel
 import com.example.eduvod.viewmodel.DashboardViewModel
-import kotlinx.coroutines.cancel
+import com.example.yourapp.ui.systemconfig.SchoolTypeScreen
+import com.google.accompanist.navigation.animation.AnimatedNavHost
+import com.google.accompanist.navigation.animation.composable
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
 
         val userPreferences = UserPreferences(applicationContext)
         lifecycleScope.launch {
@@ -84,12 +81,57 @@ fun EduVODApp() {
     val navController = rememberNavController()
     val context = LocalContext.current
     val authViewModel = remember { AuthViewModel(context) }
+    val currentBackStack by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStack?.destination?.route
+
+    val showBottomBar = currentRoute in listOf("dashboard", "schools", "grades", "users", "config")
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            if (showBottomBar) {
+                BottomNavigation(
+                    backgroundColor = MaterialTheme.colorScheme.background,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ) {
+                    val items = listOf(
+                        Triple("dashboard", Icons.Default.Home, "Dashboard"),
+                        Triple("schools", Icons.Default.Business, "Schools"),
+                        Triple("grades", Icons.Default.Grade, "Grades"),
+                        Triple("users", Icons.Default.Person, "Users"),
+                        Triple("config", Icons.Default.Settings, "Config")
+                    )
+
+                    items.forEach { (route, icon, label) ->
+                        BottomNavigationItem(
+                            icon = { Icon(icon, contentDescription = label) },
+                            label = { Text(label) },
+                            selected = currentRoute == route,
+                            onClick = {
+                                if (currentRoute != route) {
+                                    navController.navigate(route) {
+                                        popUpTo(navController.graph.startDestinationId) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            selectedContentColor = MaterialTheme.colorScheme.primary,
+                            unselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+            }
+        }
     ) { padding ->
-        EduVODNavHost(navController = navController, contentPadding = padding, authViewModel = authViewModel)
+        EduVODNavHost(
+            navController = navController,
+            contentPadding = padding,
+            authViewModel = authViewModel
+        )
     }
 }
 
@@ -100,8 +142,6 @@ fun EduVODNavHost(
     contentPadding: PaddingValues,
     authViewModel: AuthViewModel
 ) {
-//    val context = LocalContext.current
-//    val authViewModel = remember { AuthViewModel(context) }
     val dashboardViewModel: DashboardViewModel = viewModel()
 
     AnimatedNavHost(
@@ -168,6 +208,17 @@ fun EduVODNavHost(
             val schoolId = backStackEntry.arguments?.getString("schoolId")?.toIntOrNull() ?: return@composable
             EditSchoolScreen(navController, schoolId)
         }
+        composable("schoolType") {
+            SchoolTypeScreen(viewModel = viewModel(), navController = navController)
+        }
+        composable("schoolCategory") {
+            SchoolCategoryScreen(viewModel = viewModel(), navController = navController)
+        }
+        composable("schoolCurriculum") {
+            CurriculumScreen(viewModel = viewModel(), navController = navController)
+        }
+        composable("regionConfig") {
+            RegionScreen(viewModel = viewModel(), navController = navController)
+        }
     }
 }
-

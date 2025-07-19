@@ -1,5 +1,7 @@
 package com.example.eduvod.ui.screens.schoolmanagement
 
+import android.util.Patterns
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,11 +9,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
@@ -21,12 +24,15 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -36,24 +42,24 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.eduvod.ui.theme.responsiveFontSize
 import com.example.eduvod.viewmodel.SchoolAdmin
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
-import android.util.Patterns
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.launch
 
 
@@ -92,6 +98,9 @@ fun SchoolAdminsScreen(
         }
     }.filter { it.email.contains(searchQuery, ignoreCase = true) }
 
+    var isAddingAdmin by remember { mutableStateOf(false) }
+    var isAssigning by remember { mutableStateOf(false) }
+
     LaunchedEffect(viewModel.snackbarMessage.collectAsState().value) {
         viewModel.snackbarMessage.value?.let {
             scope.launch { snackbarHostState.showSnackbar(it) }
@@ -102,13 +111,23 @@ fun SchoolAdminsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("School Administrators", color = Color.White) },
+                title = {
+                    Text(
+                        "School Administrators",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = responsiveFontSize(20f)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0D47A1))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                modifier = Modifier.background(
+                    Brush.verticalGradient(listOf(Color(0xFF1565C0), Color(0xFF0D47A1)))
+                )
             )
         },
         floatingActionButton = {
@@ -123,11 +142,8 @@ fun SchoolAdminsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color(0xFFF4F9FC)
     ) { padding ->
-        Column(modifier = Modifier
-            .padding(padding)
-            .padding(16.dp)) {
-
-            Text("View and assign admins here", fontSize = 16.sp, color = Color.Black, fontWeight = FontWeight.SemiBold)
+        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+            Text("View and assign admins here", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
@@ -154,30 +170,30 @@ fun SchoolAdminsScreen(
             )
 
             Spacer(modifier = Modifier.height(12.dp))
-            Text("Registered Admins", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Registered Admins", style = MaterialTheme.typography.titleMedium)
 
             Spacer(modifier = Modifier.height(8.dp))
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(filteredAdmins) { admin ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                Text(admin.email, fontWeight = FontWeight.Bold)
+                                Text(admin.email, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
                                 Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF1565C0))
                             }
 
                             Text(
                                 text = admin.schoolName?.let { "Assigned to: $it" } ?: "Unassigned",
                                 color = if (admin.schoolName != null) Color(0xFF2E7D32) else Color.Gray,
-                                fontSize = 14.sp
+                                style = MaterialTheme.typography.bodySmall
                             )
+
+                            Spacer(modifier = Modifier.height(8.dp))
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 if (admin.schoolName != null) {
-                                    Button(onClick = {
-                                        viewModel.unassignAdmin(admin.email)
-                                    }) {
+                                    Button(onClick = { viewModel.unassignAdmin(admin.email) }) {
                                         Icon(Icons.Default.Clear, contentDescription = null)
                                         Text("Unassign")
                                     }
@@ -246,8 +262,9 @@ fun SchoolAdminsScreen(
                     )
                 }
             },
-            confirmButton = {
-                TextButton(onClick = {
+        confirmButton = {
+            TextButton(
+                onClick = {
                     when {
                         usernameInput.isBlank() ||
                                 emailInput.isBlank() ||
@@ -277,35 +294,53 @@ fun SchoolAdminsScreen(
                         }
 
                         else -> {
-                            val added = viewModel.addAdmin(
-                                username = usernameInput.trim(),
-                                email = emailInput.trim(),
-                                password = passwordInput,
-                                schoolId = "" // Update if assigning directly
-                            )
+                            isAddingAdmin = true
                             scope.launch {
+                                val added = viewModel.addAdmin(
+                                    username = usernameInput.trim(),
+                                    email = emailInput.trim(),
+                                    password = passwordInput,
+                                    schoolId = ""
+                                )
                                 snackbarHostState.showSnackbar(
                                     if (added) "Admin added successfully." else "Admin already exists or failed."
                                 )
+                                if (added) {
+                                    usernameInput = ""
+                                    emailInput = ""
+                                    passwordInput = ""
+                                    confirmPasswordInput = ""
+                                    showAddDialog = false
+                                }
+                                isAddingAdmin = false
                             }
-                            if (added) {
-                                usernameInput = ""
-                                emailInput = ""
-                                passwordInput = ""
-                                confirmPasswordInput = ""
-                            }
-                            showAddDialog = false
                         }
                     }
-                }) {
+                },
+                enabled = !isAddingAdmin
+            ) {
+                if (isAddingAdmin) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .padding(end = 8.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Text("Adding...")
+                } else {
                     Text("Add")
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddDialog = false }) {
-                    Text("Cancel")
-                }
             }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = { showAddDialog = false },
+                enabled = !isAddingAdmin
+            ) {
+                Text("Cancel")
+            }
+        }
         )
     }
 
@@ -337,24 +372,44 @@ fun SchoolAdminsScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        selectedAdmin?.let {
-                            viewModel.assignAdminToSchool(it.email, selectedSchool)
+                        if (selectedSchool.isNotBlank() && selectedAdmin != null) {
+                            isAssigning = true
+                            scope.launch {
+                                viewModel.assignAdminToSchool(selectedAdmin!!.email, selectedSchool)
+
+                                selectedSchool = ""
+                                selectedAdmin = null
+                                showReassignDialog = false
+                                isAssigning = false
+                            }
                         }
+                    },
+                    enabled = selectedSchool.isNotBlank() && !isAssigning
+                ) {
+                    if (isAssigning) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .padding(end = 8.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text("Assigning...")
+                    } else {
+                        Text("Assign")
+                    }
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
                         selectedSchool = ""
                         selectedAdmin = null
                         showReassignDialog = false
                     },
-                    enabled = selectedSchool.isNotBlank()
+                    enabled = !isAssigning
                 ) {
-                    Text("Assign")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    selectedSchool = ""
-                    selectedAdmin = null
-                    showReassignDialog = false
-                }) {
                     Text("Cancel")
                 }
             }

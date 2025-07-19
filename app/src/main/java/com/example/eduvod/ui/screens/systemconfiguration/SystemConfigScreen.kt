@@ -70,46 +70,16 @@ import androidx.compose.ui.graphics.Brush
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SystemConfigScreen(
-    navController: NavHostController,
-    viewModel: SystemConfigViewModel = viewModel()
+    navController: NavHostController
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-
-    var showDialog by remember { mutableStateOf(false) }
-    var isEditDialog by remember { mutableStateOf(false) }
-    var dialogSection by remember { mutableStateOf("") }
-    var oldValue by remember { mutableStateOf("") }
-    var inputValue by remember { mutableStateOf("") }
-    var searchQuery by remember { mutableStateOf("") }
-    val expandedSections = remember { mutableStateMapOf<String, Boolean>() }
-
-    val isLoading by viewModel.isLoading.collectAsState()
 
     val configSections = listOf(
-        "School Type" to viewModel.types.map { it.name },
-        "School Category" to viewModel.categories.map { it.name },
-        "Curriculum" to viewModel.curriculums.map { it.name },
-        "Region" to viewModel.regions.map { it.name }
+        "School Type" to Pair(Icons.Default.School, "schoolType"),
+        "School Category" to Pair(Icons.Default.AccountBalance, "schoolCategory"),
+        "Curriculum" to Pair(Icons.Default.MenuBook, "schoolCurriculum"),
+        "Region" to Pair(Icons.Default.Place, "regionConfig")
     )
-
-    val sectionIcons = mapOf(
-        "School Type" to Icons.Default.School,
-        "School Category" to Icons.Default.AccountBalance,
-        "Curriculum" to Icons.Default.MenuBook,
-        "Region" to Icons.Default.Place
-    )
-
-    LaunchedEffect(Unit) {
-        viewModel.initialize()
-
-        viewModel.snackbarMessage.collect { message ->
-            message?.let {
-                snackbarHostState.showSnackbar(it)
-                viewModel.clearSnackbar()
-            }
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -136,200 +106,45 @@ fun SystemConfigScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color(0xFFF4F9FC)
     ) { padding ->
-
-        Box(Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .padding(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    label = { Text("Search across all sections") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    configSections.forEach { (title, items) ->
-                        val filtered = items.filter {
-                            it.contains(searchQuery, ignoreCase = true)
-                        }
-                        if (searchQuery.isBlank() || filtered.isNotEmpty()) {
-                            item {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                                    elevation = CardDefaults.cardElevation(2.dp)
-                                ) {
-                                    Column(Modifier.padding(16.dp)) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    expandedSections[title] = !(expandedSections[title] ?: false)
-                                                },
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(
-                                                    sectionIcons[title] ?: Icons.Default.Settings,
-                                                    contentDescription = title,
-                                                    tint = Color(0xFF0D47A1),
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                                Spacer(Modifier.width(8.dp))
-                                                Text(
-                                                    title,
-                                                    fontSize = 20.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF0D47A1)
-                                                )
-                                            }
-                                            IconButton(onClick = {
-                                                inputValue = ""
-                                                oldValue = ""
-                                                dialogSection = title
-                                                isEditDialog = false
-                                                showDialog = true
-                                            }) {
-                                                Icon(Icons.Default.Add, contentDescription = "Add")
-                                            }
-                                        }
-
-                                        AnimatedVisibility(visible = expandedSections[title] == true) {
-                                            Column {
-                                                Spacer(Modifier.height(8.dp))
-                                                if (filtered.isEmpty()) {
-                                                    Text("No entries found.", color = Color.Gray)
-                                                } else {
-                                                    filtered.forEach { item ->
-                                                        Row(
-                                                            modifier = Modifier
-                                                                .fillMaxWidth()
-                                                                .padding(vertical = 6.dp),
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.SpaceBetween
-                                                        ) {
-                                                            Text(
-                                                                text = item,
-                                                                fontSize = 16.sp,
-                                                                fontWeight = FontWeight.SemiBold
-                                                            )
-                                                            Row {
-                                                                IconButton(onClick = {
-                                                                    inputValue = item
-                                                                    oldValue = item
-                                                                    dialogSection = title
-                                                                    isEditDialog = true
-                                                                    showDialog = true
-                                                                }) {
-                                                                    Icon(Icons.Default.Edit, contentDescription = "Edit")
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = isLoading,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            configSections.forEach { (title, iconAndRoute) ->
+                val (icon, route) = iconAndRoute
+                Card(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xAAFFFFFF)),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .clickable { navController.navigate(route) },
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(
-                            color = Color(0xFF1565C0),
-                            strokeWidth = 4.dp,
-                            modifier = Modifier.size(48.dp)
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = title,
+                            tint = Color(0xFF0D47A1),
+                            modifier = Modifier.size(28.dp)
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Loading configuration...", color = Color(0xFF1565C0))
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = title,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF0D47A1)
+                        )
                     }
                 }
             }
         }
     }
-
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = {
-                Text(if (isEditDialog) "Edit $dialogSection" else "Add $dialogSection")
-            },
-            text = {
-                OutlinedTextField(
-                    value = inputValue,
-                    onValueChange = { inputValue = it.trimStart() },
-                    label = { Text(dialogSection) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (inputValue.isBlank()) {
-                        scope.launch { snackbarHostState.showSnackbar("Input cannot be empty.") }
-                        return@TextButton
-                    }
-
-                    // Defensive casting to handle different list types safely
-                    val exists = viewModel.sectionList<Any>(dialogSection)
-                        .mapNotNull {
-                            when (it) {
-                                is com.example.eduvod.model.SimpleItem -> it.name
-                                is com.example.eduvod.model.RegionResponse -> it.name
-                                is String -> it
-                                else -> null
-                            }
-                        }
-                        .any { it.equals(inputValue.trim(), ignoreCase = true) }
-
-                    if (!isEditDialog && exists) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("This value already exists in $dialogSection.")
-                        }
-                        return@TextButton
-                    }
-
-                    if (isEditDialog) {
-                        viewModel.updateItem(dialogSection, oldValue, inputValue.trim())
-                        scope.launch { snackbarHostState.showSnackbar("Updated $dialogSection.") }
-                    } else {
-                        viewModel.addItem(dialogSection, inputValue.trim())
-                        scope.launch { snackbarHostState.showSnackbar("Added to $dialogSection.") }
-                    }
-
-                    showDialog = false
-                }) {
-                    Text(if (isEditDialog) "Save" else "Add")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
 }
+
 
 

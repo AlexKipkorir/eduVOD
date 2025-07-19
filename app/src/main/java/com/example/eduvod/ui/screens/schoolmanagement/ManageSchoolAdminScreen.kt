@@ -1,6 +1,8 @@
 package com.example.eduvod.ui.screens.schoolmanagement
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Block
@@ -19,6 +22,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -29,6 +33,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -47,12 +52,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.eduvod.ui.theme.responsiveFontSize
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import kotlinx.coroutines.launch
 
@@ -60,7 +67,6 @@ data class AdminAccount(
     val  email: String,
     var isBlocked: Boolean = false
 )
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageSchoolAdminsScreen(
@@ -75,6 +81,7 @@ fun ManageSchoolAdminsScreen(
     var showConfirmUnassign by remember { mutableStateOf(false) }
     var selectedAdminEmail by remember { mutableStateOf("") }
     var searchQuery by remember { mutableStateOf("") }
+    var isAssigning by remember { mutableStateOf(false) }
 
     val isLoading by viewModel.isLoading
     val currentSchool = viewModel.getSchoolByName(schoolName ?: "")
@@ -87,20 +94,38 @@ fun ManageSchoolAdminsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Admins - ${schoolName ?: "Unknown"}", color = Color.White) },
+                title = {
+                    Text(
+                        "Admins - ${schoolName ?: "Unknown"}",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = responsiveFontSize(20f)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xff0D47A1))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                modifier = Modifier.background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xFF1565C0), Color(0xFF0D47A1))
+                    )
+                )
             )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
+                icon = { Icon(Icons.Default.PersonAdd, contentDescription = "Add Admin") },
                 text = { Text("Add Admin") },
-                onClick = { showAddDialog = true }
+                onClick = { showAddDialog = true },
+                containerColor = Color(0xFF1565C0),
+                contentColor = Color.White
             )
         }
     ) { padding ->
@@ -112,7 +137,7 @@ fun ManageSchoolAdminsScreen(
         ) {
             Text(
                 text = "Managing admins for ${schoolName ?: "school"}",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -121,20 +146,23 @@ fun ManageSchoolAdminsScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 label = { Text("Search Admins") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = null)
+                            Icon(Icons.Default.Close, contentDescription = "Clear search")
                         }
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(allAdmins) { admin ->
@@ -159,6 +187,7 @@ fun ManageSchoolAdminsScreen(
             }
         }
     }
+
     // Assign Admin Dialog
     if (showAddDialog) {
         AlertDialog(
@@ -166,14 +195,14 @@ fun ManageSchoolAdminsScreen(
                 showAddDialog = false
                 selectedAdminEmail = ""
             },
-            title = { Text("Assign Admin") },
+            title = { Text("Assign Admin", fontWeight = FontWeight.SemiBold) },
             text = {
                 if (unassignedAdmins.isEmpty()) {
                     Text("No unassigned admins available.")
                 } else {
                     var expanded by remember { mutableStateOf(false) }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         OutlinedTextField(
                             value = selectedAdminEmail,
                             onValueChange = {},
@@ -201,6 +230,10 @@ fun ManageSchoolAdminsScreen(
                                 )
                             }
                         }
+
+                        if (isAssigning) {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        }
                     }
                 }
             },
@@ -209,17 +242,17 @@ fun ManageSchoolAdminsScreen(
                     onClick = {
                         if (selectedAdminEmail.isNotBlank()) {
                             scope.launch {
-                                viewModel.setLoading(true)
+                                isAssigning = true
                                 viewModel.assignAdminToSchool(selectedAdminEmail, schoolName ?: "")
-                                viewModel.fetchAdmins() // Auto-refresh
-                                viewModel.setLoading(false)
+                                viewModel.fetchAdmins()
                                 snackbarHostState.showSnackbar("Admin assigned successfully.")
+                                isAssigning = false
+                                showAddDialog = false
+                                selectedAdminEmail = ""
                             }
-                            showAddDialog = false
-                            selectedAdminEmail = ""
                         }
                     },
-                    enabled = selectedAdminEmail.isNotBlank()
+                    enabled = selectedAdminEmail.isNotBlank() && !isAssigning
                 ) {
                     Text("Assign")
                 }
@@ -242,21 +275,21 @@ fun ManageSchoolAdminsScreen(
                 showConfirmUnassign = false
                 selectedAdminEmail = ""
             },
-            title = { Text("Confirm Unassign") },
+            title = { Text("Confirm Unassign", fontWeight = FontWeight.SemiBold) },
             text = { Text("Are you sure you want to unassign this admin from $schoolName?") },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
                         viewModel.setLoading(true)
                         viewModel.unassignAdmin(selectedAdminEmail)
-                        viewModel.fetchAdmins() // Auto-refresh
+                        viewModel.fetchAdmins()
                         viewModel.setLoading(false)
                         snackbarHostState.showSnackbar("Admin unassigned")
+                        showConfirmUnassign = false
+                        selectedAdminEmail = ""
                     }
-                    showConfirmUnassign = false
-                    selectedAdminEmail = ""
                 }) {
-                    Text("Yes")
+                    Text("Yes", color = Color.Red)
                 }
             },
             dismissButton = {
@@ -270,6 +303,7 @@ fun ManageSchoolAdminsScreen(
         )
     }
 }
+
 @Composable
 fun AdminCard(
     admin: AdminAccount,
