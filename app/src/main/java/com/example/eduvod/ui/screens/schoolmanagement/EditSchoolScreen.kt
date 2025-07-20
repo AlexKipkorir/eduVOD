@@ -1,6 +1,5 @@
 package com.example.eduvod.ui.screens.schoolmanagement
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,8 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -26,14 +23,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,8 +35,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -52,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.eduvod.ui.theme.responsiveFontSize
+import com.example.eduvod.ui.screens.AppScaffold
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
@@ -81,7 +71,7 @@ fun EditSchoolScreen(
         return
     }
 
-    // Prefill form fields once school is available
+    // Prefilled state fields
     var moeRegNo by remember { mutableStateOf(selectedSchool!!.moeRegNo) }
     var kpsaRegNo by remember { mutableStateOf(selectedSchool!!.kpsaRegNo) }
     var schoolCurriculum by remember { mutableStateOf(selectedSchool!!.curriculum) }
@@ -109,50 +99,15 @@ fun EditSchoolScreen(
     val countyOptions = configViewModel.counties.map { it.name }
     val subCountyOptions = configViewModel.subcounties.map { it.name }
 
-
     LaunchedEffect(Unit) {
         configViewModel.loadCounties(region)
         configViewModel.loadSubcounties(county)
     }
 
-    if (selectedSchool == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Edit School",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = responsiveFontSize(20f)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                ),
-                modifier = Modifier.background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF1565C0), Color(0xFF0D47A1))
-                    )
-                )
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+    AppScaffold(
+        title = "Edit School",
+        snackbarHostState = snackbarHostState,
+        showTopBar = true
     ) { padding ->
         Column(
             modifier = Modifier
@@ -161,7 +116,12 @@ fun EditSchoolScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Update School Details", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFF0D47A1))
+            Text(
+                "Update School Details",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                color = Color(0xFF0D47A1)
+            )
 
             SectionInputField("MoE REG NO", moeRegNo) { moeRegNo = it }
             SectionInputField("KPSA REG NO", kpsaRegNo) { kpsaRegNo = it }
@@ -179,17 +139,20 @@ fun EditSchoolScreen(
 
             Divider()
             Text("Location Info", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0D47A1))
+
             DropdownField("Region", regionOptions, region) {
                 region = it
                 configViewModel.loadCounties(it)
                 county = ""
                 subCounty = ""
             }
+
             DropdownField("County", countyOptions, county) {
                 county = it
                 configViewModel.loadSubcounties(it)
                 subCounty = ""
             }
+
             DropdownField("Sub-County", subCountyOptions, subCounty) { subCounty = it }
 
             SectionInputField("Diocese", diocese) { diocese = it }
@@ -218,9 +181,7 @@ fun EditSchoolScreen(
                 DropdownMenu(
                     expanded = isAdminDropdownExpanded,
                     onDismissRequest = { isAdminDropdownExpanded = false },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     adminOptions.forEach { adminEmail ->
                         DropdownMenuItem(
@@ -275,8 +236,6 @@ fun EditSchoolScreen(
         }
     }
 }
-
-
 
 @Composable
 fun SectionInputField(

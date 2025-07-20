@@ -1,11 +1,12 @@
 package com.example.eduvod.ui.screens.schoolmanagement
 
 import android.util.Patterns
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -14,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
@@ -34,13 +34,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,19 +44,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.eduvod.ui.theme.responsiveFontSize
+import com.example.eduvod.ui.screens.AppScaffold
 import com.example.eduvod.viewmodel.SchoolAdmin
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import kotlinx.coroutines.launch
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,7 +63,7 @@ fun SchoolAdminsScreen(
     navController: NavHostController,
     viewModel: SchoolManagementViewModel
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     var showAddDialog by remember { mutableStateOf(false) }
@@ -108,111 +102,83 @@ fun SchoolAdminsScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "School Administrators",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = responsiveFontSize(20f)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                modifier = Modifier.background(
-                    Brush.verticalGradient(listOf(Color(0xFF1565C0), Color(0xFF0D47A1)))
-                )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddDialog = true },
-                containerColor = Color(0xFF1565C0),
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.PersonAdd, contentDescription = null)
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color(0xFFF4F9FC)
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-            Text("View and assign admins here", style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(8.dp))
+    AppScaffold(
+        title = "School Administrators",
+        snackbarHostState = snackbarHostState,
+        showTopBar = true,
+        showLogout = false,
+        content = { padding ->
+            Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+                Text("View and assign admins here", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                label = { Text("Search Admins") },
-                trailingIcon = {
-                    if (searchQuery.isNotBlank()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = null)
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            FilterDropdown(
-                label = "Filter",
-                options = filterOptions,
-                selectedOption = filter,
-                onSelected = { filter = it }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-            Text("Registered Admins", style = MaterialTheme.typography.titleMedium)
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(filteredAdmins) { admin ->
-                    Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                Text(admin.email, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
-                                Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF1565C0))
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search Admins") },
+                    trailingIcon = {
+                        if (searchQuery.isNotBlank()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = null)
                             }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                            Text(
-                                text = admin.schoolName?.let { "Assigned to: $it" } ?: "Unassigned",
-                                color = if (admin.schoolName != null) Color(0xFF2E7D32) else Color.Gray,
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                Spacer(modifier = Modifier.height(8.dp))
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                FilterDropdown(
+                    label = "Filter",
+                    options = filterOptions,
+                    selectedOption = filter,
+                    onSelected = { filter = it }
+                )
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                if (admin.schoolName != null) {
-                                    Button(onClick = { viewModel.unassignAdmin(admin.email) }) {
-                                        Icon(Icons.Default.Clear, contentDescription = null)
-                                        Text("Unassign")
-                                    }
-                                } else {
-                                    Button(onClick = {
-                                        selectedAdmin = admin
-                                        selectedSchool = ""
-                                        showReassignDialog = true
-                                    }) {
-                                        Icon(Icons.Default.PersonAdd, contentDescription = null)
-                                        Text("Assign")
-                                    }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Registered Admins", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(filteredAdmins) { admin ->
+                        Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                    Text(admin.email, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF1565C0))
                                 }
 
-                                IconButton(onClick = {
-                                    adminToDelete = admin
-                                    showDeleteDialog = true
-                                }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete Admin", tint = Color.Red)
+                                Text(
+                                    text = admin.schoolName?.let { "Assigned to: $it" } ?: "Unassigned",
+                                    color = if (admin.schoolName != null) Color(0xFF2E7D32) else Color.Gray,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    if (admin.schoolName != null) {
+                                        Button(onClick = { viewModel.unassignAdmin(admin.email) }) {
+                                            Icon(Icons.Default.Clear, contentDescription = null)
+                                            Text("Unassign")
+                                        }
+                                    } else {
+                                        Button(onClick = {
+                                            selectedAdmin = admin
+                                            selectedSchool = ""
+                                            showReassignDialog = true
+                                        }) {
+                                            Icon(Icons.Default.PersonAdd, contentDescription = null)
+                                            Text("Assign")
+                                        }
+                                    }
+
+                                    IconButton(onClick = {
+                                        adminToDelete = admin
+                                        showDeleteDialog = true
+                                    }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Delete Admin", tint = Color.Red)
+                                    }
                                 }
                             }
                         }
@@ -220,7 +186,22 @@ fun SchoolAdminsScreen(
                 }
             }
         }
+    )
+
+    // Floating Action Button
+    Box(modifier = Modifier.fillMaxSize()) {
+        FloatingActionButton(
+            onClick = { showAddDialog = true },
+            containerColor = Color(0xFF1565C0),
+            contentColor = Color.White,
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.BottomEnd)
+        ) {
+            Icon(Icons.Default.PersonAdd, contentDescription = null)
+        }
     }
+
     if (showAddDialog) {
         AlertDialog(
             onDismissRequest = { showAddDialog = false },

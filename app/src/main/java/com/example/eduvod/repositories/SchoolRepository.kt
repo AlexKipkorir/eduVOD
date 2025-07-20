@@ -31,7 +31,7 @@ class SchoolRepository {
     suspend fun updateSchool(id: Int, request: School): Response<ApiResponse<School>> {
         return api.updateSchool(id, request)
     }
-    suspend fun getSchoolById(id: Int): Response<ApiResponse<School>> {
+    suspend fun getSchoolById(id: Int): Response<ApiResponse<SchoolResponse>> {
         return api.getSchoolById(id)
     }
 

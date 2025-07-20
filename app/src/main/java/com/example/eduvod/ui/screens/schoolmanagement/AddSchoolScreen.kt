@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.eduvod.ui.screens.AppScaffold
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import com.example.eduvod.viewmodel.SchoolRequest
 import com.example.eduvod.viewmodel.SystemConfigViewModel
@@ -79,7 +80,7 @@ fun AddSchoolScreen(
 ) {
     val configViewModel: SystemConfigViewModel = viewModel()
     val scrollState = rememberScrollState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     var moeRegNo by remember { mutableStateOf("") }
@@ -105,32 +106,11 @@ fun AddSchoolScreen(
         configViewModel.initialize()
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Add New School",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = responsiveFontSize(20f)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                modifier = Modifier.background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF1565C0), Color(0xFF0D47A1))
-                    )
-                )
-            )
-        }
-
+    AppScaffold(
+        title = "Add New School",
+        snackbarHostState = snackbarHostState,
+        showTopBar = true,
+        showLogout = false
     ) { innerPadding ->
 
         Column(
@@ -142,18 +122,14 @@ fun AddSchoolScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
 
+            // === Basic School Info Card ===
             OutlinedCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        "Basic School Information",
-                        fontSize = responsiveFontSize(18f),
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF0D47A1)
-                    )
+                    Text("Basic School Information", fontSize = responsiveFontSize(18f), fontWeight = FontWeight.SemiBold, color = Color(0xFF0D47A1))
 
                     CustomTextField("MoE Reg No", moeRegNo) { moeRegNo = it }
                     CustomTextField("KPSA Reg No", kpsaRegNo) { kpsaRegNo = it }
@@ -162,11 +138,9 @@ fun AddSchoolScreen(
                     DropdownField("Curriculum", configViewModel.curriculums.map { it.name }, selectedCurriculum) {
                         selectedCurriculum = it
                     }
-
                     DropdownField("Category", configViewModel.categories.map { it.name }, selectedCategory) {
                         selectedCategory = it
                     }
-
                     DropdownField("Type", configViewModel.types.map { it.name }, selectedType) {
                         selectedType = it
                     }
@@ -194,35 +168,29 @@ fun AddSchoolScreen(
                 }
             }
 
+            // === Contact Info Card ===
             OutlinedCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        "Contact Information",
-                        fontSize = responsiveFontSize(18f),
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF0D47A1)
-                    )
+                    Text("Contact Information", fontSize = responsiveFontSize(18f), fontWeight = FontWeight.SemiBold, color = Color(0xFF0D47A1))
+
                     CustomTextField("Email", email, keyboardType = KeyboardType.Email) { email = it }
                     CustomTextField("Mobile", mobile, keyboardType = KeyboardType.Phone) { mobile = it }
                 }
             }
 
+            // === Assign Admin Card ===
             OutlinedCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        "Assign Admin (Optional)",
-                        fontSize = responsiveFontSize(18f),
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF0D47A1)
-                    )
+                    Text("Assign Admin (Optional)", fontSize = responsiveFontSize(18f), fontWeight = FontWeight.SemiBold, color = Color(0xFF0D47A1))
+
                     AdminDropdown(
                         label = "Assign Admin",
                         options = schoolViewModel.getUnassignedAdmins(),
@@ -234,6 +202,7 @@ fun AddSchoolScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // === Submit Button ===
             Button(
                 onClick = {
                     scope.launch {

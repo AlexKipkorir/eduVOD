@@ -37,6 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -66,6 +67,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.model.Grade
+import com.example.eduvod.ui.screens.AppScaffold
 import com.example.eduvod.viewmodel.GradesViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -109,51 +111,22 @@ fun GradesManagementScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Grades Management",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                ),
-                modifier = Modifier.background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF1565C0), Color(0xFF0D47A1))
-                    )
-                )
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                icon = { Icon(Icons.Default.Add, contentDescription = "Add Grade") },
-                text = { Text("Add Grade") },
-                onClick = { showDialog = true }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color(0xFFF4F9FC)
-    ) { padding ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)) {
+    AppScaffold(
+        title = "Grades Management",
+        showTopBar = true,
+        snackbarHostState = snackbarHostState
+    ) { innerPadding ->
 
-            // Main UI
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
             Column(modifier = Modifier.padding(16.dp)) {
+
+                // Curriculum Tabs
                 if (curriculumTabs.isNotEmpty()) {
-                    val selectedIndex = curriculumTabs.indexOf(selectedCurriculumTab)
-                        .takeIf { it >= 0 } ?: 0
+                    val selectedIndex = curriculumTabs.indexOf(selectedCurriculumTab).takeIf { it >= 0 } ?: 0
                     selectedCurriculumTab = curriculumTabs[selectedIndex]
 
                     ScrollableTabRow(
@@ -163,9 +136,7 @@ fun GradesManagementScreen(
                         curriculumTabs.forEachIndexed { index, name ->
                             Tab(
                                 selected = selectedIndex == index,
-                                onClick = {
-                                    selectedCurriculumTab = name
-                                },
+                                onClick = { selectedCurriculumTab = name },
                                 text = {
                                     Text("$name (${viewMap.grades.count { it.curriculum == name }})")
                                 }
@@ -187,9 +158,7 @@ fun GradesManagementScreen(
                     onValueChange = {
                         searchQuery.value = it
                         searchJob?.cancel()
-                        searchJob = scope.launch {
-                            delay(300)
-                        }
+                        searchJob = scope.launch { delay(300) }
                     },
                     label = { Text("Search Grade") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
@@ -230,7 +199,6 @@ fun GradesManagementScreen(
                                         Text("Curriculum: ${grade.curriculum}", color = Color.Gray, fontSize = 14.sp)
                                     }
                                     Spacer(modifier = Modifier.height(12.dp))
-
                                     IconButton(onClick = { gradeToDelete = grade }) {
                                         Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Black)
                                     }
@@ -240,6 +208,8 @@ fun GradesManagementScreen(
                     }
                 }
             }
+
+            // Loading indicator
             AnimatedVisibility(
                 visible = isLoading,
                 enter = fadeIn(),
@@ -262,9 +232,20 @@ fun GradesManagementScreen(
                     }
                 }
             }
+
+            // Floating action button (outside Column but within padding)
+            FloatingActionButton(
+                onClick = { showDialog = true },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Grade")
+            }
         }
     }
 
+    // Add Grade Dialog
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
@@ -327,6 +308,7 @@ fun GradesManagementScreen(
         )
     }
 
+    // Delete Dialog
     gradeToDelete?.let { grade ->
         AlertDialog(
             onDismissRequest = { gradeToDelete = null },
@@ -354,3 +336,4 @@ fun GradesManagementScreen(
         )
     }
 }
+

@@ -176,7 +176,8 @@ class SchoolManagementViewModel(
             try {
                 val response = repository.getSchoolById(id)
                 if (response.isSuccessful) {
-                    _selectedSchool.value = response.body()?.data
+                    val schoolResponse = response.body()?.data
+                    _selectedSchool.value = schoolResponse?.toSchool()
                 } else {
                     _selectedSchool.value = null
                 }
