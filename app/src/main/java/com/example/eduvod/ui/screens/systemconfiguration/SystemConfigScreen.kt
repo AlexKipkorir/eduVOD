@@ -45,7 +45,8 @@ fun SystemConfigScreen(
         title = "System Configuration",
         snackbarHostState = snackbarHostState,
         showTopBar = true,
-        showBottomBar = false
+        showBackButton = true,
+        onBack = { navController.popBackStack() },
     ) { padding ->
         Column(
             modifier = Modifier

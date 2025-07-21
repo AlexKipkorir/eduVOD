@@ -114,6 +114,8 @@ fun GradesManagementScreen(
     AppScaffold(
         title = "Grades Management",
         showTopBar = true,
+        showBackButton = true,
+        onBack = { navController.popBackStack() },
         snackbarHostState = snackbarHostState
     ) { innerPadding ->
 
@@ -122,7 +124,11 @@ fun GradesManagementScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
 
                 // Curriculum Tabs
                 if (curriculumTabs.isNotEmpty()) {

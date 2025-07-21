@@ -147,8 +147,11 @@ fun SchoolManagementScreen(
 
     AppScaffold(
         title = "School Management",
-        snackbarHostState = snackbarHostState,
-        showLogout = false,
+        showTopBar = true,
+        showBackButton = true,
+        onBack = { navController.popBackStack() },
+        actionButtonLabel = "View Admins",
+        onActionButtonClick = { navController.navigate("school_admins") },
         content = { innerPadding ->
             Box(
                 modifier = Modifier

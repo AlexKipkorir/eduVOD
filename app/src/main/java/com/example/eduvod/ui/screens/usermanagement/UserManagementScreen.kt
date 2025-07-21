@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Check
@@ -42,6 +43,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -119,7 +121,9 @@ fun UserManagementScreen(
         title = "EduVOD User Management",
         snackbarHostState = snackbarHostState,
         showTopBar = true,
-        showLogout = false
+        showLogout = false,
+        showBackButton = true,
+        onBack = { navController.popBackStack() },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -229,6 +233,17 @@ fun UserManagementScreen(
                         Text("Loading eduVod Admins...", color = Color(0xFF1565C0))
                     }
                 }
+            }
+
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.White
+            ) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Admin")
             }
         }
     }

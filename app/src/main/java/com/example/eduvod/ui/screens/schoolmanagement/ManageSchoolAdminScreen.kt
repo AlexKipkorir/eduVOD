@@ -84,7 +84,10 @@ fun ManageSchoolAdminsScreen(
     AppScaffold(
         title = "Admins - ${schoolName ?: "Unknown"}",
         snackbarHostState = snackbarHostState,
-        showTopBar = true
+        showTopBar = true,
+        showBackButton = true,
+        onBack = { navController.popBackStack() }
+
     ) { padding ->
 
         Column(

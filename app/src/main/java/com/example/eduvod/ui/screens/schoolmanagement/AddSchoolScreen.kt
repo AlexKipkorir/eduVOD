@@ -110,7 +110,9 @@ fun AddSchoolScreen(
         title = "Add New School",
         snackbarHostState = snackbarHostState,
         showTopBar = true,
-        showLogout = false
+        showLogout = false,
+        showBackButton = true,
+        onBack = { navController.popBackStack() }
     ) { innerPadding ->
 
         Column(

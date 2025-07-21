@@ -1,6 +1,10 @@
 package com.example.eduvod.ui.screens.schoolmanagement
 
 import android.util.Patterns
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -63,15 +68,14 @@ fun SchoolAdminsScreen(
     navController: NavHostController,
     viewModel: SchoolManagementViewModel
 ) {
-    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var emailInput by remember { mutableStateOf("") }
-
-    var searchQuery by remember { mutableStateOf("") }
-    var filter by remember { mutableStateOf("ALL") }
-    val filterOptions = listOf("ALL", "Assigned", "Unassigned")
+    var usernameInput by remember { mutableStateOf("") }
+    var passwordInput by remember { mutableStateOf("") }
+    var confirmPasswordInput by remember { mutableStateOf("") }
 
     var showReassignDialog by remember { mutableStateOf(false) }
     var selectedSchool by remember { mutableStateOf("") }
@@ -80,9 +84,13 @@ fun SchoolAdminsScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var adminToDelete by remember { mutableStateOf<SchoolAdmin?>(null) }
 
-    var usernameInput by remember { mutableStateOf("") }
-    var passwordInput by remember { mutableStateOf("") }
-    var confirmPasswordInput by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
+    var filter by remember { mutableStateOf("ALL") }
+    val filterOptions = listOf("ALL", "Assigned", "Unassigned")
+
+    var isAddingAdmin by remember { mutableStateOf(false) }
+    var isAssigning by remember { mutableStateOf(false) }
+    var isLoadingAdmins by remember { mutableStateOf(true) }
 
     val filteredAdmins = viewModel.schoolAdmins.filter {
         when (filter) {
@@ -92,12 +100,14 @@ fun SchoolAdminsScreen(
         }
     }.filter { it.email.contains(searchQuery, ignoreCase = true) }
 
-    var isAddingAdmin by remember { mutableStateOf(false) }
-    var isAssigning by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        viewModel.fetchAdmins()
+        isLoadingAdmins = false
+    }
 
     LaunchedEffect(viewModel.snackbarMessage.collectAsState().value) {
         viewModel.snackbarMessage.value?.let {
-            scope.launch { snackbarHostState.showSnackbar(it) }
+            snackbarHostState.showSnackbar(it)
             viewModel.clearSnackbarMessage()
         }
     }
@@ -107,77 +117,119 @@ fun SchoolAdminsScreen(
         snackbarHostState = snackbarHostState,
         showTopBar = true,
         showLogout = false,
+        showBackButton = true,
+        onBack = { navController.popBackStack() },
         content = { padding ->
-            Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-                Text("View and assign admins here", style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.height(8.dp))
+            Box(modifier = Modifier.padding(padding).fillMaxSize()) {
 
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    label = { Text("Search Admins") },
-                    trailingIcon = {
-                        if (searchQuery.isNotBlank()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = null)
-                            }
+                AnimatedVisibility(
+                    visible = isLoadingAdmins,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xAAFFFFFF)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(
+                                color = Color(0xFF1565C0),
+                                strokeWidth = 4.dp,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Loading admins...", color = Color(0xFF1565C0))
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    }
+                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                if (!isLoadingAdmins) {
+                    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                        Text("View and assign admins here", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                FilterDropdown(
-                    label = "Filter",
-                    options = filterOptions,
-                    selectedOption = filter,
-                    onSelected = { filter = it }
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Registered Admins", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(filteredAdmins) { admin ->
-                        Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                    Text(admin.email, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
-                                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF1565C0))
-                                }
-
-                                Text(
-                                    text = admin.schoolName?.let { "Assigned to: $it" } ?: "Unassigned",
-                                    color = if (admin.schoolName != null) Color(0xFF2E7D32) else Color.Gray,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    if (admin.schoolName != null) {
-                                        Button(onClick = { viewModel.unassignAdmin(admin.email) }) {
-                                            Icon(Icons.Default.Clear, contentDescription = null)
-                                            Text("Unassign")
-                                        }
-                                    } else {
-                                        Button(onClick = {
-                                            selectedAdmin = admin
-                                            selectedSchool = ""
-                                            showReassignDialog = true
-                                        }) {
-                                            Icon(Icons.Default.PersonAdd, contentDescription = null)
-                                            Text("Assign")
-                                        }
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            label = { Text("Search Admins") },
+                            trailingIcon = {
+                                if (searchQuery.isNotBlank()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(Icons.Default.Close, contentDescription = null)
                                     }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                                    IconButton(onClick = {
-                                        adminToDelete = admin
-                                        showDeleteDialog = true
-                                    }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete Admin", tint = Color.Red)
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        FilterDropdown(
+                            label = "Filter",
+                            options = filterOptions,
+                            selectedOption = filter,
+                            onSelected = { filter = it }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Registered Admins", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            items(filteredAdmins) { admin ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(
+                                                admin.email,
+                                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                            Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF1565C0))
+                                        }
+
+                                        Text(
+                                            text = admin.schoolName?.let { "Assigned to: $it" } ?: "Unassigned",
+                                            color = if (admin.schoolName != null) Color(0xFF2E7D32) else Color.Gray,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            if (admin.schoolName != null) {
+                                                Button(onClick = { viewModel.unassignAdmin(admin.email) }) {
+                                                    Icon(Icons.Default.Clear, contentDescription = null)
+                                                    Text("Unassign")
+                                                }
+                                            } else {
+                                                Button(onClick = {
+                                                    selectedAdmin = admin
+                                                    selectedSchool = ""
+                                                    showReassignDialog = true
+                                                }) {
+                                                    Icon(Icons.Default.PersonAdd, contentDescription = null)
+                                                    Text("Assign")
+                                                }
+                                            }
+
+                                            IconButton(onClick = {
+                                                adminToDelete = admin
+                                                showDeleteDialog = true
+                                            }) {
+                                                Icon(Icons.Default.Delete, contentDescription = "Delete Admin", tint = Color.Red)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -411,7 +463,7 @@ fun SchoolAdminsScreen(
                     adminToDelete = null
                     showDeleteDialog = false
                 }) {
-                    Text("Delete", color = Color.Red)
+                    Text("Delete", color = Color.Black)
                 }
             },
             dismissButton = {

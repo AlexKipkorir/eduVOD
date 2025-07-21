@@ -107,7 +107,9 @@ fun EditSchoolScreen(
     AppScaffold(
         title = "Edit School",
         snackbarHostState = snackbarHostState,
-        showTopBar = true
+        showTopBar = true,
+        showBackButton = true,
+        onBack = { navController.popBackStack() }
     ) { padding ->
         Column(
             modifier = Modifier

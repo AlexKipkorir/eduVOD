@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,7 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -92,10 +90,8 @@ fun DashboardScreen(
     AppScaffold(
         title = "eduVOD Admin Dashboard",
         showTopBar = true,
-        showBottomBar = true,
         showLogout = true,
         snackbarHostState = snackbarHostState,
-        bottomBarContent = { BottomNavigationBar(navController) },
         onLogout = {
             scope.launch {
                 authViewModel.logout()
@@ -171,6 +167,7 @@ fun DashboardScreen(
         }
     }
 }
+
 
 
 

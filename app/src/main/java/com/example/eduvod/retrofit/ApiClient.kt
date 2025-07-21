@@ -7,7 +7,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object ApiClient {
-    private const val BASE_URL = "https://fa09334a8ba7.ngrok-free.app/"
+    private const val BASE_URL = "https://9edff0852d69.ngrok-free.app/"
 
     private var authToken: String? = null
 
