@@ -24,19 +24,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -52,13 +49,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -78,16 +69,16 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.model.School
+import com.example.eduvod.ui.screens.AppScaffold
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import com.example.eduvod.viewmodel.SystemConfigViewModel
-import kotlinx.coroutines.launch
-import okhttp3.MultipartBody
-import okhttp3.ResponseBody
-import java.io.File
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshState
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +90,7 @@ fun SchoolManagementScreen(
     val searchQuery by viewModel.searchQuery
     val selectedRegion by viewModel.selectedRegion
     val selectedType by viewModel.selectedType
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
@@ -154,158 +145,169 @@ fun SchoolManagementScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "School Management",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { navController.navigate("school_admins") }) {
-                        Icon(Icons.Default.Person, contentDescription = "Manage Admins", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xff0D47A1))
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Add New School") },
-                onClick = { navController.navigate("add_school") }
-            )
-        },
-        containerColor = Color(0xFFF4F9FC),
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { innerPadding ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)) {
-
-            SwipeRefreshContainer(
-                isRefreshing = isRefreshing,
-                onRefresh = { viewModel.fetchSchools() }
+    AppScaffold(
+        title = "School Management",
+        showTopBar = true,
+        showBackButton = true,
+        onBack = { navController.popBackStack() },
+        actionButtonLabel = "View Admins",
+        onActionButtonClick = { navController.navigate("school_admins") },
+        content = { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
             ) {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ){
-                    item {
-                        Text("Import Schools", style = MaterialTheme.typography.titleMedium.copy(color = Color(0xFF0D47A1), fontWeight = FontWeight.SemiBold))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(onClick = {
-                                scope.launch {
-                                    val response = viewModel.downloadSchoolTemplate()
-                                    if (response != null && response.isSuccessful) {
-                                        val body = response.body()
-                                        if (body != null) {
-                                            val file = File(context.cacheDir, "school_template.xlsx")
-                                            file.outputStream().use { body.byteStream().copyTo(it) }
-                                            snackbarHostState.showSnackbar("Downloaded: ${file.absolutePath}")
-                                        } else snackbarHostState.showSnackbar("Empty response body.")
-                                    } else snackbarHostState.showSnackbar("Failed to download template.")
-                                }
-                            }) {
-                                Icon(Icons.Default.Download, contentDescription = null)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Download Template")
-                            }
-                            Button(onClick = { filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") }) {
-                                Icon(Icons.Default.Upload, contentDescription = null)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Import Excel")
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { viewModel.searchQuery.value = it },
-                            label = { Text("Search Schools") },
-                            singleLine = true,
-                            trailingIcon = {
-                                if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { viewModel.searchQuery.value = "" }) {
-                                        Icon(Icons.Default.Close, contentDescription = "Clear Search")
-                                    }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                        )
-
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Registered Schools", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            FilterDropdown("Region", regionOptions, selectedRegion) {
-                                viewModel.selectedRegion.value = it
-                            }
-                            FilterDropdown("Type", typeOptions, selectedType) {
-                                viewModel.selectedType.value = it
-                            }
-                            Button(onClick = {
-                                viewModel.searchQuery.value = ""
-                                viewModel.selectedRegion.value = "ALL"
-                                viewModel.selectedType.value = "ALL"
-                            }, modifier = Modifier.align(Alignment.End)) {
-                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Reset Filters")
-                            }
-                        }
-                    }
-                    items(filteredSchools) { school ->
-                        SchoolCard(
-                            school = school,
-                            onView = { navController.navigate("school_details/${Uri.encode(school.name)}") },
-                            onEdit = { navController.navigate("edit_school/${Uri.encode(school.name)}") },
-                            onManageAdmin = { navController.navigate("manage_admins/${Uri.encode(school.name)}") }
-                        )
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = isRefreshing,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize().background(Color(0xAAFFFFFF)),
-                    contentAlignment = Alignment.Center
+                SwipeRefreshContainer(
+                    isRefreshing = isRefreshing,
+                    onRefresh = { viewModel.fetchSchools() }
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(
-                            color = Color(0xFF1565C0),
-                            strokeWidth = 4.dp,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Loading schools...", color = Color(0xFF1565C0))
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        item {
+                            Text(
+                                "Import Schools",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    color = Color(0xFF0D47A1),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Button(onClick = {
+                                    scope.launch {
+                                        val response = viewModel.downloadSchoolTemplate()
+                                        if (response != null && response.isSuccessful) {
+                                            val body = response.body()
+                                            if (body != null) {
+                                                val file = File(context.cacheDir, "school_template.xlsx")
+                                                file.outputStream().use { body.byteStream().copyTo(it) }
+                                                snackbarHostState.showSnackbar("Downloaded: ${file.absolutePath}")
+                                            } else snackbarHostState.showSnackbar("Empty response body.")
+                                        } else snackbarHostState.showSnackbar("Failed to download template.")
+                                    }
+                                }) {
+                                    Icon(Icons.Default.Download, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Download Template")
+                                }
+                                Button(onClick = {
+                                    filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                                }) {
+                                    Icon(Icons.Default.Upload, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Import Excel")
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { viewModel.searchQuery.value = it },
+                                label = { Text("Search Schools") },
+                                singleLine = true,
+                                trailingIcon = {
+                                    if (searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { viewModel.searchQuery.value = "" }) {
+                                            Icon(Icons.Default.Close, contentDescription = "Clear Search")
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                            )
+
+                            HorizontalDivider()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Registered Schools",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                FilterDropdown("Region", regionOptions, selectedRegion) {
+                                    viewModel.selectedRegion.value = it
+                                }
+                                FilterDropdown("Type", typeOptions, selectedType) {
+                                    viewModel.selectedType.value = it
+                                }
+                                Button(
+                                    onClick = {
+                                        viewModel.searchQuery.value = ""
+                                        viewModel.selectedRegion.value = "ALL"
+                                        viewModel.selectedType.value = "ALL"
+                                    },
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Reset Filters")
+                                }
+                            }
+                        }
+
+                        items(filteredSchools) { school ->
+                            SchoolCard(
+                                school = school,
+                                onView = {
+                                    navController.navigate("school_details/${Uri.encode(school.name)}")
+                                },
+                                onEdit = {
+                                    navController.navigate("edit_school/${Uri.encode(school.name)}")
+                                },
+                                onManageAdmin = {
+                                    navController.navigate("manage_admins/${Uri.encode(school.name)}")
+                                }
+                            )
+                        }
                     }
                 }
+
+                AnimatedVisibility(
+                    visible = isRefreshing,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xAAFFFFFF)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(
+                                color = Color(0xFF1565C0),
+                                strokeWidth = 4.dp,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Loading schools...", color = Color(0xFF1565C0))
+                        }
+                    }
+                }
+
+                ExtendedFloatingActionButton(
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text("Add New School") },
+                    onClick = { navController.navigate("add_school") },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                )
             }
         }
-    }
+    )
 }
-
 @Composable
 fun SchoolCard(
     school: School,

@@ -27,23 +27,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,21 +45,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.eduvod.BottomNavigationBar
 import com.example.eduvod.viewmodel.AuthViewModel
 import com.example.eduvod.viewmodel.DashboardViewModel
 import com.example.eduvod.viewmodel.LoginState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.text.toIntOrNull
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,14 +70,6 @@ fun DashboardScreen(
     val stats by viewModel.stats.collectAsState()
     val snackbar by viewModel.snackbar.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showLogoutDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(snackbar) {
-        snackbar?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearSnackbar()
-        }
-    }
 
     val loginState by authViewModel.loginState.collectAsState()
     LaunchedEffect(loginState) {
@@ -99,38 +80,28 @@ fun DashboardScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "eduVOD Admin Dashboard",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { showLogoutDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Logout,
-                            contentDescription = "Logout",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                ),
-                modifier = Modifier.background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF1565C0), Color(0xFF0D47A1))
-                    )
-                )
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color(0xFFF4F8FC)
+    LaunchedEffect(snackbar) {
+        snackbar?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSnackbar()
+        }
+    }
+
+    AppScaffold(
+        title = "eduVOD Admin Dashboard",
+        showTopBar = true,
+        showLogout = true,
+        snackbarHostState = snackbarHostState,
+        onLogout = {
+            scope.launch {
+                authViewModel.logout()
+                delay(300)
+                navController.navigate("splash") {
+                    popUpTo("dashboard") { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -195,35 +166,9 @@ fun DashboardScreen(
             }
         }
     }
-
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Confirm Logout") },
-            text = { Text("Are you sure you want to log out?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showLogoutDialog = false
-                    scope.launch {
-                        authViewModel.logout()
-                        delay(300)
-                        navController.navigate("splash") {
-                            popUpTo("dashboard") { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    }
-                }) {
-                    Text("Logout", color = Color.Red)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
 }
+
+
 
 
 @Composable

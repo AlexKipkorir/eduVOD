@@ -3,197 +3,255 @@ package com.example.eduvod.ui.screens.systemconfiguration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.FloatingActionButton
+import androidx.compose.material.Icon
+import androidx.compose.material.OutlinedButton
+import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.example.eduvod.ui.screens.AppScaffold
 import com.example.eduvod.viewmodel.SystemConfigViewModel
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegionScreen(
-    viewModel: SystemConfigViewModel = viewModel(),
-    navController: NavHostController
+    viewModel: SystemConfigViewModel,
+    navController: NavController
 ) {
-    val regions = viewModel.regions
-    val isLoading by viewModel.isLoading.collectAsState()
-    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
-
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val focusManager = LocalFocusManager.current
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
 
-    var newRegion by remember { mutableStateOf("") }
-    var editingRegion by remember { mutableStateOf<String?>(null) }
-    var editText by remember { mutableStateOf(TextFieldValue("")) }
+    val regions = viewModel.regions
+    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
+    var showDialog by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(false) }
+    var originalName by remember { mutableStateOf("") }
+    var nameInput by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        viewModel.initialize()
+    }
 
     LaunchedEffect(snackbarMessage) {
         snackbarMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearSnackbar()
+            scope.launch {
+                snackbarHostState.showSnackbar(it)
+                viewModel.clearSnackbar()
+            }
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Manage Regions") })
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        content = { padding ->
-            Box(
+    AppScaffold(
+        title = "Regions",
+        snackbarHostState = snackbarHostState,
+        showTopBar = true,
+        showLogout = false,
+        showBackButton = true,
+        onBack = { navController.popBackStack() },
+    ) { padding ->
+
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)) {
+
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
+                    .padding(16.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                ) {
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = newRegion,
-                            onValueChange = { newRegion = it },
-                            label = { Text("New Region Name") },
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(end = 8.dp)
-                        )
-                        Button(
-                            onClick = {
-                                if (newRegion.isBlank()) {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Region name cannot be empty.")
-                                    }
-                                } else {
-                                    viewModel.addItem("Region", newRegion.trim())
-                                    newRegion = ""
-                                    focusManager.clearFocus()
-                                }
-                            }
-                        ) {
-                            Text("Add")
-                        }
+                if (regions.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No regions yet.", color = Color.Gray)
                     }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-
-                    LazyColumn {
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(regions) { region ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                elevation = 4.dp
+                                    .clickable {
+                                        nameInput = region.name
+                                        originalName = region.name
+                                        isEditing = true
+                                        showDialog = true
+                                    },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(2.dp)
                             ) {
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(16.dp)
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
                                         text = region.name,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    IconButton(onClick = {
-                                        editingRegion = region.name
-                                        editText = TextFieldValue(region.name)
-                                    }) {
-                                        Icon(Icons.Default.Edit, contentDescription = "Edit")
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit",
+                                        tint = Color.Black
+                                    )
                                 }
+
                             }
                         }
                     }
                 }
+            }
 
+            FloatingActionButton(
+                onClick = {
+                    nameInput = ""
+                    originalName = ""
+                    isEditing = false
+                    showDialog = true
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Region")
+            }
 
-                AnimatedVisibility(
-                    visible = isLoading,
-                    enter = fadeIn(),
-                    exit = fadeOut()
+            AnimatedVisibility(
+                visible = isLoading,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xAAFFFFFF)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xAAFFFFFF)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(
-                                color = Color(0xFF1565C0),
-                                strokeWidth = 4.dp,
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("Loading regions...", color = Color(0xFF1565C0))
-                        }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(
+                            color = Color(0xFF1565C0),
+                            strokeWidth = 4.dp,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Loading regions...", color = Color(0xFF1565C0))
                     }
-                }
-
-                // Edit Dialog
-                if (editingRegion != null) {
-                    AlertDialog(
-                        onDismissRequest = {
-                            editingRegion = null
-                        },
-                        title = { Text("Edit Region") },
-                        text = {
-                            OutlinedTextField(
-                                value = editText,
-                                onValueChange = { editText = it },
-                                label = { Text("New Region Name") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    val old = editingRegion ?: return@TextButton
-                                    val new = editText.text.trim()
-                                    if (new.isNotBlank()) {
-                                        viewModel.updateItem("Region", old, new)
-                                    } else {
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("Region name cannot be empty.")
-                                        }
-                                    }
-                                    editingRegion = null
-                                }
-                            ) {
-                                Text("Update")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { editingRegion = null }) {
-                                Text("Cancel")
-                            }
-                        }
-                    )
                 }
             }
         }
-    )
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            shape = RoundedCornerShape(16.dp),
+            tonalElevation = 4.dp,
+            title = {
+                Text(
+                    text = if (isEditing) "Edit Region" else "Add Region",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = nameInput,
+                        onValueChange = { nameInput = it },
+                        label = { Text("Region name") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (nameInput.isBlank()) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Name cannot be empty")
+                            }
+                            return@Button
+                        }
+
+                        if (isEditing) {
+                            viewModel.updateItem("Region", originalName, nameInput)
+                        } else {
+                            viewModel.addItem("Region", nameInput)
+                        }
+
+                        showDialog = false
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Save", color = Color.White)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showDialog = false },
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
 }
+
+
 

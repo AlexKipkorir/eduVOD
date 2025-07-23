@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Check
@@ -42,6 +43,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -76,6 +78,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.AuthViewModelFactory
+import com.example.eduvod.ui.screens.AppScaffold
 import com.example.eduvod.viewmodel.AdminUser
 import com.example.eduvod.viewmodel.AuthViewModel
 import com.example.eduvod.viewmodel.UserManagementViewModel
@@ -86,7 +89,7 @@ fun UserManagementScreen(
     navController: NavHostController,
     viewModel: UserManagementViewModel = viewModel()
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
@@ -104,9 +107,7 @@ fun UserManagementScreen(
         .groupBy { it.status?.uppercase() ?: "UNKNOWN" }
 
     val expandStates = remember { mutableStateMapOf<String, Boolean>() }
-
     val isLoading by viewModel.isLoading.collectAsState()
-
 
     LaunchedEffect(snackbarMessage) {
         viewModel.setCurrentUserEmail(email ?: "")
@@ -116,68 +117,21 @@ fun UserManagementScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "EduVOD User Management",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                ),
-                modifier = Modifier.background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFF1565C0), Color(0xFF0D47A1))
-                    )
-                )
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                text = { Text("Add Admin") },
-                icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
-                onClick = { showAddDialog = true }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color(0xFFF4F9FC)
+    AppScaffold(
+        title = "EduVOD User Management",
+        snackbarHostState = snackbarHostState,
+        showTopBar = true,
+        showLogout = false,
+        showBackButton = true,
+        onBack = { navController.popBackStack() },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-
-
-                AnimatedVisibility(
-                    visible = isLoading,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xAAFFFFFF)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(
-                                color = Color(0xFF1565C0),
-                                strokeWidth = 4.dp,
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("Loading eduVod Admins...", color = Color(0xFF1565C0))
-                        }
-                    }
-                }
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .padding(16.dp)
+                    .fillMaxSize()
+            ) {
 
                 OutlinedTextField(
                     value = searchQuery,
@@ -188,7 +142,6 @@ fun UserManagementScreen(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
-
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -205,7 +158,6 @@ fun UserManagementScreen(
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
-
 
                 if (viewModel.admins.isEmpty()) {
                     Text("No admins found.", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
@@ -258,6 +210,40 @@ fun UserManagementScreen(
                         }
                     }
                 }
+            }
+
+            AnimatedVisibility(
+                visible = isLoading,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xAAFFFFFF)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(
+                            color = Color(0xFF1565C0),
+                            strokeWidth = 4.dp,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Loading eduVod Admins...", color = Color(0xFF1565C0))
+                    }
+                }
+            }
+
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.White
+            ) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Admin")
             }
         }
     }

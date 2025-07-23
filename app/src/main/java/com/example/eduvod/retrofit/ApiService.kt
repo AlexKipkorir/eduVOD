@@ -50,7 +50,7 @@ interface ApiService {
     suspend fun updateSchool(@Path("id") id: Int, @Body request: School): Response<ApiResponse<School>>
 
     @GET("api/v1/superadmin/schools/{id}")
-    suspend fun getSchoolById(@Path("id") id: Int): Response<ApiResponse<School>>
+    suspend fun getSchoolById(@Path("id") id: Int): Response<ApiResponse<SchoolResponse>>
 
     @DELETE("api/v1/superadmin/schools/{id}")
     suspend fun deleteSchool(@Path("id") id: Int): Response<ApiResponse<Unit>>
