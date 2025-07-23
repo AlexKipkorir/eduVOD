@@ -243,7 +243,7 @@ fun ManageSchoolAdminsScreen(
                         if (selectedAdminEmail.isNotBlank()) {
                             scope.launch {
                                 isAssigning = true
-                                viewModel.assignAdminToSchool(selectedAdminEmail, schoolName ?: "")
+                                viewModel.assignAdminToSchool(selectedAdminEmail, schoolName ?: "", onDone = {})
                                 viewModel.fetchAdmins()
                                 snackbarHostState.showSnackbar("Admin assigned successfully.")
                                 isAssigning = false
@@ -281,7 +281,7 @@ fun ManageSchoolAdminsScreen(
                 TextButton(onClick = {
                     scope.launch {
                         viewModel.setLoading(true)
-                        viewModel.unassignAdmin(selectedAdminEmail)
+                        viewModel.unassignAdmin(selectedAdminEmail, onDone = {})
                         viewModel.fetchAdmins()
                         viewModel.setLoading(false)
                         snackbarHostState.showSnackbar("Admin unassigned")

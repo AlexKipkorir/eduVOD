@@ -1,5 +1,6 @@
 package com.example.eduvod.ui.screens.schoolmanagement
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,6 +28,9 @@ fun SchoolDetailsScreen(
 ) {
     val school = viewModel.getSchoolByName(schoolName)
 
+    Log.d("SchoolDetailsScreen", "Requested school name: $schoolName")
+    Log.d("SchoolDetailsScreen", "Retrieved school object: ${school?.name ?: "null"}")
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -47,18 +51,22 @@ fun SchoolDetailsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    navController.navigate("edit_school/${school?.name}")
-                },
-                containerColor = Color(0xFF1565C0),
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit")
+            if (school != null) {
+                FloatingActionButton(
+                    onClick = {
+                        Log.d("SchoolDetailsScreen", "Navigating to edit screen for: ${school.name}")
+                        navController.navigate("edit_school/${school.name}")
+                    },
+                    containerColor = Color(0xFF1565C0),
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                }
             }
         }
     ) { padding ->
         if (school != null) {
+            Log.d("SchoolDetailsScreen", "Displaying school details for: ${school.name}")
             Column(
                 modifier = Modifier
                     .padding(padding)
@@ -101,6 +109,7 @@ fun SchoolDetailsScreen(
                 )
             }
         } else {
+            Log.e("SchoolDetailsScreen", "School not found for name: $schoolName")
             Box(
                 modifier = Modifier
                     .fillMaxSize()

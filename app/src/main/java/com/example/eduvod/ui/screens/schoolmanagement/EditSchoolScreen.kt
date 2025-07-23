@@ -15,7 +15,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -26,7 +25,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -43,7 +41,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -69,10 +66,12 @@ fun EditSchoolScreen(
     val scope = rememberCoroutineScope()
     val selectedSchool by viewModel.selectedSchool
 
+
     LaunchedEffect(schoolId) {
         viewModel.fetchSchoolById(schoolId)
         configViewModel.initialize()
     }
+
 
     if (selectedSchool == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -81,7 +80,7 @@ fun EditSchoolScreen(
         return
     }
 
-    // Prefill form fields once school is available
+
     var moeRegNo by remember { mutableStateOf(selectedSchool!!.moeRegNo) }
     var kpsaRegNo by remember { mutableStateOf(selectedSchool!!.kpsaRegNo) }
     var schoolCurriculum by remember { mutableStateOf(selectedSchool!!.curriculum) }
@@ -109,17 +108,9 @@ fun EditSchoolScreen(
     val countyOptions = configViewModel.counties.map { it.name }
     val subCountyOptions = configViewModel.subcounties.map { it.name }
 
-
     LaunchedEffect(Unit) {
         configViewModel.loadCounties(region)
         configViewModel.loadSubcounties(county)
-    }
-
-    if (selectedSchool == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
     }
 
     Scaffold(
@@ -165,7 +156,6 @@ fun EditSchoolScreen(
 
             SectionInputField("MoE REG NO", moeRegNo) { moeRegNo = it }
             SectionInputField("KPSA REG NO", kpsaRegNo) { kpsaRegNo = it }
-
             DropdownField("Curriculum", curriculumOptions, schoolCurriculum) { schoolCurriculum = it }
             DropdownField("Category", categoryOptions, category) { category = it }
             DropdownField("Type", typeOptions, type) { type = it }
@@ -191,14 +181,12 @@ fun EditSchoolScreen(
                 subCounty = ""
             }
             DropdownField("Sub-County", subCountyOptions, subCounty) { subCounty = it }
-
             SectionInputField("Diocese", diocese) { diocese = it }
             SectionInputField("Location", location) { location = it }
             SectionInputField("Address", address) { address = it }
 
             Divider()
             Text("Assign Admin (Optional)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0D47A1))
-
             Box {
                 OutlinedTextField(
                     value = selectedAdmin,
@@ -214,13 +202,10 @@ fun EditSchoolScreen(
                         }
                     }
                 )
-
                 DropdownMenu(
                     expanded = isAdminDropdownExpanded,
                     onDismissRequest = { isAdminDropdownExpanded = false },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White)
+                    modifier = Modifier.background(Color.White)
                 ) {
                     adminOptions.forEach { adminEmail ->
                         DropdownMenuItem(
@@ -260,7 +245,7 @@ fun EditSchoolScreen(
                         scope.launch {
                             viewModel.updateSchool(it.id, it)
                             if (selectedAdmin.isNotBlank()) {
-                                viewModel.assignAdminToSchool(selectedAdmin, it.name)
+                                viewModel.assignAdminToSchool(selectedAdmin, it.name, onDone = {})
                             }
                             snackbarHostState.showSnackbar("Changes saved for ${it.name}")
                             navController.popBackStack()
@@ -275,6 +260,7 @@ fun EditSchoolScreen(
         }
     }
 }
+
 
 
 

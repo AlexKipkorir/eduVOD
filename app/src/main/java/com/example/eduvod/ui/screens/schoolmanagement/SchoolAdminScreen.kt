@@ -100,6 +100,8 @@ fun SchoolAdminsScreen(
 
     var isAddingAdmin by remember { mutableStateOf(false) }
     var isAssigning by remember { mutableStateOf(false) }
+    var loadingAssignEmail by remember { mutableStateOf<String?>(null) }
+    var loadingUnassignEmail by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(viewModel.snackbarMessage.collectAsState().value) {
         viewModel.snackbarMessage.value?.let {
@@ -191,27 +193,64 @@ fun SchoolAdminsScreen(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 if (admin.schoolName != null) {
-                                    Button(onClick = { viewModel.unassignAdmin(admin.email) }) {
-                                        Icon(Icons.Default.Clear, contentDescription = null)
-                                        Text("Unassign")
+                                    Button(
+                                        onClick = {
+                                            loadingUnassignEmail = admin.email
+                                            viewModel.unassignAdmin(
+                                                admin.email,
+                                                onDone = { loadingUnassignEmail = null }
+                                            )
+                                        },
+                                        enabled = loadingUnassignEmail != admin.email
+                                    ) {
+                                        if (loadingUnassignEmail == admin.email) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier
+                                                    .size(16.dp)
+                                                    .padding(end = 8.dp),
+                                                strokeWidth = 2.dp,
+                                                color = Color.White
+                                            )
+                                        } else {
+                                            Icon(Icons.Default.Clear, contentDescription = null)
+                                            Text("Unassign")
+                                        }
                                     }
                                 } else {
-                                    Button(onClick = {
-                                        selectedAdmin = admin
-                                        selectedSchool = ""
-                                        showReassignDialog = true
-                                    }) {
-                                        Icon(Icons.Default.PersonAdd, contentDescription = null)
-                                        Text("Assign")
+                                    Button(
+                                        onClick = {
+                                            selectedAdmin = admin
+                                            selectedSchool = ""
+                                            showReassignDialog = true
+                                        },
+                                        enabled = loadingAssignEmail != admin.email
+                                    ) {
+                                        if (loadingAssignEmail == admin.email) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier
+                                                    .size(16.dp)
+                                                    .padding(end = 8.dp),
+                                                strokeWidth = 2.dp,
+                                                color = Color.White
+                                            )
+                                        } else {
+                                            Icon(Icons.Default.PersonAdd, contentDescription = null)
+                                            Text("Assign")
+                                        }
                                     }
                                 }
 
-                                IconButton(onClick = {
-                                    adminToDelete = admin
-                                    showDeleteDialog = true
-                                }) {
+                                IconButton(
+                                    onClick = {
+                                        adminToDelete = admin
+                                        showDeleteDialog = true
+                                    }
+                                ) {
                                     Icon(Icons.Default.Delete, contentDescription = "Delete Admin", tint = Color.Red)
                                 }
                             }
@@ -375,7 +414,7 @@ fun SchoolAdminsScreen(
                         if (selectedSchool.isNotBlank() && selectedAdmin != null) {
                             isAssigning = true
                             scope.launch {
-                                viewModel.assignAdminToSchool(selectedAdmin!!.email, selectedSchool)
+                                viewModel.assignAdminToSchool(selectedAdmin!!.email, selectedSchool, onDone = {})
 
                                 selectedSchool = ""
                                 selectedAdmin = null

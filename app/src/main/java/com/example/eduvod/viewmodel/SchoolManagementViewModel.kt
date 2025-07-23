@@ -271,8 +271,8 @@ class SchoolManagementViewModel(
         }
         return true
     }
-    fun unassignAdmin(adminEmail: String) {
-        val admin = schoolAdmins.find { it.email.equals(adminEmail, ignoreCase = true) } ?: return
+    fun unassignAdmin(adminEmail: String, onDone: () -> Unit) {
+        val admin = schoolAdmins.find { it.email.equals(adminEmail, ignoreCase = true) } ?: return onDone()
 
         viewModelScope.launch {
             try {
@@ -287,12 +287,15 @@ class SchoolManagementViewModel(
                 }
             } catch (e: Exception) {
                 snackbarMessage.value = "Error unassigning admin: ${e.localizedMessage}"
+            } finally {
+                onDone()
             }
         }
     }
-    fun assignAdminToSchool(email: String, schoolName: String) {
-        val schoolId = getSchoolByName(schoolName)?.id ?: return
-        val admin = schoolAdmins.find { it.email.equals(email, ignoreCase = true) } ?: return
+
+    fun assignAdminToSchool(email: String, schoolName: String, onDone: () -> Unit) {
+        val schoolId = getSchoolByName(schoolName)?.id ?: return onDone()
+        val admin = schoolAdmins.find { it.email.equals(email, ignoreCase = true) } ?: return onDone()
 
         viewModelScope.launch {
             try {
@@ -302,7 +305,6 @@ class SchoolManagementViewModel(
                         schoolId = schoolId
                     )
                 )
-
                 if (response.isSuccessful && response.body()?.statusCode == 200) {
                     snackbarMessage.value = "Admin assigned successfully"
                     fetchAdmins()
@@ -311,6 +313,8 @@ class SchoolManagementViewModel(
                 }
             } catch (e: Exception) {
                 snackbarMessage.value = "Error assigning admin: ${e.localizedMessage}"
+            } finally {
+                onDone()
             }
         }
     }

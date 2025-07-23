@@ -281,7 +281,7 @@ fun AddSchoolScreen(
                         val success = schoolViewModel.addSchool(newSchool)
                         if (success != null) {
                             if (selectedAdmin.isNotBlank()) {
-                                schoolViewModel.assignAdminToSchool(selectedAdmin, schoolName)
+                                schoolViewModel.assignAdminToSchool(selectedAdmin, schoolName, onDone = {})
                                 snackbarHostState.showSnackbar("School added & admin assigned.")
                             } else {
                                 snackbarHostState.showSnackbar("School added successfully.")
