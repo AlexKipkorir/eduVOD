@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -29,6 +30,8 @@ import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -112,7 +115,6 @@ fun DashboardScreen(
             }
         }
     ) { innerPadding ->
-
         when {
             isLoading -> {
                 Box(
@@ -136,80 +138,145 @@ fun DashboardScreen(
                         .padding(innerPadding),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Failed to load dashboard stats.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Failed to load dashboard stats",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { viewModel.fetchDashboardStats() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text("Retry")
+                        }
+                    }
                 }
             }
 
             else -> {
-                Column(
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .verticalScroll(rememberScrollState())
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    SectionTitle("Schools by Region")
-                    StaggeredAnimatedCard(index = 0) {
-                        stats?.schoolsPerRegion?.let { data ->
-                            BarChartCard(
-                                title = "Schools by Region",
-                                data = data,
-                                color = Color(0xFF1976D2)
+                    // Header section
+                    item {
+                        Column {
+                            Text(
+                                "School Admin Dashboard",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Comprehensive overview of school statistics",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    SectionTitle("Students by Gender")
-                    StaggeredAnimatedCard(index = 1) {
-                        TwoColumnDataCard(
-                            "Male" to (stats?.studentCountByGender?.get("MALE")?.toString() ?: "0"),
-                            "Female" to (stats?.studentCountByGender?.get("FEMALE")?.toString() ?: "0"),
-                            icon = Icons.Default.Group
-                        )
+                    // Schools by Region
+                    item {
+                        SectionTitle("Schools by Region")
+                    }
+                    item {
+                        StaggeredAnimatedCard(index = 0) {
+                            stats?.schoolsPerRegion?.let { data ->
+                                BarChartCard(
+                                    title = "Schools by Region",
+                                    data = data,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
 
-                    SectionTitle("Differently Abled Students")
-                    StaggeredAnimatedCard(index = 2) {
-                        TwoColumnDataCard(
-                            "Male" to (stats?.differentlyAbledByGender?.get("MALE")?.toString() ?: "0"),
-                            "Female" to (stats?.differentlyAbledByGender?.get("FEMALE")?.toString() ?: "0"),
-                            icon = Icons.Default.Accessibility
-                        )
+                    // Students by Gender
+                    item {
+                        SectionTitle("Students by Gender")
                     }
-
-                    SectionTitle("Teachers by Gender")
-                    StaggeredAnimatedCard(index = 3) {
-                        TwoColumnDataCard(
-                            "Male" to (stats?.teacherCountByGender?.get("MALE")?.toString() ?: "0"),
-                            "Female" to (stats?.teacherCountByGender?.get("FEMALE")?.toString() ?: "0"),
-                            icon = Icons.Default.Person
-                        )
-                    }
-
-                    SectionTitle("Number of Guardians")
-                    StaggeredAnimatedCard(index = 4) {
-                        stats?.let {
-                            SimpleDataCard(
-                                label = "Total Guardians",
-                                value = it.guardianCount.toString(),
-                                icon = Icons.Default.FamilyRestroom
+                    item {
+                        StaggeredAnimatedCard(index = 1) {
+                            TwoColumnDataCard(
+                                "Male" to (stats?.studentCountByGender?.get("MALE")?.toString() ?: "0"),
+                                "Female" to (stats?.studentCountByGender?.get("FEMALE")?.toString() ?: "0"),
+                                icon = Icons.Default.Group,
+                                primaryColor = MaterialTheme.colorScheme.primary,
+                                secondaryColor = MaterialTheme.colorScheme.secondary
                             )
                         }
                     }
 
-                    SectionTitle("Students by Class")
-                    StaggeredAnimatedCard(index = 5) {
-                        stats?.studentsPerClass?.let { data ->
-                            BarChartCard(
-                                title = "Students by Class",
-                                data = data,
-                                color = Color(0xFF1976D2)
+                    // Differently Abled Students
+                    item {
+                        SectionTitle("Differently Abled Students")
+                    }
+                    item {
+                        StaggeredAnimatedCard(index = 2) {
+                            TwoColumnDataCard(
+                                "Male" to (stats?.differentlyAbledByGender?.get("MALE")?.toString() ?: "0"),
+                                "Female" to (stats?.differentlyAbledByGender?.get("FEMALE")?.toString() ?: "0"),
+                                icon = Icons.Default.Accessibility,
+                                primaryColor = MaterialTheme.colorScheme.tertiary,
+                                secondaryColor = MaterialTheme.colorScheme.tertiaryContainer
                             )
+                        }
+                    }
+
+                    // Teachers by Gender
+                    item {
+                        SectionTitle("Teachers by Gender")
+                    }
+                    item {
+                        StaggeredAnimatedCard(index = 3) {
+                            TwoColumnDataCard(
+                                "Male" to (stats?.teacherCountByGender?.get("MALE")?.toString() ?: "0"),
+                                "Female" to (stats?.teacherCountByGender?.get("FEMALE")?.toString() ?: "0"),
+                                icon = Icons.Default.Person,
+                                primaryColor = MaterialTheme.colorScheme.secondary,
+                                secondaryColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        }
+                    }
+
+                    // Number of Guardians
+                    item {
+                        SectionTitle("Number of Guardians")
+                    }
+                    item {
+                        StaggeredAnimatedCard(index = 4) {
+                            stats?.let {
+                                SimpleDataCard(
+                                    label = "Total Guardians",
+                                    value = it.guardianCount.toString(),
+                                    icon = Icons.Default.FamilyRestroom,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+
+                    // Students by Class
+                    item {
+                        SectionTitle("Students by Class")
+                    }
+                    item {
+                        StaggeredAnimatedCard(index = 5) {
+                            stats?.studentsPerClass?.let { data ->
+                                BarChartCard(
+                                    title = "Students by Class",
+                                    data = data,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }
@@ -219,19 +286,21 @@ fun DashboardScreen(
 }
 
 @Composable
-fun SectionTitle(title: String) {
+private fun SectionTitle(title: String) {
     Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium.copy(
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 18.sp,
-            color = Color(0xFF0D47A1)
-        )
+        title,
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+        color = MaterialTheme.colorScheme.onSurface
     )
 }
 
 @Composable
-fun SimpleDataCard(label: String, value: String, icon: ImageVector) {
+fun SimpleDataCard(
+    label: String, value: String,
+    icon: ImageVector,
+    color: Color
+    ) {
     AnimatedVisibility(
         visible = true,
         enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }),
@@ -267,26 +336,58 @@ fun SimpleDataCard(label: String, value: String, icon: ImageVector) {
 }
 
 @Composable
-fun TwoColumnDataCard(vararg values: Pair<String, Any>, icon: ImageVector) {
+fun TwoColumnDataCard(
+    vararg values: Pair<String, Any>,
+    icon: ImageVector,
+    primaryColor: Color = Color(0xFF1565C0),
+    secondaryColor: Color = Color(0xFF0D47A1),
+    modifier: Modifier = Modifier
+) {
     AnimatedVisibility(
         visible = true,
         enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it }),
     ) {
         Card(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .heightIn(min = 120.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(4.dp)
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+            ),
+            elevation = CardDefaults.cardElevation(2.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Icon(icon, contentDescription = null, tint = Color(0xFF1565C0), modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = primaryColor,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     values.forEach { (label, value) ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(label, color = Color.Gray)
-                            Text(value.toString(), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFF0D47A1))
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = value.toString(),
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                color = secondaryColor
+                            )
                         }
                     }
                 }
