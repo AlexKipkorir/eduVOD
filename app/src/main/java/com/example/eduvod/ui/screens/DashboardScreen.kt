@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,14 +73,19 @@ fun DashboardScreen(
     val stats by viewModel.stats.collectAsState()
     val snackbar by viewModel.snackbar.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-
+    val isLoading by viewModel.isLoading.collectAsState()
     val loginState by authViewModel.loginState.collectAsState()
+
     LaunchedEffect(loginState) {
         if (loginState is LoginState.LoggedOut) {
             navController.navigate("login") {
                 popUpTo(0) { inclusive = true }
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchDashboardStats()
     }
 
     LaunchedEffect(snackbar) {
@@ -103,73 +111,111 @@ fun DashboardScreen(
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            SectionTitle("Schools by Region")
-            StaggeredAnimatedCard(index = 0) {
-                stats?.schoolsByRegion?.let { data ->
-                    val chartItems = data.map { StatItem(label = it.key, value = it.value) }
-                    BarChartCard(title = "Schools by Region", data = chartItems)
+
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Loading dashboard stats...", style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             }
 
-            SectionTitle("Students by Gender")
-            StaggeredAnimatedCard(index = 1) {
-                TwoColumnDataCard(
-                    "Male" to (stats?.studentsByGender?.get("Male") ?: "0"),
-                    "Female" to (stats?.studentsByGender?.get("Female") ?: "0"),
-                    icon = Icons.Default.Group
-                )
-            }
-
-            SectionTitle("Differently Abled Students")
-            StaggeredAnimatedCard(index = 2) {
-                TwoColumnDataCard(
-                    "Male" to (stats?.differentlyAbled?.get("Male") ?: "0"),
-                    "Female" to (stats?.differentlyAbled?.get("Female") ?: "0"),
-                    icon = Icons.Default.Accessibility
-                )
-            }
-
-            SectionTitle("Teachers by Gender")
-            StaggeredAnimatedCard(index = 3) {
-                TwoColumnDataCard(
-                    "Male" to (stats?.teachersByGender?.get("Male") ?: "0"),
-                    "Female" to (stats?.teachersByGender?.get("Female") ?: "0"),
-                    icon = Icons.Default.Person
-                )
-            }
-
-            SectionTitle("Number of Guardians")
-            StaggeredAnimatedCard(index = 4) {
-                stats?.let {
-                    SimpleDataCard(
-                        label = "Total Guardians",
-                        value = it.guardiansCount.toString(),
-                        icon = Icons.Default.FamilyRestroom
+            stats == null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Failed to load dashboard stats.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
 
-            SectionTitle("Students by Class/Grade/Stream")
-            StaggeredAnimatedCard(index = 5) {
-                stats?.studentsByClass?.let { data ->
-                    val chartItems = data.map { StatItem(label = it.key, value = it.value) }
-                    BarChartCard(title = "Students by Stream", data = chartItems)
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    SectionTitle("Schools by Region")
+                    StaggeredAnimatedCard(index = 0) {
+                        stats?.schoolsPerRegion?.let { data ->
+                            BarChartCard(
+                                title = "Schools by Region",
+                                data = data,
+                                color = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+
+                    SectionTitle("Students by Gender")
+                    StaggeredAnimatedCard(index = 1) {
+                        TwoColumnDataCard(
+                            "Male" to (stats?.studentCountByGender?.get("MALE")?.toString() ?: "0"),
+                            "Female" to (stats?.studentCountByGender?.get("FEMALE")?.toString() ?: "0"),
+                            icon = Icons.Default.Group
+                        )
+                    }
+
+                    SectionTitle("Differently Abled Students")
+                    StaggeredAnimatedCard(index = 2) {
+                        TwoColumnDataCard(
+                            "Male" to (stats?.differentlyAbledByGender?.get("MALE")?.toString() ?: "0"),
+                            "Female" to (stats?.differentlyAbledByGender?.get("FEMALE")?.toString() ?: "0"),
+                            icon = Icons.Default.Accessibility
+                        )
+                    }
+
+                    SectionTitle("Teachers by Gender")
+                    StaggeredAnimatedCard(index = 3) {
+                        TwoColumnDataCard(
+                            "Male" to (stats?.teacherCountByGender?.get("MALE")?.toString() ?: "0"),
+                            "Female" to (stats?.teacherCountByGender?.get("FEMALE")?.toString() ?: "0"),
+                            icon = Icons.Default.Person
+                        )
+                    }
+
+                    SectionTitle("Number of Guardians")
+                    StaggeredAnimatedCard(index = 4) {
+                        stats?.let {
+                            SimpleDataCard(
+                                label = "Total Guardians",
+                                value = it.guardianCount.toString(),
+                                icon = Icons.Default.FamilyRestroom
+                            )
+                        }
+                    }
+
+                    SectionTitle("Students by Class")
+                    StaggeredAnimatedCard(index = 5) {
+                        stats?.studentsPerClass?.let { data ->
+                            BarChartCard(
+                                title = "Students by Class",
+                                data = data,
+                                color = Color(0xFF1976D2)
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
-
-
-
 
 @Composable
 fun SectionTitle(title: String) {
@@ -271,59 +317,72 @@ fun StaggeredAnimatedCard(
 @Composable
 fun BarChartCard(
     title: String,
-    data: List<StatItem>,
-    modifier: Modifier = Modifier,
-    barColor: Color = Color(0xFF1976D2)
+    data: Map<String, Int>,
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
+    val maxValue = data.values.maxOrNull() ?: 1
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(220.dp),
-        elevation = 4.dp,
-        shape = RoundedCornerShape(12.dp)
+            .wrapContentHeight(),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.05f)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color(0xFF0D47A1)
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            val maxValue = data.maxOfOrNull { it.value } ?: 1
-
-            Row(
+            // Scrollable vertical list with fixed height
+            Column(
                 modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom
+                    .heightIn(min = 100.dp, max = 300.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                data.forEach { (label, value) ->
-                    val barHeightRatio = value.toFloat() / maxValue
-
-                    Column(
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp)
-                            .height(120.dp),
-                        verticalArrangement = Arrangement.Bottom,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                data.entries.forEach { (label, value) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .width(30.dp)
-                                .fillMaxHeight(barHeightRatio)
-                                .background(barColor, RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.width(80.dp),
+
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(20.dp)
+                                .background(
+                                    color = color.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(6.dp)
+                                )
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth(value.toFloat() / maxValue.coerceAtLeast(1))
+                                    .background(
+                                        color = color,
+                                        shape = RoundedCornerShape(6.dp)
+                                    )
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = value.toString(),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
                         )
                     }
                 }

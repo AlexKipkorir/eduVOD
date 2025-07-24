@@ -199,7 +199,7 @@ fun CurriculumScreen(
             tonalElevation = 4.dp,
             title = {
                 Text(
-                    text = if (isEditing) "Edit School Category" else "Add School Category",
+                    text = if (isEditing) "Edit School Curriculum" else "Add School Curriculum",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -209,7 +209,7 @@ fun CurriculumScreen(
                     OutlinedTextField(
                         value = nameInput,
                         onValueChange = { nameInput = it },
-                        label = { Text("Category name") },
+                        label = { Text("Curriculum name") },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -228,9 +228,9 @@ fun CurriculumScreen(
                         }
 
                         if (isEditing) {
-                            viewModel.updateItem("School Category", originalName, nameInput)
+                            viewModel.updateItem("Curriculum", originalName, nameInput)
                         } else {
-                            viewModel.addItem("School Category", nameInput)
+                            viewModel.addItem("Curriculum", nameInput)
                         }
 
                         showDialog = false

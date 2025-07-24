@@ -12,6 +12,7 @@ import com.example.eduvod.model.SimpleNameRequest
 import com.example.eduvod.model.Stream
 import com.example.eduvod.model.SubCountyRequest
 import com.example.eduvod.model.SubCountyResponse
+import com.example.eduvod.model.SuperAdminDashboardResponse
 import com.example.eduvod.retrofit.request.LoginRequest
 import com.example.eduvod.retrofit.response.ApiResponse
 import com.example.eduvod.retrofit.response.LoginResponseData
@@ -22,8 +23,6 @@ import com.example.eduvod.viewmodel.AdminCreateRequest
 import com.example.eduvod.viewmodel.AdminEduvodCreateRequest
 import com.example.eduvod.viewmodel.AdminEduvodResetRequest
 import com.example.eduvod.viewmodel.AdminResetRequest
-import com.example.eduvod.viewmodel.AdminUnassignRequest
-import com.example.eduvod.viewmodel.DashboardStats
 import com.example.eduvod.viewmodel.SchoolAdmin
 import com.example.eduvod.viewmodel.SchoolRequest
 import okhttp3.MultipartBody
@@ -218,6 +217,6 @@ interface ApiService {
     ): Response<ApiResponse<Unit>>
 
     //Dashboard
-    @GET("dashboard")
-    suspend fun getDashboardStats(): Response<ApiResponse<DashboardStats>>
+    @GET("api/v1/superadmin/dashboard")
+    suspend fun getSuperAdminDashboard(): Response<ApiResponse<SuperAdminDashboardResponse>>
 }

@@ -1,25 +1,66 @@
 package com.example.eduvod.viewmodel
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import android.util.Log
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.eduvod.model.SuperAdminDashboardResponse
 import com.example.eduvod.repositories.DashboardRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-data class DashboardStats(
-    val schoolsByRegion: Map<String, Int>,
-    val studentsByGender: Map<String, Int>,
-    val differentlyAbled: Map<String, Int>,
-    val teachersByGender: Map<String, Int>,
-    val guardiansCount: Int,
-    val studentsByClass: Map<String, Int>
-)
+class DashboardViewModel(
+    private val repository: DashboardRepository = DashboardRepository()
+) : ViewModel() {
+
+    private val _stats = MutableStateFlow<SuperAdminDashboardResponse?>(null)
+    val stats: StateFlow<SuperAdminDashboardResponse?> = _stats
+
+    private val _snackbar = MutableStateFlow<String?>(null)
+    val snackbar: StateFlow<String?> = _snackbar
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+
+    init {
+        fetchDashboardStats()
+    }
+
+    fun fetchDashboardStats() {
+        Log.d("DashboardViewModel", "fetchDashboardStats: Called")
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            Log.d("DashboardViewModel", "Loading started")
+
+            delay(1000)
+
+            try {
+                val result = repository.getDashboardStats()
+                Log.d("DashboardViewModel", "API call completed")
+
+                result.onSuccess { data ->
+                    Log.d("DashboardViewModel", "Data fetched successfully: $data")
+                    _stats.value = data
+                }.onFailure { e ->
+                    Log.e("DashboardViewModel", "Error fetching data: ${e.localizedMessage}", e)
+                    _snackbar.value = e.localizedMessage ?: "Unknown error fetching dashboard stats"
+                }
+            } catch (e: Exception) {
+                Log.e("DashboardViewModel", "Exception during fetch: ${e.localizedMessage}", e)
+                _snackbar.value = "Exception occurred: ${e.localizedMessage}"
+            }
+
+            _isLoading.value = false
+            Log.d("DashboardViewModel", "Loading finished")
+        }
+    }
+    fun clearSnackbar() {
+        _snackbar.value = null
+    }
+}
 data class NavItem(
     val label: String,
     val icon: ImageVector,
@@ -27,41 +68,6 @@ data class NavItem(
 )
 
 
-//Retrofit
-
-class DashboardViewModel(
-    private val repository: DashboardRepository = DashboardRepository()
-) : ViewModel() {
-
-    private val _stats = MutableStateFlow<DashboardStats?>(null)
-    val stats: StateFlow<DashboardStats?> = _stats
-
-    private val _snackbar = MutableStateFlow<String?>(null)
-    val snackbar: StateFlow<String?> = _snackbar
-
-    init {
-        fetchStats()
-    }
-
-    private fun fetchStats() {
-        viewModelScope.launch {
-            try {
-                val response = repository.getDashboardStats()
-                if (response.isSuccessful) {
-                    _stats.value = response.body()?.data
-                } else {
-                    _snackbar.value = "Failed to fetch dashboard stats"
-                }
-            } catch (e: Exception) {
-                _snackbar.value = "Error fetching dashboard: ${e.localizedMessage}"
-            }
-        }
-    }
-
-    fun clearSnackbar() {
-        _snackbar.value = null
-    }
-}
 
 
 //OG
