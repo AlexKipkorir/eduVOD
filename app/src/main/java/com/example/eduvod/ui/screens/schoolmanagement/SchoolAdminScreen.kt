@@ -2,7 +2,9 @@ package com.example.eduvod.ui.screens.schoolmanagement
 
 import android.util.Patterns
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -90,6 +92,13 @@ fun SchoolAdminsScreen(
     var passwordInput by remember { mutableStateOf("") }
     var confirmPasswordInput by remember { mutableStateOf("") }
 
+    // Loading states
+    var isAddingAdmin by remember { mutableStateOf(false) }
+    var isAssigning by remember { mutableStateOf(false) }
+    var isUnassigning by remember { mutableStateOf(false) }
+    var loadingAdminEmail by remember { mutableStateOf<String?>(null) }
+    var isDeleting by remember { mutableStateOf(false) }
+
     val filteredAdmins = viewModel.schoolAdmins.filter {
         when (filter) {
             "Assigned" -> it.schoolName != null
@@ -97,11 +106,6 @@ fun SchoolAdminsScreen(
             else -> true
         }
     }.filter { it.email.contains(searchQuery, ignoreCase = true) }
-
-    var isAddingAdmin by remember { mutableStateOf(false) }
-    var isAssigning by remember { mutableStateOf(false) }
-    var loadingAssignEmail by remember { mutableStateOf<String?>(null) }
-    var loadingUnassignEmail by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(viewModel.snackbarMessage.collectAsState().value) {
         viewModel.snackbarMessage.value?.let {
@@ -200,15 +204,19 @@ fun SchoolAdminsScreen(
                                 if (admin.schoolName != null) {
                                     Button(
                                         onClick = {
-                                            loadingUnassignEmail = admin.email
+                                            loadingAdminEmail = admin.email
+                                            isUnassigning = true
                                             viewModel.unassignAdmin(
                                                 admin.email,
-                                                onDone = { loadingUnassignEmail = null }
+                                                onDone = {
+                                                    loadingAdminEmail = null
+                                                    isUnassigning = false
+                                                }
                                             )
                                         },
-                                        enabled = loadingUnassignEmail != admin.email
+                                        enabled = loadingAdminEmail != admin.email && !isUnassigning
                                     ) {
-                                        if (loadingUnassignEmail == admin.email) {
+                                        if (loadingAdminEmail == admin.email && isUnassigning) {
                                             CircularProgressIndicator(
                                                 modifier = Modifier
                                                     .size(16.dp)
@@ -216,6 +224,7 @@ fun SchoolAdminsScreen(
                                                 strokeWidth = 2.dp,
                                                 color = Color.White
                                             )
+                                            Text("Unassigning...")
                                         } else {
                                             Icon(Icons.Default.Clear, contentDescription = null)
                                             Text("Unassign")
@@ -228,20 +237,10 @@ fun SchoolAdminsScreen(
                                             selectedSchool = ""
                                             showReassignDialog = true
                                         },
-                                        enabled = loadingAssignEmail != admin.email
+                                        enabled = loadingAdminEmail != admin.email
                                     ) {
-                                        if (loadingAssignEmail == admin.email) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier
-                                                    .size(16.dp)
-                                                    .padding(end = 8.dp),
-                                                strokeWidth = 2.dp,
-                                                color = Color.White
-                                            )
-                                        } else {
-                                            Icon(Icons.Default.PersonAdd, contentDescription = null)
-                                            Text("Assign")
-                                        }
+                                        Icon(Icons.Default.PersonAdd, contentDescription = null)
+                                        Text("Assign")
                                     }
                                 }
 
@@ -249,7 +248,8 @@ fun SchoolAdminsScreen(
                                     onClick = {
                                         adminToDelete = admin
                                         showDeleteDialog = true
-                                    }
+                                    },
+                                    enabled = loadingAdminEmail != admin.email
                                 ) {
                                     Icon(Icons.Default.Delete, contentDescription = "Delete Admin", tint = Color.Red)
                                 }
@@ -260,9 +260,11 @@ fun SchoolAdminsScreen(
             }
         }
     }
+
+    // Add Admin Dialog
     if (showAddDialog) {
         AlertDialog(
-            onDismissRequest = { showAddDialog = false },
+            onDismissRequest = { if (!isAddingAdmin) showAddDialog = false },
             title = { Text("Add New Admin") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -301,94 +303,93 @@ fun SchoolAdminsScreen(
                     )
                 }
             },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    when {
-                        usernameInput.isBlank() ||
-                                emailInput.isBlank() ||
-                                passwordInput.isBlank() ||
-                                confirmPasswordInput.isBlank() -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("All fields are required.")
-                            }
-                        }
-
-                        !Patterns.EMAIL_ADDRESS.matcher(emailInput).matches() -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Please enter a valid email address.")
-                            }
-                        }
-
-                        passwordInput.length < 6 -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Password must be at least 6 characters.")
-                            }
-                        }
-
-                        passwordInput != confirmPasswordInput -> {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Passwords do not match.")
-                            }
-                        }
-
-                        else -> {
-                            isAddingAdmin = true
-                            scope.launch {
-                                val added = viewModel.addAdmin(
-                                    username = usernameInput.trim(),
-                                    email = emailInput.trim(),
-                                    password = passwordInput,
-                                    schoolId = ""
-                                )
-                                snackbarHostState.showSnackbar(
-                                    if (added) "Admin added successfully." else "Admin already exists or failed."
-                                )
-                                if (added) {
-                                    usernameInput = ""
-                                    emailInput = ""
-                                    passwordInput = ""
-                                    confirmPasswordInput = ""
-                                    showAddDialog = false
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        when {
+                            usernameInput.isBlank() ||
+                                    emailInput.isBlank() ||
+                                    passwordInput.isBlank() ||
+                                    confirmPasswordInput.isBlank() -> {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("All fields are required.")
                                 }
-                                isAddingAdmin = false
+                            }
+                            !Patterns.EMAIL_ADDRESS.matcher(emailInput).matches() -> {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Please enter a valid email address.")
+                                }
+                            }
+                            passwordInput.length < 6 -> {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Password must be at least 6 characters.")
+                                }
+                            }
+                            passwordInput != confirmPasswordInput -> {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Passwords do not match.")
+                                }
+                            }
+                            else -> {
+                                isAddingAdmin = true
+                                scope.launch {
+                                    val added = viewModel.addAdmin(
+                                        username = usernameInput.trim(),
+                                        email = emailInput.trim(),
+                                        password = passwordInput,
+                                        schoolId = ""
+                                    )
+                                    snackbarHostState.showSnackbar(
+                                        if (added) "Admin added successfully." else "Admin already exists or failed."
+                                    )
+                                    if (added) {
+                                        usernameInput = ""
+                                        emailInput = ""
+                                        passwordInput = ""
+                                        confirmPasswordInput = ""
+                                        showAddDialog = false
+                                    }
+                                    isAddingAdmin = false
+                                }
                             }
                         }
+                    },
+                    enabled = !isAddingAdmin
+                ) {
+                    if (isAddingAdmin) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .padding(end = 8.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text("Adding...")
+                    } else {
+                        Text("Add")
                     }
-                },
-                enabled = !isAddingAdmin
-            ) {
-                if (isAddingAdmin) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .padding(end = 8.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Text("Adding...")
-                } else {
-                    Text("Add")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showAddDialog = false },
+                    enabled = !isAddingAdmin
+                ) {
+                    Text("Cancel")
                 }
             }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = { showAddDialog = false },
-                enabled = !isAddingAdmin
-            ) {
-                Text("Cancel")
-            }
-        }
         )
     }
 
+    // Assign Admin Dialog
     if (showReassignDialog && selectedAdmin != null) {
         AlertDialog(
             onDismissRequest = {
-                showReassignDialog = false
-                selectedSchool = ""
-                selectedAdmin = null
+                if (!isAssigning) {
+                    showReassignDialog = false
+                    selectedSchool = ""
+                    selectedAdmin = null
+                }
             },
             title = { Text("Assign Admin") },
             text = {
@@ -413,13 +414,19 @@ fun SchoolAdminsScreen(
                     onClick = {
                         if (selectedSchool.isNotBlank() && selectedAdmin != null) {
                             isAssigning = true
+                            loadingAdminEmail = selectedAdmin!!.email
                             scope.launch {
-                                viewModel.assignAdminToSchool(selectedAdmin!!.email, selectedSchool, onDone = {})
-
+                                viewModel.assignAdminToSchool(
+                                    selectedAdmin!!.email,
+                                    selectedSchool,
+                                    onDone = {
+                                        isAssigning = false
+                                        loadingAdminEmail = null
+                                    }
+                                )
                                 selectedSchool = ""
                                 selectedAdmin = null
                                 showReassignDialog = false
-                                isAssigning = false
                             }
                         }
                     },
@@ -439,7 +446,6 @@ fun SchoolAdminsScreen(
                     }
                 }
             },
-
             dismissButton = {
                 TextButton(
                     onClick = {
@@ -455,28 +461,52 @@ fun SchoolAdminsScreen(
         )
     }
 
+    // Delete Admin Dialog
     if (showDeleteDialog && adminToDelete != null) {
         AlertDialog(
             onDismissRequest = {
-                showDeleteDialog = false
-                adminToDelete = null
+                if (!isDeleting) {
+                    showDeleteDialog = false
+                    adminToDelete = null
+                }
             },
             title = { Text("Delete Admin") },
             text = { Text("Are you sure you want to delete ${adminToDelete!!.email}?") },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteAdmin(adminToDelete!!.email)
-                    adminToDelete = null
-                    showDeleteDialog = false
-                }) {
-                    Text("Delete", color = Color.Red)
+                TextButton(
+                    onClick = {
+                        isDeleting = true
+                        loadingAdminEmail = adminToDelete!!.email
+                        viewModel.deleteAdmin(adminToDelete!!.email)
+                        adminToDelete = null
+                        showDeleteDialog = false
+                        isDeleting = false
+                        loadingAdminEmail = null
+                    },
+                    enabled = !isDeleting
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .padding(end = 8.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text("Deleting...")
+                    } else {
+                        Text("Delete", color = Color.Red)
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    adminToDelete = null
-                    showDeleteDialog = false
-                }) {
+                TextButton(
+                    onClick = {
+                        adminToDelete = null
+                        showDeleteDialog = false
+                    },
+                    enabled = !isDeleting
+                ) {
                     Text("Cancel")
                 }
             }
@@ -493,30 +523,36 @@ fun SchoolDropdown(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    OutlinedTextField(
-        value = selectedOption,
-        onValueChange = {},
-        label = { Text(label) },
-        readOnly = true,
-        modifier = Modifier.fillMaxWidth(),
-        trailingIcon = {
-            IconButton(onClick = { expanded = !expanded }) {
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-            }
-        }
-    )
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { expanded = false }
-    ) {
-        options.forEach { option ->
-            DropdownMenuItem(
-                text = { Text(option) },
-                onClick = {
-                    onSelected(option)
-                    expanded = false
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = selectedOption,
+            onValueChange = {},
+            label = { Text(label) },
+            readOnly = true,
+            trailingIcon = {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                 }
-            )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onSelected(option)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }

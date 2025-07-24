@@ -148,8 +148,6 @@ fun SchoolManagementScreen(
     AppScaffold(
         title = "School Management",
         showTopBar = true,
-        showBackButton = true,
-        onBack = { navController.popBackStack() },
         actionButtonLabel = "View Admins",
         onActionButtonClick = { navController.navigate("school_admins") },
         content = { innerPadding ->
@@ -263,7 +261,7 @@ fun SchoolManagementScreen(
                                     navController.navigate("school_details/${Uri.encode(school.name)}")
                                 },
                                 onEdit = {
-                                    navController.navigate("edit_school/${Uri.encode(school.name)}")
+                                    navController.navigate("edit_school/${school.id}")
                                 },
                                 onManageAdmin = {
                                     navController.navigate("manage_admins/${Uri.encode(school.name)}")

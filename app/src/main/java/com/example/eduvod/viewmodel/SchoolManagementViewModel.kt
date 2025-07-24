@@ -79,6 +79,7 @@ class SchoolManagementViewModel(
 
     val schools = mutableStateListOf<School>()
     val schoolAdmins = mutableStateListOf<SchoolAdmin>()
+
     private val _selectedSchool = mutableStateOf<School?>(null)
     val selectedSchool: State<School?> = _selectedSchool
 
@@ -175,18 +176,21 @@ class SchoolManagementViewModel(
         viewModelScope.launch {
             try {
                 val response = repository.getSchoolById(id)
+                println("API Response: $response")
                 if (response.isSuccessful) {
                     val schoolResponse = response.body()?.data
+                    println("School Data: $schoolResponse")
                     _selectedSchool.value = schoolResponse?.toSchool()
                 } else {
+                    println("API Error: ${response.errorBody()?.string()}")
                     _selectedSchool.value = null
                 }
             } catch (e: Exception) {
+                println("Fetch Error: ${e.message}")
                 _selectedSchool.value = null
             }
         }
     }
-
     suspend fun downloadSchoolTemplate(): Response<ResponseBody>? {
         return try {
             repository.downloadTemplate()

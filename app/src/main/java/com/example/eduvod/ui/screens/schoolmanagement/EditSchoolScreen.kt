@@ -25,6 +25,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -43,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -52,6 +54,8 @@ import androidx.navigation.NavController
 import com.example.eduvod.ui.theme.responsiveFontSize
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
 import com.example.eduvod.viewmodel.SystemConfigViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,42 +68,114 @@ fun EditSchoolScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val selectedSchool by viewModel.selectedSchool
+    val isLoading by viewModel.isLoading
 
+    // State for minimum loading time to prevent flickering
+    var showLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(schoolId) {
-        viewModel.fetchSchoolById(schoolId)
-        configViewModel.initialize()
+        if (schoolId > 0) {
+            val startTime = System.currentTimeMillis()
+            viewModel.fetchSchoolById(schoolId)
+            configViewModel.initialize()
+
+            // Ensure loading screen shows for at least 500ms
+            val elapsed = System.currentTimeMillis() - startTime
+            if (elapsed < 500) delay(500 - elapsed)
+            showLoading = false
+        }
     }
 
-
-    if (selectedSchool == null) {
+    // Handle invalid school ID
+    if (schoolId <= 0) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Invalid school ID", color = Color.Red)
+                Button(onClick = { navController.popBackStack() }) {
+                    Text("Go Back")
+                }
+            }
         }
         return
     }
 
+    // Loading state
+    if (showLoading || (isLoading && selectedSchool == null)) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator()
+                Spacer(Modifier.height(16.dp))
+                Text("Loading school details...", style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        return
+    }
 
-    var moeRegNo by remember { mutableStateOf(selectedSchool!!.moeRegNo) }
-    var kpsaRegNo by remember { mutableStateOf(selectedSchool!!.kpsaRegNo) }
-    var schoolCurriculum by remember { mutableStateOf(selectedSchool!!.curriculum) }
-    var category by remember { mutableStateOf(selectedSchool!!.category) }
-    var type by remember { mutableStateOf(selectedSchool!!.type) }
-    var composition by remember { mutableStateOf(selectedSchool!!.composition) }
-    var mobile by remember { mutableStateOf(selectedSchool!!.mobile) }
-    var email by remember { mutableStateOf(selectedSchool!!.email) }
-    var website by remember { mutableStateOf(selectedSchool!!.website) }
-    var region by remember { mutableStateOf(selectedSchool!!.region) }
-    var diocese by remember { mutableStateOf(selectedSchool!!.diocese) }
-    var county by remember { mutableStateOf(selectedSchool!!.county) }
-    var subCounty by remember { mutableStateOf(selectedSchool!!.subCounty) }
-    var location by remember { mutableStateOf(selectedSchool!!.location) }
-    var address by remember { mutableStateOf(selectedSchool!!.address) }
+    // Error state
+    if (selectedSchool == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Failed to load school details", style = MaterialTheme.typography.bodyLarge)
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = {
+                    showLoading = true
+                    viewModel.fetchSchoolById(schoolId)
+                }) {
+                    Text("Retry")
+                }
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = { navController.popBackStack() }) {
+                    Text("Go Back")
+                }
+            }
+        }
+        return
+    }
+
+    // Main content (only shown when data is loaded)
+    EditSchoolContent(
+        navController = navController,
+        selectedSchool = selectedSchool!!,
+        snackbarHostState = snackbarHostState,
+        scope = scope,
+        viewModel = viewModel,
+        configViewModel = configViewModel
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditSchoolContent(
+    navController: NavController,
+    selectedSchool: com.example.eduvod.model.School,
+    snackbarHostState: SnackbarHostState,
+    scope: CoroutineScope,
+    viewModel: SchoolManagementViewModel,
+    configViewModel: SystemConfigViewModel
+) {
+    // Create mutable states for all editable fields
+    var moeRegNo by remember { mutableStateOf(selectedSchool.moeRegNo) }
+    var kpsaRegNo by remember { mutableStateOf(selectedSchool.kpsaRegNo) }
+    var schoolCurriculum by remember { mutableStateOf(selectedSchool.curriculum) }
+    var category by remember { mutableStateOf(selectedSchool.category) }
+    var type by remember { mutableStateOf(selectedSchool.type) }
+    var composition by remember { mutableStateOf(selectedSchool.composition) }
+    var mobile by remember { mutableStateOf(selectedSchool.mobile) }
+    var email by remember { mutableStateOf(selectedSchool.email) }
+    var website by remember { mutableStateOf(selectedSchool.website) }
+    var region by remember { mutableStateOf(selectedSchool.region) }
+    var diocese by remember { mutableStateOf(selectedSchool.diocese) }
+    var county by remember { mutableStateOf(selectedSchool.county) }
+    var subCounty by remember { mutableStateOf(selectedSchool.subCounty) }
+    var location by remember { mutableStateOf(selectedSchool.location) }
+    var address by remember { mutableStateOf(selectedSchool.address) }
 
     var selectedAdmin by remember { mutableStateOf("") }
     var isAdminDropdownExpanded by remember { mutableStateOf(false) }
 
+    // Load dropdown options
     val adminOptions = viewModel.getUnassignedAdmins()
     val curriculumOptions = configViewModel.curriculums.map { it.name }
     val categoryOptions = configViewModel.categories.map { it.name }
@@ -108,9 +184,17 @@ fun EditSchoolScreen(
     val countyOptions = configViewModel.counties.map { it.name }
     val subCountyOptions = configViewModel.subcounties.map { it.name }
 
-    LaunchedEffect(Unit) {
-        configViewModel.loadCounties(region)
-        configViewModel.loadSubcounties(county)
+    // Load dependent dropdowns when region or county changes
+    LaunchedEffect(region) {
+        if (region.isNotEmpty()) {
+            configViewModel.loadCounties(region)
+        }
+    }
+
+    LaunchedEffect(county) {
+        if (county.isNotEmpty()) {
+            configViewModel.loadSubcounties(county)
+        }
     }
 
     Scaffold(
@@ -152,7 +236,12 @@ fun EditSchoolScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Update School Details", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFF0D47A1))
+            Text(
+                "Update School Details",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                color = Color(0xFF0D47A1)
+            )
 
             SectionInputField("MoE REG NO", moeRegNo) { moeRegNo = it }
             SectionInputField("KPSA REG NO", kpsaRegNo) { kpsaRegNo = it }
@@ -162,22 +251,30 @@ fun EditSchoolScreen(
             SectionInputField("Composition", composition) { composition = it }
 
             Divider()
-            Text("Contact Info", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0D47A1))
+            Text(
+                "Contact Info",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = Color(0xFF0D47A1)
+            )
             SectionInputField("Mobile", mobile, KeyboardType.Phone) { mobile = it }
             SectionInputField("Email", email, KeyboardType.Email) { email = it }
             SectionInputField("Website", website) { website = it }
 
             Divider()
-            Text("Location Info", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0D47A1))
+            Text(
+                "Location Info",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = Color(0xFF0D47A1)
+            )
             DropdownField("Region", regionOptions, region) {
                 region = it
-                configViewModel.loadCounties(it)
                 county = ""
                 subCounty = ""
             }
             DropdownField("County", countyOptions, county) {
                 county = it
-                configViewModel.loadSubcounties(it)
                 subCounty = ""
             }
             DropdownField("Sub-County", subCountyOptions, subCounty) { subCounty = it }
@@ -186,7 +283,12 @@ fun EditSchoolScreen(
             SectionInputField("Address", address) { address = it }
 
             Divider()
-            Text("Assign Admin (Optional)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0D47A1))
+            Text(
+                "Assign Admin (Optional)",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = Color(0xFF0D47A1)
+            )
             Box {
                 OutlinedTextField(
                     value = selectedAdmin,
@@ -223,7 +325,7 @@ fun EditSchoolScreen(
 
             Button(
                 onClick = {
-                    val updatedSchool = selectedSchool?.copy(
+                    val updatedSchool = selectedSchool.copy(
                         moeRegNo = moeRegNo,
                         kpsaRegNo = kpsaRegNo,
                         curriculum = schoolCurriculum,
@@ -241,14 +343,16 @@ fun EditSchoolScreen(
                         address = address
                     )
 
-                    updatedSchool?.let {
-                        scope.launch {
-                            viewModel.updateSchool(it.id, it)
+                    scope.launch {
+                        try {
+                            viewModel.updateSchool(updatedSchool.id, updatedSchool)
                             if (selectedAdmin.isNotBlank()) {
-                                viewModel.assignAdminToSchool(selectedAdmin, it.name, onDone = {})
+                                viewModel.assignAdminToSchool(selectedAdmin, updatedSchool.name) {}
                             }
-                            snackbarHostState.showSnackbar("Changes saved for ${it.name}")
+                            snackbarHostState.showSnackbar("Changes saved for ${updatedSchool.name}")
                             navController.popBackStack()
+                        } catch (e: Exception) {
+                            snackbarHostState.showSnackbar("Error saving changes: ${e.message}")
                         }
                     }
                 },
@@ -261,8 +365,47 @@ fun EditSchoolScreen(
     }
 }
 
+@Composable
+fun DropdownField(
+    label: String,
+    options: List<String>,
+    selectedValue: String,
+    onValueChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
 
-
+    Box {
+        OutlinedTextField(
+            value = selectedValue,
+            onValueChange = {},
+            label = { Text(label) },
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true },
+            trailingIcon = {
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                }
+            }
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color.White)
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onValueChange(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun SectionInputField(
@@ -272,7 +415,7 @@ fun SectionInputField(
     onValueChange: (String) -> Unit
 ) {
     OutlinedTextField(
-        value = value ?: "",
+        value = value.toString(),
         onValueChange = onValueChange,
         label = { Text(label) },
         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = keyboardType),

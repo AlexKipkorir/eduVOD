@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -322,76 +323,121 @@ fun BarChartCard(
     modifier: Modifier = Modifier
 ) {
     val maxValue = data.values.maxOrNull() ?: 1
+    val scrollState = rememberScrollState()
+    val itemsToShow = 4
+    val itemHeight = 48.dp
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .wrapContentHeight(),
+            .heightIn(min = 200.dp, max = 300.dp),
         colors = CardDefaults.cardColors(
             containerColor = color.copy(alpha = 0.05f)
         ),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.padding(bottom = 12.dp)
             )
-            Spacer(modifier = Modifier.height(16.dp))
 
-            // Scrollable vertical list with fixed height
-            Column(
+            Box(
                 modifier = Modifier
-                    .heightIn(min = 100.dp, max = 300.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .height(itemHeight * itemsToShow)
+                    .verticalScroll(scrollState)
             ) {
-                data.entries.forEach { (label, value) ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.width(80.dp),
-
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(20.dp)
-                                .background(
-                                    color = color.copy(alpha = 0.3f),
-                                    shape = RoundedCornerShape(6.dp)
-                                )
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .fillMaxWidth(value.toFloat() / maxValue.coerceAtLeast(1))
-                                    .background(
-                                        color = color,
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = value.toString(),
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    data.entries.forEach { (label, value) ->
+                        BarItem(
+                            label = label,
+                            value = value,
+                            maxValue = maxValue,
+                            color = color,
+                            height = itemHeight - 12.dp
                         )
                     }
                 }
+            }
+
+            if (data.size > itemsToShow) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Scroll for more →",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    ),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
         }
     }
 }
 
-data class StatItem(val label: String, val value: Int)
+@Composable
+private fun BarItem(
+    label: String,
+    value: Int,
+    maxValue: Int,
+    color: Color,
+    height: Dp
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.width(80.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(height)
+                .background(
+                    color = color.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(4.dp)
+                )
+        ) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(value.toFloat() / maxValue.coerceAtLeast(1))
+                    .background(
+                        color = color,
+                        shape = RoundedCornerShape(4.dp)
+                    )
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        )
+    }
+}
+
 
 
 

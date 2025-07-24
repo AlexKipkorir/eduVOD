@@ -28,8 +28,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.eduvod.datastore.UserPreferences
 import com.example.eduvod.retrofit.ApiClient
 import com.example.eduvod.ui.screens.*
@@ -251,9 +253,11 @@ fun EduVODNavHost(
                 val schoolName = backStackEntry.arguments?.getString("schoolName")
                 ManageSchoolAdminsScreen(navController, schoolName)
             }
-            composable("edit_school/{schoolId}") { backStackEntry ->
-                val schoolId = backStackEntry.arguments?.getString("schoolId")?.toIntOrNull()
-                    ?: return@composable
+            composable(
+                "edit_school/{schoolId}",
+                arguments = listOf(navArgument("schoolId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val schoolId = backStackEntry.arguments?.getInt("schoolId") ?: 0
                 EditSchoolScreen(navController, schoolId)
             }
             composable("users") {

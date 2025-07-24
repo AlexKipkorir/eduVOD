@@ -122,8 +122,6 @@ fun UserManagementScreen(
         snackbarHostState = snackbarHostState,
         showTopBar = true,
         showLogout = false,
-        showBackButton = true,
-        onBack = { navController.popBackStack() },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             Column(

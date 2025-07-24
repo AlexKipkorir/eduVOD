@@ -1,9 +1,13 @@
 package com.example.eduvod.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,6 +42,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.*
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,14 +56,13 @@ fun AppScaffold(
     actionButtonLabel: String? = null,
     onActionButtonClick: (() -> Unit)? = null,
     onLogout: () -> Unit = {},
-    bottomBarContent: @Composable (() -> Unit)? = null,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     content: @Composable ((PaddingValues) -> Unit),
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
             if (showTopBar) {
                 TopAppBar(
                     title = {
@@ -108,63 +113,68 @@ fun AppScaffold(
                     )
                 )
             }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color(0xFFF4F8FC),
-    ) { innerPadding ->
-        content(innerPadding)
-    }
 
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ExitToApp,
-                        contentDescription = "Logout Icon",
-                        tint = Color.Red,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Confirm Logout",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
-            },
-            text = {
-                Text(
-                    text = "Are you sure you want to log out? You will need to log in again to access your account.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showLogoutDialog = false
-                        onLogout()
-                    },
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Logout", color = Color.White)
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { showLogoutDialog = false },
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Cancel")
-                }
-            },
-            shape = RoundedCornerShape(16.dp),
-            tonalElevation = 8.dp,
-            containerColor = MaterialTheme.colorScheme.surface
+            content(PaddingValues())
+        }
+
+        // Snackbar overlay
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
         )
+
+        // Logout dialog
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.ExitToApp,
+                            contentDescription = "Logout Icon",
+                            tint = Color.Red,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Confirm Logout",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                },
+                text = {
+                    Text(
+                        text = "Are you sure you want to log out? You will need to log in again to access your account.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showLogoutDialog = false
+                            onLogout()
+                        },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Logout", color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = { showLogoutDialog = false },
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Cancel")
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 8.dp,
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        }
     }
 }

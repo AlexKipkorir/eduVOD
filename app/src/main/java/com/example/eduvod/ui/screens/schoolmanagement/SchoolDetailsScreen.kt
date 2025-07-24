@@ -10,14 +10,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.viewmodel.SchoolManagementViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,7 +29,17 @@ fun SchoolDetailsScreen(
     schoolName: String,
     viewModel: SchoolManagementViewModel = viewModel()
 ) {
-    val school = viewModel.getSchoolByName(schoolName)
+    var isLoading by remember { mutableStateOf(true) }
+    var showNotFound by remember { mutableStateOf(false) }
+    val school by remember { derivedStateOf { viewModel.getSchoolByName(schoolName) } }
+    val currentSchool = school
+
+    LaunchedEffect(schoolName) {
+        isLoading = true
+        delay(500)
+        isLoading = false
+        showNotFound = school == null
+    }
 
     Log.d("SchoolDetailsScreen", "Requested school name: $schoolName")
     Log.d("SchoolDetailsScreen", "Retrieved school object: ${school?.name ?: "null"}")
@@ -51,74 +64,120 @@ fun SchoolDetailsScreen(
             )
         },
         floatingActionButton = {
-            if (school != null) {
-                FloatingActionButton(
-                    onClick = {
-                        Log.d("SchoolDetailsScreen", "Navigating to edit screen for: ${school.name}")
-                        navController.navigate("edit_school/${school.name}")
-                    },
-                    containerColor = Color(0xFF1565C0),
-                    contentColor = Color.White
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+            if (!isLoading && school != null) {
+                school?.let { school ->
+                    FloatingActionButton(
+                        onClick = {
+                            Log.d("SchoolDetailsScreen", "Navigating to edit screen for: ${school.name}")
+                            navController.navigate("edit_school/${school.id}")
+                        },
+                        containerColor = Color(0xFF1565C0),
+                        contentColor = Color.White
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    }
                 }
             }
         }
     ) { padding ->
-        if (school != null) {
-            Log.d("SchoolDetailsScreen", "Displaying school details for: ${school.name}")
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                SectionCard(
-                    title = " Basic Information",
-                    items = listOf(
-                        "School Name" to school.name,
-                        "MoE REG NO" to school.moeRegNo,
-                        "KPSA REG NO" to school.kpsaRegNo,
-                        "Curriculum" to school.curriculum,
-                        "Category" to school.category,
-                        "Type" to school.type,
-                        "Composition" to school.composition
-                    )
-                )
-
-                SectionCard(
-                    title = " Contact Information",
-                    items = listOf(
-                        "Mobile" to school.mobile,
-                        "Email" to school.email,
-                        "Website" to school.website
-                    )
-                )
-
-                SectionCard(
-                    title = " Location",
-                    items = listOf(
-                        "Region" to school.region,
-                        "Diocese" to school.diocese,
-                        "County" to school.county,
-                        "SubCounty" to school.subCounty,
-                        "Location" to school.location,
-                        "Address" to school.address
-                    )
-                )
-            }
-        } else {
-            Log.e("SchoolDetailsScreen", "School not found for name: $schoolName")
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("School not found", color = Color.Red, fontWeight = FontWeight.Bold)
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
+            when {
+                isLoading -> {
+                    LoadingState()
+                }
+                currentSchool != null -> {
+                    Log.d("SchoolDetailsScreen", "Displaying school details for: ${currentSchool.name}")
+                    SchoolDetailsContent(school = currentSchool)
+                }
+                else -> {
+                    Log.e("SchoolDetailsScreen", "School not found for name: $schoolName")
+                    ErrorState(schoolName = schoolName)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun LoadingState() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CircularProgressIndicator()
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Loading school details...", fontSize = 16.sp)
+    }
+}
+
+@Composable
+private fun ErrorState(schoolName: String) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "School not found",
+            color = MaterialTheme.colorScheme.error,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = schoolName,
+            fontSize = 16.sp,
+            color = Color.Gray
+        )
+    }
+}
+
+@Composable
+private fun SchoolDetailsContent(school: com.example.eduvod.model.School) {
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        SectionCard(
+            title = "Basic Information",
+            items = listOf(
+                "School Name" to school.name,
+                "MoE REG NO" to school.moeRegNo,
+                "KPSA REG NO" to school.kpsaRegNo,
+                "Curriculum" to school.curriculum,
+                "Category" to school.category,
+                "Type" to school.type,
+                "Composition" to school.composition
+            )
+        )
+
+        SectionCard(
+            title = "Contact Information",
+            items = listOf(
+                "Mobile" to school.mobile,
+                "Email" to school.email,
+                "Website" to school.website
+            )
+        )
+
+        SectionCard(
+            title = "Location",
+            items = listOf(
+                "Region" to school.region,
+                "Diocese" to school.diocese,
+                "County" to school.county,
+                "SubCounty" to school.subCounty,
+                "Location" to school.location,
+                "Address" to school.address
+            )
+        )
     }
 }
 
@@ -170,5 +229,3 @@ fun InfoBadge(text: String?, backgroundColor: Color = Color(0xFFE3F2FD)) {
         )
     }
 }
-
-

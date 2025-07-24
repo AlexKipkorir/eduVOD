@@ -114,8 +114,6 @@ fun GradesManagementScreen(
     AppScaffold(
         title = "Grades Management",
         showTopBar = true,
-        showBackButton = true,
-        onBack = { navController.popBackStack() },
         snackbarHostState = snackbarHostState
     ) { innerPadding ->
 
