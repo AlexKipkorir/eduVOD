@@ -86,7 +86,16 @@ fun ManageSchoolAdminsScreen(
         snackbarHostState = snackbarHostState,
         showTopBar = true,
         showBackButton = true,
-        onBack = { navController.popBackStack() }
+        onBack = { navController.popBackStack() },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                icon = { Icon(Icons.Default.PersonAdd, contentDescription = "Add Admin") },
+                text = { Text("Add Admin") },
+                onClick = { showAddDialog = true },
+                containerColor = Color(0xFF1565C0),
+                contentColor = Color.White
+            )
+        }
 
     ) { padding ->
 
@@ -146,20 +155,6 @@ fun ManageSchoolAdminsScreen(
                     }
                 }
             }
-        }
-
-        // Floating action button
-        Box(modifier = Modifier
-            .padding(end = 24.dp, bottom = 24.dp)
-            .fillMaxSize(), contentAlignment = Alignment.BottomEnd
-        ) {
-            ExtendedFloatingActionButton(
-                icon = { Icon(Icons.Default.PersonAdd, contentDescription = "Add Admin") },
-                text = { Text("Add Admin") },
-                onClick = { showAddDialog = true },
-                containerColor = Color(0xFF1565C0),
-                contentColor = Color.White
-            )
         }
     }
 

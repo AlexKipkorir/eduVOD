@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -21,8 +24,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
@@ -193,7 +198,7 @@ fun AddSchoolScreen(
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Assign Admin (Optional)", fontSize = responsiveFontSize(18f), fontWeight = FontWeight.SemiBold, color = Color(0xFF0D47A1))
 
-                    AdminDropdown(
+                    SchoolDropdown(
                         label = "Assign Admin",
                         options = schoolViewModel.getUnassignedAdmins(),
                         selectedOption = selectedAdmin,
@@ -307,168 +312,5 @@ fun CustomTextField(
     )
 }
 
-@Composable
-fun DropdownField(
-    label: String,
-    options: List<String>,
-    selectedOption: String?,
-    onSelected: (String) -> Unit
-) {
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-    val baseFontSize = when {
-        screenWidth < 360 -> 12.sp
-        screenWidth < 400 -> 13.sp
-        screenWidth < 480 -> 14.sp
-        else -> 16.sp
-    }
-
-    var expanded by remember { mutableStateOf(false) }
-    var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
-    val density = LocalDensity.current
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = label,
-            fontSize = baseFontSize,
-            color = Color.Gray,
-            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-        )
-
-        Box {
-            OutlinedTextField(
-                value = selectedOption ?: "",
-                onValueChange = {},
-                readOnly = true,
-                singleLine = true,
-                trailingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Expand dropdown",
-                        modifier = Modifier.clickable { expanded = !expanded },
-                        tint = Color(0xFF0D47A1)
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp)
-                    .onGloballyPositioned { coordinates ->
-                        textFieldSize = coordinates.size
-                    },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF0D47A1),
-                    unfocusedBorderColor = Color.Gray,
-                    focusedLabelColor = Color(0xFF0D47A1),
-                    cursorColor = Color(0xFF0D47A1)
-                ),
-                textStyle = LocalTextStyle.current.copy(fontSize = baseFontSize)
-            )
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .width(with(density) { textFieldSize.width.toDp() })
-                    .heightIn(max = 300.dp)
-            ) {
-                options.forEach { item ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = item,
-                                fontSize = baseFontSize
-                            )
-                        },
-                        onClick = {
-                            onSelected(item)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
 
 
-
-@Composable
-fun AdminDropdown(
-    label: String,
-    options: List<String>,
-    selectedOption: String,
-    onSelected: (String) -> Unit
-) {
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-    val labelFontSize = (screenWidth * 0.035).sp   // responsive text size
-    val valueFontSize = (screenWidth * 0.04).sp
-
-    var expanded by remember { mutableStateOf(false) }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = label,
-            fontSize = labelFontSize,
-            color = Color.Gray,
-            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-        )
-
-        Box {
-            OutlinedTextField(
-                value = selectedOption,
-                onValueChange = {},
-                readOnly = true,
-                singleLine = true,
-                textStyle = TextStyle(fontSize = valueFontSize),
-                trailingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Select Admin",
-                        modifier = Modifier.clickable { expanded = true },
-                        tint = Color(0xFF0D47A1)
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF0D47A1),
-                    unfocusedBorderColor = Color.Gray,
-                    focusedLabelColor = Color(0xFF0D47A1),
-                    cursorColor = Color(0xFF0D47A1)
-                )
-            )
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 300.dp)
-            ) {
-                options.forEach { adminEmail ->
-                    DropdownMenuItem(
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = Color(0xFF0D47A1),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = adminEmail,
-                                    fontSize = valueFontSize
-                                )
-                            }
-                        },
-                        onClick = {
-                            onSelected(adminEmail)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
-    }
-}

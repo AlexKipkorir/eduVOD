@@ -169,7 +169,7 @@ fun DashboardScreen(
                     item {
                         Column {
                             Text(
-                                "School Admin Dashboard",
+                                "Admin Dashboard",
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
@@ -225,8 +225,8 @@ fun DashboardScreen(
                                 "Male" to (stats?.differentlyAbledByGender?.get("MALE")?.toString() ?: "0"),
                                 "Female" to (stats?.differentlyAbledByGender?.get("FEMALE")?.toString() ?: "0"),
                                 icon = Icons.Default.Accessibility,
-                                primaryColor = MaterialTheme.colorScheme.tertiary,
-                                secondaryColor = MaterialTheme.colorScheme.tertiaryContainer
+                                primaryColor = MaterialTheme.colorScheme.primary,
+                                secondaryColor = MaterialTheme.colorScheme.secondary
                             )
                         }
                     }
@@ -241,8 +241,8 @@ fun DashboardScreen(
                                 "Male" to (stats?.teacherCountByGender?.get("MALE")?.toString() ?: "0"),
                                 "Female" to (stats?.teacherCountByGender?.get("FEMALE")?.toString() ?: "0"),
                                 icon = Icons.Default.Person,
-                                primaryColor = MaterialTheme.colorScheme.secondary,
-                                secondaryColor = MaterialTheme.colorScheme.secondaryContainer
+                                primaryColor = MaterialTheme.colorScheme.primary,
+                                secondaryColor = MaterialTheme.colorScheme.secondary
                             )
                         }
                     }

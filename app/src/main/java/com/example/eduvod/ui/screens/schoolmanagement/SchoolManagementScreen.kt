@@ -18,14 +18,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
@@ -38,6 +41,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +50,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -62,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -229,12 +235,23 @@ fun SchoolManagementScreen(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                FilterDropdown("Region", regionOptions, selectedRegion) {
-                                    viewModel.selectedRegion.value = it
-                                }
-                                FilterDropdown("Type", typeOptions, selectedType) {
-                                    viewModel.selectedType.value = it
-                                }
+                                SchoolDropdown(
+                                    label = "Region",
+                                    options = regionOptions,
+                                    selectedOption = selectedRegion,
+                                    onSelected = { selected ->
+                                        viewModel.selectedRegion.value = selected
+                                    }
+                                )
+
+                                SchoolDropdown(
+                                    label = "Type",
+                                    options = typeOptions,
+                                    selectedOption = selectedType,
+                                    onSelected = { selected ->
+                                        viewModel.selectedType.value = selected
+                                    }
+                                )
                                 Button(
                                     onClick = {
                                         viewModel.searchQuery.value = ""
@@ -466,6 +483,106 @@ fun SwipeRefreshContainer(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             content()
+        }
+    }
+}
+
+@Composable
+fun DropdownField(
+    label: String,
+    options: List<String>,
+    selectedOption: String?,
+    onSelected: (String) -> Unit
+) {
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val baseFontSize = when {
+        screenWidth < 360 -> 12.sp
+        screenWidth < 400 -> 13.sp
+        screenWidth < 480 -> 14.sp
+        else -> 16.sp
+    }
+
+    var expanded by remember { mutableStateOf(false) }
+    val scrollState = rememberLazyListState()
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = selectedOption ?: "",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label, fontSize = baseFontSize) },
+            trailingIcon = {
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    modifier = Modifier.clickable { expanded = !expanded }
+                )
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF0D47A1),
+                unfocusedBorderColor = Color.Gray,
+                focusedLabelColor = Color(0xFF0D47A1),
+                cursorColor = Color(0xFF0D47A1)
+            ),
+            textStyle = LocalTextStyle.current.copy(fontSize = baseFontSize),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+        )
+
+        if (expanded) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 200.dp)
+                    .padding(vertical = 4.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                shape = MaterialTheme.shapes.medium,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
+            ) {
+                LazyColumn(
+                    state = scrollState,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(options) { option ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onSelected(option)
+                                    expanded = false
+                                }
+                                .background(
+                                    if (option == selectedOption) {
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                    } else {
+                                        Color.Transparent
+                                    }
+                                )
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = option,
+                                color = if (option == selectedOption) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                                fontSize = baseFontSize
+                            )
+                        }
+
+                        Divider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -56,8 +56,9 @@ fun AppScaffold(
     actionButtonLabel: String? = null,
     onActionButtonClick: (() -> Unit)? = null,
     onLogout: () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
-    content: @Composable ((PaddingValues) -> Unit),
+    content: @Composable (PaddingValues) -> Unit,
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
 
@@ -114,7 +115,20 @@ fun AppScaffold(
                 )
             }
 
-            content(PaddingValues())
+            // Main content with proper padding for FAB
+            Box(modifier = Modifier.fillMaxSize()) {
+                content(PaddingValues())
+
+                // Floating Action Button positioned absolutely
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(end = 16.dp, bottom = 16.dp),
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    floatingActionButton()
+                }
+            }
         }
 
         // Snackbar overlay
