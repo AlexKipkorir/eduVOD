@@ -324,36 +324,15 @@ fun SchoolAdminsScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
-                        value = passwordInput,
-                        onValueChange = { passwordInput = it },
-                        label = { Text("Password (min 6 characters)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = confirmPasswordInput,
-                        onValueChange = { confirmPasswordInput = it },
-                        label = { Text("Confirm Password") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         when {
-                            usernameInput.isBlank() ||
-                                    emailInput.isBlank() ||
-                                    passwordInput.isBlank() ||
-                                    confirmPasswordInput.isBlank() -> {
+                            usernameInput.isBlank() || emailInput.isBlank() -> {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("All fields are required.")
+                                    snackbarHostState.showSnackbar("Username and Email are required.")
                                 }
                             }
                             !Patterns.EMAIL_ADDRESS.matcher(emailInput).matches() -> {
@@ -361,33 +340,19 @@ fun SchoolAdminsScreen(
                                     snackbarHostState.showSnackbar("Please enter a valid email address.")
                                 }
                             }
-                            passwordInput.length < 6 -> {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Password must be at least 6 characters.")
-                                }
-                            }
-                            passwordInput != confirmPasswordInput -> {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Passwords do not match.")
-                                }
-                            }
                             else -> {
                                 isAddingAdmin = true
                                 scope.launch {
                                     val added = viewModel.addAdmin(
                                         username = usernameInput.trim(),
-                                        email = emailInput.trim(),
-                                        password = passwordInput,
-                                        schoolId = ""
+                                        email = emailInput.trim()
                                     )
                                     snackbarHostState.showSnackbar(
-                                        if (added) "Admin added successfully." else "Admin already exists or failed."
+                                        if (added) "Admin added. Email with temporary password sent." else "Admin already exists or failed."
                                     )
                                     if (added) {
                                         usernameInput = ""
                                         emailInput = ""
-                                        passwordInput = ""
-                                        confirmPasswordInput = ""
                                         showAddDialog = false
                                     }
                                     isAddingAdmin = false
@@ -421,6 +386,7 @@ fun SchoolAdminsScreen(
             }
         )
     }
+
 
     // Assign Admin Dialog
     if (showReassignDialog && selectedAdmin != null) {
