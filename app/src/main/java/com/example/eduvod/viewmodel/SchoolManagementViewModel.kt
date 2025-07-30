@@ -257,7 +257,7 @@ class SchoolManagementViewModel(
             }
         }
     }
-    fun addAdmin(username: String, email: String, password: String, schoolId: String): Boolean {
+    fun addAdmin(username: String, email: String): Boolean {
         if (schoolAdmins.any { it.email.equals(email, ignoreCase = true) }) return false
 
         viewModelScope.launch {
@@ -266,7 +266,7 @@ class SchoolManagementViewModel(
                     username = username,
                     email = email,
                     password = "123456",
-                    schoolId = schoolId
+                    schoolId = ""
                 )
                 repository.addSchoolAdmin(request)
                 fetchAdmins()
@@ -276,6 +276,7 @@ class SchoolManagementViewModel(
         }
         return true
     }
+
     fun unassignAdmin(adminEmail: String, onDone: () -> Unit) {
         val admin = schoolAdmins.find { it.email.equals(adminEmail, ignoreCase = true) } ?: return onDone()
 
