@@ -242,18 +242,29 @@ class SchoolManagementViewModel(
     // --- ADMIN Functions ---//
     fun fetchAdmins() {
         viewModelScope.launch {
+            isLoading.value = true
             try {
+                println("Fetching admins...")
                 val response = repository.getAllSchoolAdmins()
+                println("Admins API response: $response")
+                println("Response body: ${response.body()}")
+
                 if (response.isSuccessful) {
-                    response.body()?.data?.let {
+                    response.body()?.data?.let { data ->
+                        println("Received ${data.size} admins")
                         schoolAdmins.clear()
-                        schoolAdmins.addAll(it)
+                        schoolAdmins.addAll(data)
                     }
                 } else {
-                    snackbarMessage.value = "Failed to load admins."
+                    val error = response.errorBody()?.string()
+                    println("Failed to load admins: $error")
+                    snackbarMessage.value = "Failed to load admins: $error"
                 }
             } catch (e: Exception) {
+                println("Error fetching admins: ${e.stackTraceToString()}")
                 snackbarMessage.value = "Error fetching admins: ${e.localizedMessage}"
+            } finally {
+                isLoading.value = false
             }
         }
     }
