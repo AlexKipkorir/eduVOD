@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.eduvod.model.School
 import com.example.eduvod.repositories.SchoolRepository
 import com.example.eduvod.retrofit.response.toSchool
-import com.example.eduvod.ui.screens.schoolmanagement.AdminAccount
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -75,7 +74,6 @@ class SchoolManagementViewModel(
 
     val snackbarMessage = MutableStateFlow<String?>(null)
 
-    val admins = mutableStateListOf<AdminAccount>()
 
     val schools = mutableStateListOf<School>()
     val schoolAdmins = mutableStateListOf<SchoolAdmin>()

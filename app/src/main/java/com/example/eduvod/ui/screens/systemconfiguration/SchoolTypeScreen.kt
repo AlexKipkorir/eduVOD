@@ -1,10 +1,7 @@
 package com.example.eduvod.ui.screens.systemconfiguration
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,9 +17,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -31,31 +28,32 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.eduvod.ui.screens.AppScaffold
+import com.example.eduvod.model.SimpleItem
+import com.example.eduvod.ui.theme.EduVODTheme
 import com.example.eduvod.viewmodel.SystemConfigViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,196 +61,489 @@ fun SchoolTypeScreen(
     viewModel: SystemConfigViewModel,
     navController: NavController
 ) {
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-
     val types = viewModel.types
-    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
 
-    var showDialog by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var newSchoolTypeName by remember { mutableStateOf("") }
     var isEditing by remember { mutableStateOf(false) }
-    var originalName by remember { mutableStateOf("") }
-    var nameInput by remember { mutableStateOf("") }
+    var editingItem by remember { mutableStateOf<SimpleItem?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.initialize()
     }
 
-    LaunchedEffect(snackbarMessage) {
-        snackbarMessage?.let {
-            scope.launch {
-                snackbarHostState.showSnackbar(it)
-                viewModel.clearSnackbar()
-            }
-        }
-    }
-
-    AppScaffold(
-        title = "School Types",
-        snackbarHostState = snackbarHostState,
-        showTopBar = true,
-        showLogout = false,
-        showBackButton = true,
-        onBack = { navController.popBackStack() },
-    ) { padding ->
-
-        Box(modifier = Modifier
+    Column(
+        modifier = Modifier
             .fillMaxSize()
-            .padding(padding)) {
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+            .background(Color.White)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp, 16.dp, 16.dp, 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.size(48.dp)
             ) {
-                if (types.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No school types yet.", color = Color.Gray)
-                    }
-                } else {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(types) { type ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        nameInput = type.name
-                                        originalName = type.name
-                                        isEditing = true
-                                        showDialog = true
-                                    },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
-                                elevation = CardDefaults.cardElevation(2.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = type.name,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Edit",
-                                        tint = Color.Black
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            FloatingActionButton(
-                onClick = {
-                    nameInput = ""
-                    originalName = ""
-                    isEditing = false
-                    showDialog = true
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Type")
-            }
-
-            AnimatedVisibility(
-                visible = isLoading,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xAAFFFFFF)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(
-                            color = Color(0xFF1565C0),
-                            strokeWidth = 4.dp,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Loading types...", color = Color(0xFF1565C0))
-                    }
-                }
-            }
-        }
-    }
-
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            shape = RoundedCornerShape(16.dp),
-            tonalElevation = 4.dp,
-            title = {
-                Text(
-                    text = if (isEditing) "Edit School Type" else "Add School Type",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color(0xFF111418)
                 )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = nameInput,
-                        onValueChange = { nameInput = it },
-                        label = { Text("Type name") },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+            }
+
+            Text(
+                text = "School Type",
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                ),
+                color = Color(0xFF111418)
+            )
+        }
+
+        if (types.isEmpty() && !isLoading) {
+            EmptyStateView(onAddClick = { showAddDialog = true })
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(types) { type ->
+                    SchoolTypeItem(
+                        type = type,
+                        onClick = {
+                            editingItem = type
+                            newSchoolTypeName = type.name
+                            isEditing = true
+                            showAddDialog = true
+                        }
                     )
                 }
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.BottomEnd
+    ) {
+        FloatingActionButton(
+            onClick = {
+                isEditing = false
+                editingItem = null
+                newSchoolTypeName = ""
+                showAddDialog = true
             },
-            confirmButton = {
+            containerColor = Color(0xFF0D80F2)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Add", tint = Color.White)
+        }
+    }
+
+    if (showAddDialog) {
+        val sheetState = rememberModalBottomSheetState()
+        ModalBottomSheet(
+            onDismissRequest = { showAddDialog = false },
+            sheetState = sheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = if (isEditing) "Edit School Type" else "Add New School Type",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    ),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                OutlinedTextField(
+                    value = newSchoolTypeName,
+                    onValueChange = { newSchoolTypeName = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    placeholder = { Text("School Type Name") },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color(0xFFF0F2F5),
+                        focusedContainerColor = Color(0xFFF0F2F5),
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent
+                    )
+                )
+
                 Button(
                     onClick = {
-                        if (nameInput.isBlank()) {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Name cannot be empty")
-                            }
+                        if (newSchoolTypeName.isBlank()) {
+                            viewModel.snackbarMessage.value = "Name cannot be empty"
                             return@Button
                         }
 
                         if (isEditing) {
-                            viewModel.updateItem("School Type", originalName, nameInput)
+                            editingItem?.let {
+                                viewModel.updateItem("School Type", it.name, newSchoolTypeName)
+                            }
                         } else {
-                            viewModel.addItem("School Type", nameInput)
+                            viewModel.addItem("School Type", newSchoolTypeName)
                         }
-
-                        showDialog = false
+                        showAddDialog = false
                     },
-                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                        containerColor = Color(0xFF0D80F2),
+                        contentColor = Color.White
                     )
                 ) {
-                    Text("Save", color = Color.White)
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { showDialog = false },
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                ) {
-                    Text("Cancel")
+                    Text(
+                        text = if (isEditing) "Update School Type" else "Add School Type",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
+        }
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(
+                    color = Color(0xFF0D80F2),
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Loading...",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SchoolTypeItem(
+    type: SimpleItem,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier.weight(2f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Active",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Color(0xFF60758A),
+                        fontWeight = FontWeight.Normal
+                    )
+                )
+                Text(
+                    text = type.name,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = Color(0xFF111418),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                )
+                Text(
+                    text = "Description not available",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Color(0xFF60758A),
+                        fontWeight = FontWeight.Normal
+                    )
+                )
+            }
+
+            IconButton(
+                onClick = onClick,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF0F2F5))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Edit",
+                    tint = Color(0xFF111418),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyStateView(onAddClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .border(
+                width = 2.dp,
+                color = Color(0xFFDBE0E6),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(24.dp, 56.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "No School Types Found",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF111418)
+                )
+            )
+            Text(
+                text = "Add a new school type to get started.",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = Color(0xFF111418),
+                    fontWeight = FontWeight.Normal
+                )
+            )
+        }
+
+        Button(
+            onClick = onAddClick,
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFF0F2F5),
+                contentColor = Color(0xFF111418)
+            ),
+            modifier = Modifier.height(40.dp)
+        ) {
+            Text(
+                text = "Add School Type",
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+
+//Preview
+@Preview(showBackground = true, name = "School Type Screen (Preview)")
+@Composable
+fun SchoolTypeScreenPreview() {
+    EduVODTheme {
+        // Create a preview-only version of the screen
+        PreviewSchoolTypeScreen()
+    }
+}
+
+@Preview(showBackground = true, name = "Empty State Preview")
+@Composable
+fun EmptyStatePreview() {
+    EduVODTheme {
+        EmptyStateView(onAddClick = {})
+    }
+}
+
+// Preview-only composable that doesn't need a ViewModel
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PreviewSchoolTypeScreen() {
+    val mockTypes = remember {
+        listOf(
+            SimpleItem(1, "Primary School"),
+            SimpleItem(2, "Secondary School"),
+            SimpleItem(3, "Vocational School")
         )
     }
 
+    var showAddDialog by remember { mutableStateOf(false) }
+    var newSchoolTypeName by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp, 16.dp, 16.dp, 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { /* No-op for preview */ },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color(0xFF111418)
+                )
+            }
+
+            Text(
+                text = "School Type",
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                ),
+                color = Color(0xFF111418)
+            )
+        }
+
+        if (mockTypes.isEmpty()) {
+            EmptyStateView(onAddClick = { showAddDialog = true })
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(mockTypes) { type ->
+                    SchoolTypeItem(
+                        type = type,
+                        onClick = { showAddDialog = true }
+                    )
+                }
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.BottomEnd
+    ) {
+        FloatingActionButton(
+            onClick = { showAddDialog = true },
+            containerColor = Color(0xFF0D80F2)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Add", tint = Color.White)
+        }
+    }
+
+    if (showAddDialog) {
+        val sheetState = rememberModalBottomSheetState()
+        ModalBottomSheet(
+            onDismissRequest = { showAddDialog = false },
+            sheetState = sheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Add New School Type",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    ),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                OutlinedTextField(
+                    value = newSchoolTypeName,
+                    onValueChange = { newSchoolTypeName = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    placeholder = { Text("School Type Name") },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color(0xFFF0F2F5),
+                        focusedContainerColor = Color(0xFFF0F2F5),
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent
+                    )
+                )
+
+                Button(
+                    onClick = { showAddDialog = false },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0D80F2),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Add School Type", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(
+                    color = Color(0xFF0D80F2),
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Loading...",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
 }
-
-
-

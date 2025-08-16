@@ -11,17 +11,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class DashboardViewModel(
+open class DashboardViewModel(
     private val repository: DashboardRepository = DashboardRepository()
 ) : ViewModel() {
 
     private val _stats = MutableStateFlow<SuperAdminDashboardResponse?>(null)
-    val stats: StateFlow<SuperAdminDashboardResponse?> = _stats
+    open val stats: StateFlow<SuperAdminDashboardResponse?> = _stats
 
     private val _snackbar = MutableStateFlow<String?>(null)
     val snackbar: StateFlow<String?> = _snackbar
     private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    open val isLoading: StateFlow<Boolean> = _isLoading
 
 
     init {

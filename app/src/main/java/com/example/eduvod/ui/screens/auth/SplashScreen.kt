@@ -1,4 +1,4 @@
-package com.example.eduvod.ui.screens
+package com.example.eduvod.ui.screens.auth
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat

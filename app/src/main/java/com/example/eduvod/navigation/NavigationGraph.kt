@@ -1,4 +1,4 @@
-package com.example.eduvod.ui.screens
+package com.example.eduvod.navigation
 
 import androidx.compose.animation.*
 import androidx.compose.runtime.Composable
@@ -8,6 +8,8 @@ import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import androidx.navigation.NavHostController
 import com.example.eduvod.AuthViewModelFactory
+import com.example.eduvod.ui.screens.auth.LoginScreen
+import com.example.eduvod.ui.screens.dashboard.DashboardScreen
 import com.example.eduvod.ui.screens.schoolmanagement.AddSchoolScreen
 import com.example.eduvod.ui.screens.schoolmanagement.EditSchoolScreen
 import com.example.eduvod.ui.screens.schoolmanagement.ManageSchoolAdminsScreen
@@ -55,20 +57,30 @@ fun AppNavHost(navController: NavHostController) {
         composable("edit_school/{schoolId}") { backStackEntry ->
             val schoolId = backStackEntry.arguments?.getString("schoolId")?.toIntOrNull()
             if (schoolId != null) {
-                EditSchoolScreen(schoolId = schoolId, navController = navController)
+                EditSchoolScreen(
+                    navController,
+                    schoolId,
+                    viewModel = viewModel(),
+                    configViewModel = viewModel()
+                )
             }
         }
         composable("school_details/{schoolName}") {
             val schoolName = it.arguments?.getString("schoolName") ?: ""
-            SchoolDetailsScreen(navController, schoolName)
+            SchoolDetailsScreen(navController, schoolName, viewModel = viewModel())
         }
         composable("manage_admins/{schoolName}") {
             val schoolName = it.arguments?.getString("schoolName") ?: ""
-            ManageSchoolAdminsScreen(navController, schoolName)
+            ManageSchoolAdminsScreen(navController, schoolName, viewModel = viewModel())
         }
         composable("edit_school/{schoolId}") { backStackEntry ->
             val schoolId = backStackEntry.arguments?.getString("schoolId")?.toIntOrNull() ?: return@composable
-            EditSchoolScreen(navController, schoolId)
+            EditSchoolScreen(
+                navController,
+                schoolId,
+                viewModel = viewModel(),
+                configViewModel = viewModel()
+            )
         }
     }
 }

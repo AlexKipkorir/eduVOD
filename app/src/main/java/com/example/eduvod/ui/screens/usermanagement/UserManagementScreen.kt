@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,30 +17,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -51,165 +42,296 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.eduvod.AuthViewModelFactory
-import com.example.eduvod.ui.screens.AppScaffold
+import com.example.eduvod.ui.theme.EduVODTheme
 import com.example.eduvod.viewmodel.AdminUser
-import com.example.eduvod.viewmodel.AuthViewModel
 import com.example.eduvod.viewmodel.UserManagementViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserManagementScreen(
     navController: NavHostController,
-    viewModel: UserManagementViewModel = viewModel()
+    viewModel: UserManagementViewModel
 ) {
-    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val snackbarHostState = remember { SnackbarHostState() }
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+    val currentUserEmail by viewModel.currentUserEmail.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    var selectedStatus by remember { mutableStateOf("ALL") }
-
-    val context = LocalContext.current
-    val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(context))
-    val email by authViewModel.savedEmail.collectAsState(initial = "")
-    val currentUserEmail by viewModel.currentUserEmail.collectAsState()
-
-    val filteredStatuses = listOf("ALL", "ACTIVE", "BLOCKED", "DELETED")
-    val adminsByStatus = viewModel.admins
-        .filter { it.email.contains(searchQuery, ignoreCase = true) }
-        .groupBy { it.status?.uppercase() ?: "UNKNOWN" }
-
-    val expandStates = remember { mutableStateMapOf<String, Boolean>() }
-    val isLoading by viewModel.isLoading.collectAsState()
+    var selectedFilter by remember { mutableStateOf<UserFilter?>(null) }
+    var expandedMenuId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(snackbarMessage) {
-        viewModel.setCurrentUserEmail(email ?: "")
         snackbarMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearSnackbar()
         }
     }
 
-    AppScaffold(
-        title = "EduVOD User Management",
-        snackbarHostState = snackbarHostState,
-        showTopBar = true,
-        showLogout = false,
+    val admins = viewModel.admins
+    val filteredAdmins = remember(admins, searchQuery, selectedFilter) {
+        admins.filter { admin ->
+            val matchesSearch = admin.email.contains(searchQuery, ignoreCase = true)
+            val matchesFilter = when (selectedFilter) {
+                UserFilter.ALL -> true
+                UserFilter.ACTIVE -> admin.status == "ACTIVE"
+                UserFilter.BLOCKED -> admin.status == "BLOCKED"
+                UserFilter.DELETED -> admin.status == "DELETED"
+                null -> true
+            }
+            matchesSearch && matchesFilter
+        }
+    }
+
+    val activeAdmins = filteredAdmins.filter { it.status == "ACTIVE" }
+    val blockedAdmins = filteredAdmins.filter { it.status == "BLOCKED" }
+    val deletedAdmins = filteredAdmins.filter { it.status == "DELETED" }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(Icons.Default.Add, "Add Admin")
+            }
+        }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .padding(padding)
-                    .padding(16.dp)
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
             ) {
+                // Header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
 
+                    Text(
+                        text = "User Management",
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        ),
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    // Search and Filter icons
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(
+                            onClick = { /* Handle search */ },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    }
+                }
+
+                // Search Bar
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text("Search by Email") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    placeholder = { Text("Search by email") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
+                // Filter chips
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    filteredStatuses.forEach { status ->
+                    UserFilter.entries.forEach { filter ->
                         FilterChip(
-                            selected = selectedStatus == status,
-                            onClick = { selectedStatus = status },
-                            label = { Text(status) }
+                            selected = selectedFilter == filter,
+                            onClick = {
+                                selectedFilter = if (selectedFilter == filter) null else filter
+                            },
+                            label = { Text(filter.displayName) }
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                // Content
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 16.dp)
+                ) {
+                    // Active Admins
+                    if (activeAdmins.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Active Admins",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                ),
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
 
-                if (viewModel.admins.isEmpty()) {
-                    Text("No admins found.", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                } else {
-                    val displayStatuses = when (selectedStatus) {
-                        "ALL" -> listOf("ACTIVE", "BLOCKED", "DELETED", "UNKNOWN")
-                        else -> listOf(selectedStatus)
+                        items(activeAdmins) { admin ->
+                            AdminListItem(
+                                admin = admin,
+                                currentUserEmail = currentUserEmail,
+                                expandedMenuId = expandedMenuId,
+                                onOptionsClick = { expandedMenuId = admin.email },
+                                onDismissMenu = { expandedMenuId = null },
+                                onDelete = { viewModel.deleteUser(admin.id) },
+                                onResetPassword = { viewModel.resetPassword(admin.email) },
+                                onToggleStatus = { viewModel.toggleUserStatus(admin) }
+                            )
+                            Divider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                                thickness = 1.dp
+                            )
+                        }
                     }
 
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        displayStatuses.forEach { status ->
-                            val users = adminsByStatus[status] ?: emptyList()
-                            val expanded = expandStates.getOrPut(status) { true }
+                    // Blocked Admins
+                    if (blockedAdmins.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Blocked Admins",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                ),
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
 
-                            item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { expandStates[status] = !expanded }
-                                        .padding(vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "$status Users",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp
-                                    )
-                                    Icon(
-                                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                        contentDescription = if (expanded) "Collapse" else "Expand"
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                            }
+                        items(blockedAdmins) { admin ->
+                            AdminListItem(
+                                admin = admin,
+                                currentUserEmail = currentUserEmail,
+                                expandedMenuId = expandedMenuId,
+                                onOptionsClick = { expandedMenuId = admin.email },
+                                onDismissMenu = { expandedMenuId = null },
+                                onDelete = { viewModel.deleteUser(admin.id) },
+                                onResetPassword = { viewModel.resetPassword(admin.email) },
+                                onToggleStatus = { viewModel.toggleUserStatus(admin) }
+                            )
+                            Divider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                                thickness = 1.dp
+                            )
+                        }
+                    }
 
-                            if (expanded) {
-                                items(users.sortedBy { it.email }) { admin ->
-                                    currentUserEmail?.let {
-                                        AdminCard(
-                                            admin = admin,
-                                            currentUserEmail = it,
-                                            onDelete = { viewModel.deleteUser(admin.id) },
-                                            onResetPassword = { viewModel.resetPassword(admin.email) },
-                                            onToggleStatus = { viewModel.toggleUserStatus(admin) }
-                                        )
-                                    }
-                                }
-                            }
+                    // Deleted Admins
+                    if (deletedAdmins.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Deleted Admins",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                ),
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+
+                        items(deletedAdmins) { admin ->
+                            AdminListItem(
+                                admin = admin,
+                                currentUserEmail = currentUserEmail,
+                                expandedMenuId = expandedMenuId,
+                                onOptionsClick = { expandedMenuId = admin.email },
+                                onDismissMenu = { expandedMenuId = null },
+                                onDelete = { viewModel.deleteUser(admin.id) },
+                                onResetPassword = { viewModel.resetPassword(admin.email) },
+                                onToggleStatus = { viewModel.toggleUserStatus(admin) }
+                            )
+                            Divider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                                thickness = 1.dp
+                            )
+                        }
+                    }
+
+                    if (filteredAdmins.isEmpty()) {
+                        item {
+                            Text(
+                                text = "No users found",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             }
 
+            // Loading overlay
             AnimatedVisibility(
                 visible = isLoading,
                 enter = fadeIn(),
@@ -218,30 +340,22 @@ fun UserManagementScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0xAAFFFFFF)),
+                        .background(Color.Black.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(
-                            color = Color(0xFF1565C0),
+                            color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 4.dp,
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Loading eduVod Admins...", color = Color(0xFF1565C0))
+                        Text(
+                            "Loading admins...",
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 }
-            }
-
-            FloatingActionButton(
-                onClick = { showAddDialog = true },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(24.dp),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Admin")
             }
         }
     }
@@ -258,108 +372,128 @@ fun UserManagementScreen(
 }
 
 @Composable
-fun AdminCard(
+private fun AdminListItem(
     admin: AdminUser,
-    currentUserEmail: String,
+    currentUserEmail: String?,
+    expandedMenuId: String?,
+    onOptionsClick: () -> Unit,
+    onDismissMenu: () -> Unit,
     onDelete: () -> Unit,
     onResetPassword: () -> Unit,
-    onToggleStatus: () -> Unit
+    onToggleStatus: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = MaterialTheme.shapes.medium,
-                    color = Color(0xFF0D47A1),
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = admin.email.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = admin.email.ifBlank { "N/A" },
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = admin.status ?: "UNKNOWN",
-                            color = when (admin.status?.uppercase()) {
-                                "ACTIVE" -> Color(0xFF2E7D32)
-                                "BLOCKED" -> Color.Red
-                                "DELETED" -> Color.Gray
-                                else -> Color.DarkGray
-                            },
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(end = 4.dp)
-                        )
-                        Icon(
-                            imageVector = when (admin.status?.uppercase()) {
-                                "ACTIVE" -> Icons.Default.Check
-                                "BLOCKED" -> Icons.Default.Block
-                                "DELETED" -> Icons.Default.Delete
-                                else -> Icons.Default.Warning
-                            },
-                            contentDescription = null,
-                            tint = Color.LightGray,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f)
+        ) {
+            // Avatar placeholder
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = admin.email.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+            Column {
+                Text(
+                    text = admin.email,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = admin.status ?: "UNKNOWN",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = when (admin.status?.uppercase()) {
+                            "ACTIVE" -> Color(0xFF2E7D32)
+                            "BLOCKED" -> Color.Red
+                            "DELETED" -> Color.Gray
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        Box {
+            IconButton(
+                onClick = onOptionsClick,
+                modifier = Modifier.size(48.dp)
             ) {
-                IconButton(onClick = onToggleStatus) {
-                    Icon(
-                        imageVector = if (admin.status == "BLOCKED") Icons.Default.LockOpen else Icons.Default.Block,
-                        tint = Color.Red,
-                        contentDescription = "Block/Unblock"
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Options",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+
+            DropdownMenu(
+                expanded = expandedMenuId == admin.email,
+                onDismissRequest = onDismissMenu,
+                modifier = Modifier.background(MaterialTheme.colorScheme.background)
+            ) {
+                if (admin.status == "BLOCKED") {
+                    DropdownMenuItem(
+                        text = { Text("Unblock User") },
+                        onClick = {
+                            onToggleStatus()
+                            onDismissMenu()
+                        }
+                    )
+                } else if (admin.status != "DELETED") {
+                    DropdownMenuItem(
+                        text = { Text("Block User") },
+                        onClick = {
+                            onToggleStatus()
+                            onDismissMenu()
+                        }
                     )
                 }
 
-                IconButton(onClick = onResetPassword) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        tint = Color(0xFF2E7D32),
-                        contentDescription = "Reset Password"
-                    )
-                }
+                DropdownMenuItem(
+                    text = { Text("Reset Password") },
+                    onClick = {
+                        onResetPassword()
+                        onDismissMenu()
+                    }
+                )
 
                 if (admin.email != currentUserEmail && admin.status != "DELETED") {
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            tint = Color.Gray,
-                            contentDescription = "Delete User"
-                        )
-                    }
+                    DropdownMenuItem(
+                        text = { Text("Delete User", color = Color.Red) },
+                        onClick = {
+                            onDelete()
+                            onDismissMenu()
+                        }
+                    )
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Divider(color = Color(0xFFEEEEEE))
         }
     }
 }
+
 @Composable
 fun AddAdminDialog(
     onDismiss: () -> Unit,
@@ -377,7 +511,7 @@ fun AddAdminDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add EduVOD Admin") },
+        title = { Text("Add Admin") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -385,7 +519,12 @@ fun AddAdminDialog(
                     onValueChange = { username = it },
                     label = { Text("Username") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
                 )
 
                 OutlinedTextField(
@@ -394,7 +533,12 @@ fun AddAdminDialog(
                     label = { Text("Email") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
                 )
 
                 OutlinedTextField(
@@ -404,12 +548,19 @@ fun AddAdminDialog(
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        val icon = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(icon, contentDescription = null)
+                            Icon(
+                                if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = null
+                            )
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
                 )
 
                 OutlinedTextField(
@@ -421,28 +572,39 @@ fun AddAdminDialog(
                     trailingIcon = {
                         IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                             Icon(
-                                imageVector = if (confirmPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                contentDescription = "Toggle Password Visibility"
+                                if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = null
                             )
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
                 )
 
                 if (!isValidPassword && password.isNotEmpty()) {
-                    Text("Password must be at least 6 characters and include letters and numbers.", color = Color.Red)
+                    Text(
+                        "Password must be at least 6 characters and include letters and numbers.",
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
                 if (!passwordsMatch && confirmPassword.isNotEmpty()) {
-                    Text("Passwords do not match.", color = Color.Red)
+                    Text("Passwords do not match.", color = MaterialTheme.colorScheme.error)
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                if (username.isNotBlank() && email.isNotBlank() && passwordsMatch && isValidPassword) {
-                    onConfirm(username, email, password)
-                }
-            }) {
+            TextButton(
+                onClick = {
+                    if (username.isNotBlank() && email.isNotBlank() && passwordsMatch && isValidPassword) {
+                        onConfirm(username, email, password)
+                    }
+                },
+                enabled = username.isNotBlank() && email.isNotBlank() && passwordsMatch && isValidPassword
+            ) {
                 Text("Add")
             }
         },
@@ -451,5 +613,141 @@ fun AddAdminDialog(
                 Text("Cancel")
             }
         }
-   )
+    )
+}
+
+enum class UserFilter(val displayName: String) {
+    ALL("All"),
+    ACTIVE("Active"),
+    BLOCKED("Blocked"),
+    DELETED("Deleted")
+}
+
+// Preview
+@Composable
+fun UserManagementScreenPreviewContent(
+    admins: List<AdminUser>,
+    isLoading: Boolean,
+    currentUserEmail: String?,
+    onAddAdmin: (String, String, String) -> Unit = { _, _, _ -> },
+    onDelete: (Long) -> Unit = {},
+    onResetPassword: (String) -> Unit = {},
+    onToggleStatus: (AdminUser) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    var showAddDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedFilter by remember { mutableStateOf<UserFilter?>(null) }
+    var expandedMenuId by remember { mutableStateOf<String?>(null) }
+
+    val filteredAdmins = remember(admins, searchQuery, selectedFilter) {
+        admins.filter { admin ->
+            val matchesSearch = admin.email.contains(searchQuery, ignoreCase = true)
+            val matchesFilter = when (selectedFilter) {
+                UserFilter.ALL -> true
+                UserFilter.ACTIVE -> admin.status == "ACTIVE"
+                UserFilter.BLOCKED -> admin.status == "BLOCKED"
+                UserFilter.DELETED -> admin.status == "DELETED"
+                null -> true
+            }
+            matchesSearch && matchesFilter
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            // Header and search/filter UI would be the same as in UserManagementScreen
+
+            // Content
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp)
+            ) {
+                items(filteredAdmins) { admin ->
+                    AdminListItem(
+                        admin = admin,
+                        currentUserEmail = currentUserEmail,
+                        expandedMenuId = expandedMenuId,
+                        onOptionsClick = { expandedMenuId = admin.email },
+                        onDismissMenu = { expandedMenuId = null },
+                        onDelete = { onDelete(admin.id) },
+                        onResetPassword = { onResetPassword(admin.email) },
+                        onToggleStatus = { onToggleStatus(admin) }
+                    )
+                    Divider(
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                        thickness = 1.dp
+                    )
+                }
+            }
+        }
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Loading admins...",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AddAdminDialog(
+            onDismiss = { showAddDialog = false },
+            onConfirm = { username, email, password ->
+                onAddAdmin(username, email, password)
+                showAddDialog = false
+            }
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun UserManagementScreenPreview() {
+    val sampleAdmins = listOf(
+        AdminUser(1, "admin1", "admin1@example.com", "SUPER_ADMIN", null, "ACTIVE", null),
+        AdminUser(2, "admin2", "admin2@example.com", "SUPER_ADMIN", null, "BLOCKED", null),
+        AdminUser(3, "admin3", "admin3@example.com", "SUPER_ADMIN", null, "DELETED", "2023-01-01")
+    )
+
+    EduVODTheme {
+        UserManagementScreenPreviewContent(
+            admins = sampleAdmins,
+            isLoading = false,
+            currentUserEmail = "admin1@example.com"
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun UserManagementScreenLoadingPreview() {
+    EduVODTheme {
+        UserManagementScreenPreviewContent(
+            admins = emptyList(),
+            isLoading = true,
+            currentUserEmail = null
+        )
+    }
 }

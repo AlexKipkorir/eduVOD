@@ -24,7 +24,7 @@ sealed class LoginState {
     data object LoggedOut : LoginState()
 }
 
-class AuthViewModel(
+open class AuthViewModel(
     context: Context,
     private val repository: LoginRepository = LoginRepository()
 ) : ViewModel() {
@@ -32,13 +32,13 @@ class AuthViewModel(
     private val userPrefs = UserPreferences(context)
 
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
-    val loginState: StateFlow<LoginState> = _loginState
+    open val loginState: StateFlow<LoginState> = _loginState
 
     private val savedToken = userPrefs.authToken
     val savedEmail = userPrefs.userEmail
     val savedUserId = userPrefs.userId
 
-    fun loginUser(email: String, password: String) {
+    open fun loginUser(email: String, password: String) {
         _loginState.value = LoginState.Loading
 
         viewModelScope.launch {
