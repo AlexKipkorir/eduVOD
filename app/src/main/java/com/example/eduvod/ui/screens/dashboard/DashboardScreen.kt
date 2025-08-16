@@ -3,6 +3,7 @@ package com.example.eduvod.ui.screens.dashboard
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +22,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -30,11 +33,15 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,10 +54,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.model.SuperAdminDashboardResponse
+import com.example.eduvod.ui.theme.EduVODTheme
 import com.example.eduvod.viewmodel.AuthViewModel
 import com.example.eduvod.viewmodel.DashboardViewModel
 import com.example.eduvod.viewmodel.LoginState
-import com.example.eduvod.ui.theme.EduVODTheme
 
 @Composable
 fun DashboardScreen(
@@ -61,6 +68,7 @@ fun DashboardScreen(
     val stats by viewModel.stats.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val loginState by authViewModel.loginState.collectAsState()
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(loginState) {
         if (loginState is LoginState.LoggedOut) {
@@ -115,12 +123,7 @@ fun DashboardScreen(
                 }
 
                 IconButton(
-                    onClick = {
-                        authViewModel.logout()
-                        navController.navigate("login") {
-                            popUpTo("dashboard") { inclusive = true }
-                        }
-                    },
+                    onClick = { showLogoutDialog = true },
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
@@ -130,6 +133,61 @@ fun DashboardScreen(
                     )
                 }
             }
+        }
+
+        // Logout Confirmation Dialog
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.ExitToApp,
+                            contentDescription = "Logout Icon",
+                            tint = Color.Red,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Confirm Logout",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                },
+                text = {
+                    Text(
+                        text = "Are you sure you want to log out? You will need to log in again to access your account.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showLogoutDialog = false
+                            authViewModel.logout()
+                            navController.navigate("login") {
+                                popUpTo("dashboard") { inclusive = true }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Logout", color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = { showLogoutDialog = false },
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Cancel")
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 8.dp,
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         }
 
         when {
@@ -385,32 +443,41 @@ fun RegionDistributionChart(data: Map<String, Int>) {
 
 @Composable
 fun HorizontalBarChart(items: List<ChartItem>) {
+    val scrollState = rememberScrollState()
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
+            .height(180.dp)
+            .horizontalScroll(scrollState)
     ) {
-        items.forEach { item ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom,
-                modifier = Modifier.height(180.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(32.dp)
-                        .fillMaxHeight(item.value)
-                        .border(2.dp, MaterialTheme.colorScheme.onSurfaceVariant)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = item.label,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Row(
+            modifier = Modifier
+                .height(180.dp)
+                .padding(horizontal = 8.dp), // Add some padding
+            horizontalArrangement = Arrangement.spacedBy(16.dp), // Space between bars
+        ) {
+            items.forEach { item ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                    modifier = Modifier.height(180.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(32.dp)
+                            .fillMaxHeight(item.value)
+                            .border(2.dp, MaterialTheme.colorScheme.onSurfaceVariant)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = item.label,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
