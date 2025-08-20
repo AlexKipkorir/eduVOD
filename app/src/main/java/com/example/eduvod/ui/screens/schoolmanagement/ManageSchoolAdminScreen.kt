@@ -399,14 +399,17 @@ fun ManageAdminListItem(
                 // Options menu
                 IconButton(
                     onClick = onMenuClick,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Options",
-                        tint = MaterialTheme.colorScheme.onBackground
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
+
             }
 
             // Dropdown menu for options

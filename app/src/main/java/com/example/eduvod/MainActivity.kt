@@ -97,7 +97,7 @@ fun EduVODNavHost(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = contentPadding.calculateBottomPadding())
+            .padding(contentPadding)
     ) {
         AnimatedNavHost(
             navController = navController,

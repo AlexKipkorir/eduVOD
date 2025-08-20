@@ -457,6 +457,7 @@ fun SchoolManagementScreen(
                 },
                 confirmButton = {
                     Column {
+                        // Download template
                         Button(
                             onClick = {
                                 scope.launch {
@@ -485,7 +486,10 @@ fun SchoolManagementScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Download Template")
                         }
+
                         Spacer(modifier = Modifier.height(8.dp))
+
+                        // Import Excel file
                         Button(
                             onClick = {
                                 filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -502,15 +506,17 @@ fun SchoolManagementScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Import Excel File")
                         }
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { showImportDialog = false },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Cancel")
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Cancel button
+                        TextButton(
+                            onClick = { showImportDialog = false },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cancel")
+                        }
                     }
                 }
             )

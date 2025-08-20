@@ -64,28 +64,23 @@ fun SchoolDetailsScreen(
         showNotFound = school == null
     }
 
-    Scaffold(
-        floatingActionButton = {
-            if (!isLoading && school != null) {
-                FloatingActionButton(
-                    onClick = { navController.navigate("edit_school/${school?.id}") },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit")
-                }
-            }
+    Box(modifier = Modifier.fillMaxSize()) {
+        when {
+            isLoading -> LoadingState()
+            school != null -> SchoolDetailsContent(navController, school = school!!)
+            else -> ErrorState(schoolName = schoolName)
         }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-        ) {
-            when {
-                isLoading -> LoadingState()
-                currentSchool != null -> SchoolDetailsContent(navController, school = currentSchool)
-                else -> ErrorState(schoolName = schoolName)
+
+        if (!isLoading && school != null) {
+            FloatingActionButton(
+                onClick = { navController.navigate("edit_school/${school?.id}") },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit")
             }
         }
     }

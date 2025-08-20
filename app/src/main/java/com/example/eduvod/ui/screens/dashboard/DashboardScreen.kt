@@ -82,58 +82,59 @@ fun DashboardScreen(
         viewModel.fetchDashboardStats()
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .verticalScroll(rememberScrollState())
+    ) {
+        // Header
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
+                .fillMaxWidth()
+                .padding(16.dp, 16.dp, 16.dp, 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Fixed header (non-scrolling)
-            Row(
+            Text(
+                text = "Dashboard",
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp, 16.dp, 16.dp, 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .weight(1f)
+                    .padding(start = 48.dp),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
+            )
+
+            // Notification and Logout Icons
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "Dashboard",
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 48.dp),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center
-                )
-
-                // Notification and Logout Icons
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                IconButton(
+                    onClick = { /* Handle notification click */ },
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    IconButton(
-                        onClick = { /* Handle notification click */ },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notifications",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notifications",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
 
-                    IconButton(
-                        onClick = { showLogoutDialog = true },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Logout,
-                            contentDescription = "Logout",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
+                IconButton(
+                    onClick = { showLogoutDialog = true },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Logout,
+                        contentDescription = "Logout",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
                 }
             }
+        }
 
             // Scrollable content area
             Column(
@@ -335,7 +336,6 @@ fun DashboardScreen(
                 containerColor = MaterialTheme.colorScheme.surface
             )
         }
-    }
 }
 
 @Composable
