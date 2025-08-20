@@ -4,15 +4,13 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -53,10 +51,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -70,14 +71,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.eduvod.model.School
@@ -97,7 +101,7 @@ fun SchoolManagementScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val snackbarHostState = remember { SnackbarHostState() }
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
     val isRefreshing by viewModel.isLoading
 
@@ -164,369 +168,379 @@ fun SchoolManagementScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Header with back button and title
-        Row(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp, 16.dp, 16.dp, 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable { navController.popBackStack() },
-                tint = MaterialTheme.colorScheme.onBackground
-            )
-
-            Text(
-                text = "School Management",
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp),
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    letterSpacing = (-0.015).sp
-                ),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            // Search and Filter icons
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable { isSearchExpanded = true },
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-                Icon(
-                    imageVector = Icons.Default.FilterList,
-                    contentDescription = "Filter",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable { isFilterExpanded = true },
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
-        }
-
-        // Search Bar
-        if (isSearchExpanded) {
-            SearchBar(
-                searchQuery = searchQuery,
-                onQueryChange = { searchQuery = it },
-                onSearch = { isSearchExpanded = false },
-                onClose = {
-                    searchQuery = ""
-                    isSearchExpanded = false
-                }
-            )
-        }
-
-        // Filter Options (appears when expanded)
-        if (isFilterExpanded) {
-            FilterOptions(
-                regionOptions = regionOptions,
-                typeOptions = typeOptions,
-                selectedRegion = selectedRegion,
-                selectedType = selectedType,
-                onRegionSelected = { selectedRegion = it },
-                onTypeSelected = { selectedType = it },
-                onReset = {
-                    searchQuery = ""
-                    selectedRegion = "ALL"
-                    selectedType = "ALL"
-                },
-                onClose = { isFilterExpanded = false }
-            )
-        }
-
-        // Show active filter chips if any
-        if (selectedRegion != "ALL" || selectedType != "ALL") {
+            // FIXED HEADER - Added background and proper z-index
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(16.dp)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .zIndex(3f),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (selectedRegion != "ALL") {
-                    FilterChip(
-                        selected = true,
-                        onClick = { selectedRegion = "ALL" },
-                        label = { Text("Region: $selectedRegion") },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Clear filter",
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                if (selectedType != "ALL") {
-                    FilterChip(
-                        selected = true,
-                        onClick = { selectedType = "ALL" },
-                        label = { Text("Type: $selectedType") },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Clear filter",
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    )
-                }
-            }
-        }
 
-        // Quick Actions Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            ExtendedFloatingActionButton(
-                onClick = { navController.navigate("add_school") },
-                modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add School",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Add School")
-            }
-
-            ExtendedFloatingActionButton(
-                onClick = {
-                    navController?.navigate("add_admins")
-                },
-                modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.People,
-                    contentDescription = "Manage Admins",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Manage Admins")
-            }
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Bulk Operations",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = { showImportDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                ),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Upload,
-                    contentDescription = "Import Schools",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Import Schools")
-            }
-        }
-
-        // School List
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) {
-            item {
                 Text(
-                    text = "Schools (${filteredSchools.size})",
+                    text = "School Management",
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp, 16.dp, 16.dp, 8.dp),
+                        .weight(1f)
+                        .padding(horizontal = 8.dp),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        letterSpacing = (-0.015).sp
+                        fontSize = 18.sp
                     ),
-                    color = MaterialTheme.colorScheme.onBackground
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                // Search and Filter icons
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    IconButton(
+                        onClick = { isSearchExpanded = true },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    IconButton(
+                        onClick = { isFilterExpanded = true },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = "Filter",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
+            // Search Bar
+            if (isSearchExpanded) {
+                SearchBar(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    searchQuery = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    onSearch = { isSearchExpanded = false },
+                    onClose = {
+                        searchQuery = ""
+                        isSearchExpanded = false
+                    }
                 )
             }
 
-            if (filteredSchools.isEmpty()) {
-                item {
-                    Text(
-                        text = if (searchQuery.isNotEmpty() || selectedRegion != "ALL" || selectedType != "ALL") {
-                            "No matching schools found"
-                        } else {
-                            "No schools registered yet"
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                items(filteredSchools) { school ->
-                    SchoolListItem(
-                        school = school,
-                        onView = {
-                            navController.navigate("school_details/${Uri.encode(school.name)}")
-                        },
-                        onEdit = {
-                            navController.navigate("edit_school/${school.id}")
-                        },
-                        onManageAdmin = {
-                            navController.navigate("manage_admins/${Uri.encode(school.name)}")
-                        }
-                    )
-                    Divider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                        thickness = 1.dp
-                    )
+            // Filter Options
+            if (isFilterExpanded) {
+                FilterOptions(
+                    modifier = Modifier.padding(16.dp),
+                    regionOptions = regionOptions,
+                    typeOptions = typeOptions,
+                    selectedRegion = selectedRegion,
+                    selectedType = selectedType,
+                    onRegionSelected = { selectedRegion = it },
+                    onTypeSelected = { selectedType = it },
+                    onReset = {
+                        searchQuery = ""
+                        selectedRegion = "ALL"
+                        selectedType = "ALL"
+                    },
+                    onClose = { isFilterExpanded = false }
+                )
+            }
+
+            // Active filter chips
+            if (selectedRegion != "ALL" || selectedType != "ALL") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (selectedRegion != "ALL") {
+                        FilterChip(
+                            selected = true,
+                            onClick = { selectedRegion = "ALL" },
+                            label = { Text("Region: $selectedRegion") },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Clear filter",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        )
+                    }
+                    if (selectedType != "ALL") {
+                        FilterChip(
+                            selected = true,
+                            onClick = { selectedType = "ALL" },
+                            label = { Text("Type: $selectedType") },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Clear filter",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        )
+                    }
                 }
             }
-        }
-    }
 
-    // Import Dialog
-    if (showImportDialog) {
-        AlertDialog(
-            onDismissRequest = { showImportDialog = false },
-            title = { Text("Import Schools") },
-            text = {
-                Column {
-                    Text("You can either download the template or import an Excel file with school data.")
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("1. Download template to see the required format")
-                    Text("2. Fill in the template with your school data")
-                    Text("3. Import the completed file")
-                }
-            },
-            confirmButton = {
-                Column {
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                val response = viewModel.downloadSchoolTemplate()
-                                if (response != null && response.isSuccessful) {
-                                    val body = response.body()
-                                    if (body != null) {
-                                        snackbarHostState.showSnackbar("Template downloaded successfully")
-                                    } else {
-                                        snackbarHostState.showSnackbar("Empty response body")
-                                    }
-                                } else {
-                                    snackbarHostState.showSnackbar("Failed to download template")
-                                }
-                                showImportDialog = false
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Download Template")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                            showImportDialog = false
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    ) {
-                        Icon(Icons.Default.Upload, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Import Excel File")
-                    }
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showImportDialog = false },
-                    modifier = Modifier.fillMaxWidth(),
+            // Quick Actions Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = { navController.navigate("add_school") },
+                    modifier = Modifier.weight(1f),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Cancel")
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add School",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Add School")
+                }
+
+                ExtendedFloatingActionButton(
+                    onClick = { navController.navigate("school_admins") },
+                    modifier = Modifier.weight(1f),
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.People,
+                        contentDescription = "Manage Admins",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Manage Admins")
                 }
             }
-        )
-    }
 
-    // Loading overlay
-    AnimatedVisibility(
-        visible = isRefreshing,
-        enter = fadeIn(),
-        exit = fadeOut()
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xAAFFFFFF)),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 4.dp,
-                    modifier = Modifier.size(48.dp)
+            // Bulk Operations Section
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Bulk Operations",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Loading schools...", color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedButton(
+                    onClick = { showImportDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Upload,
+                        contentDescription = "Import Schools",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Import Schools")
+                }
+            }
+
+            // School List
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(bottom = 16.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                item {
+                    Text(
+                        text = "Schools (${filteredSchools.size})",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp, 16.dp, 16.dp, 8.dp),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                if (filteredSchools.isEmpty()) {
+                    item {
+                        Text(
+                            text = if (searchQuery.isNotEmpty() || selectedRegion != "ALL" || selectedType != "ALL") {
+                                "No matching schools found"
+                            } else {
+                                "No schools registered yet"
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    items(filteredSchools) { school ->
+                        SchoolListItem(
+                            school = school,
+                            onView = {
+                                navController.navigate("school_details/${Uri.encode(school.name)}")
+                            },
+                            onEdit = {
+                                navController.navigate("edit_school/${school.id}")
+                            },
+                            onManageAdmin = {
+                                navController.navigate("manage_admins/${Uri.encode(school.name)}")
+                            }
+                        )
+                        Divider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                            thickness = 1.dp
+                        )
+                    }
+                }
             }
         }
+
+        // Import Dialog
+        if (showImportDialog) {
+            AlertDialog(
+                onDismissRequest = { showImportDialog = false },
+                title = { Text("Import Schools") },
+                text = {
+                    Column {
+                        Text("You can either download the template or import an Excel file with school data.")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("1. Download template to see the required format")
+                        Text("2. Fill in the template with your school data")
+                        Text("3. Import the completed file")
+                    }
+                },
+                confirmButton = {
+                    Column {
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    val response = viewModel.downloadSchoolTemplate()
+                                    if (response != null && response.isSuccessful) {
+                                        val body = response.body()
+                                        if (body != null) {
+                                            snackbarHostState.showSnackbar("Template downloaded successfully")
+                                        } else {
+                                            snackbarHostState.showSnackbar("Empty response body")
+                                        }
+                                    } else {
+                                        snackbarHostState.showSnackbar("Failed to download template")
+                                    }
+                                    showImportDialog = false
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Download Template")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                                showImportDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        ) {
+                            Icon(Icons.Default.Upload, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Import Excel File")
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showImportDialog = false },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        // FIXED Loading overlay - Removed zIndex that was covering header
+        if (isRefreshing) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Loading schools...", color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+
+        // Snackbar host
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
@@ -658,6 +672,7 @@ private fun ActionButton(icon: ImageVector, text: String, onClick: () -> Unit) {
 
 @Composable
 private fun SearchBar(
+    modifier: Modifier = Modifier,
     searchQuery: String,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
@@ -703,6 +718,7 @@ private fun SearchBar(
 
 @Composable
 private fun FilterOptions(
+    modifier: Modifier = Modifier,
     regionOptions: List<String>,
     typeOptions: List<String>,
     selectedRegion: String,

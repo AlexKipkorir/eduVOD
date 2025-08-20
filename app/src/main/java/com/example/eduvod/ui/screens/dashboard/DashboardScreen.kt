@@ -82,60 +82,206 @@ fun DashboardScreen(
         viewModel.fetchDashboardStats()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .verticalScroll(rememberScrollState())
-    ) {
-        // Header
-        Row(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp, 16.dp, 16.dp, 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .fillMaxSize()
+                .background(Color.White)
         ) {
-            Text(
-                text = "Dashboard",
+            // Fixed header (non-scrolling)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp, 16.dp, 16.dp, 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Dashboard",
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 48.dp),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center
+                )
+
+                // Notification and Logout Icons
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    IconButton(
+                        onClick = { /* Handle notification click */ },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notifications",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { showLogoutDialog = true },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = "Logout",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                }
+            }
+
+            // Scrollable content area
+            Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 48.dp),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center
-            )
-
-            // Notification and Logout Icons
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                IconButton(
-                    onClick = { /* Handle notification click */ },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notifications",
-                        tint = MaterialTheme.colorScheme.onBackground
-                    )
-                }
+                when {
+                    isLoading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator()
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    "Loading dashboard stats...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
 
-                IconButton(
-                    onClick = { showLogoutDialog = true },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Logout,
-                        contentDescription = "Logout",
-                        tint = MaterialTheme.colorScheme.onBackground
-                    )
+                    stats == null -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "Failed to load dashboard stats",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = { viewModel.fetchDashboardStats() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Text("Retry")
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        // Schools by Region Section
+                        SectionHeader(title = "Schools by Region")
+
+                        StatCard(
+                            title = "Schools",
+                            value = stats?.schoolsPerRegion?.values?.sum().toString(),
+                            subtitle = "Total",
+                            content = {
+                                stats?.schoolsPerRegion?.let { data ->
+                                    RegionDistributionChart(data = data)
+                                }
+                            }
+                        )
+
+                        // Student Demographics Section
+                        SectionHeader(title = "Student Demographics")
+
+                        LazyRow(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(bottom = 16.dp)
+                        ) {
+                            item {
+                                SmallStatCard(
+                                    title = "Gender",
+                                    value = "${stats?.studentCountByGender?.get("MALE") ?: 0}/${stats?.studentCountByGender?.get("FEMALE") ?: 0}"
+                                )
+                            }
+                            item {
+                                SmallStatCard(
+                                    title = "Differently Abled",
+                                    value = (stats?.differentlyAbledByGender?.values?.sum() ?: 0).toString()
+                                )
+                            }
+                        }
+
+                        // Teachers & Guardians Section
+                        SectionHeader(title = "Teachers & Guardians")
+
+                        LazyRow(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(bottom = 16.dp)
+                        ) {
+                            item {
+                                SmallStatCard(
+                                    title = "Teachers",
+                                    value = (stats?.teacherCountByGender?.values?.sum() ?: 0).toString()
+                                )
+                            }
+                            item {
+                                SmallStatCard(
+                                    title = "Guardians",
+                                    value = (stats?.guardianCount ?: 0).toString()
+                                )
+                            }
+                        }
+
+                        // Student Distribution Section
+                        SectionHeader(title = "Student Distribution")
+
+                        StatCard(
+                            title = "Students by Class",
+                            value = (stats?.studentsPerClass?.values?.sum() ?: 0).toString(),
+                            subtitle = "Total",
+                            content = {
+                                stats?.studentsPerClass?.let { data ->
+                                    HorizontalBarChart(
+                                        items = data.map { ChartItem(it.key, it.value.toFloat() / (data.values.maxOrNull() ?: 1)) }
+                                    )
+                                }
+                            }
+                        )
+
+                        StatCard(
+                            title = "Students by Stream",
+                            value = (stats?.studentsPerStream?.values?.sum() ?: 0).toString(),
+                            subtitle = "Total",
+                            content = {
+                                stats?.studentsPerStream?.let { data ->
+                                    HorizontalBarChart(
+                                        items = data.map { ChartItem(it.key, it.value.toFloat() / (data.values.maxOrNull() ?: 1)) }
+                                    )
+                                }
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(80.dp))
+                    }
                 }
             }
         }
 
-        // Logout Confirmation Dialog
+        // Logout Confirmation Dialog (overlay)
         if (showLogoutDialog) {
             AlertDialog(
                 onDismissRequest = { showLogoutDialog = false },
@@ -188,144 +334,6 @@ fun DashboardScreen(
                 tonalElevation = 8.dp,
                 containerColor = MaterialTheme.colorScheme.surface
             )
-        }
-
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            "Loading dashboard stats...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            stats == null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Failed to load dashboard stats",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { viewModel.fetchDashboardStats() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Text("Retry")
-                        }
-                    }
-                }
-            }
-
-            else -> {
-                // Schools by Region Section
-                SectionHeader(title = "Schools by Region")
-
-                StatCard(
-                    title = "Schools",
-                    value = stats?.schoolsPerRegion?.values?.sum().toString(),
-                    subtitle = "Total",
-                    content = {
-                        stats?.schoolsPerRegion?.let { data ->
-                            RegionDistributionChart(data = data)
-                        }
-                    }
-                )
-
-                // Student Demographics Section
-                SectionHeader(title = "Student Demographics")
-
-                LazyRow(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    item {
-                        SmallStatCard(
-                            title = "Gender",
-                            value = "${stats?.studentCountByGender?.get("MALE") ?: 0}/${stats?.studentCountByGender?.get("FEMALE") ?: 0}"
-                        )
-                    }
-                    item {
-                        SmallStatCard(
-                            title = "Differently Abled",
-                            value = (stats?.differentlyAbledByGender?.values?.sum() ?: 0).toString()
-                        )
-                    }
-                }
-
-                // Teachers & Guardians Section
-                SectionHeader(title = "Teachers & Guardians")
-
-                LazyRow(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    item {
-                        SmallStatCard(
-                            title = "Teachers",
-                            value = (stats?.teacherCountByGender?.values?.sum() ?: 0).toString()
-                        )
-                    }
-                    item {
-                        SmallStatCard(
-                            title = "Guardians",
-                            value = (stats?.guardianCount ?: 0).toString()
-                        )
-                    }
-                }
-
-                // Student Distribution Section
-                SectionHeader(title = "Student Distribution")
-
-                StatCard(
-                    title = "Students by Class",
-                    value = (stats?.studentsPerClass?.values?.sum() ?: 0).toString(),
-                    subtitle = "Total",
-                    content = {
-                        stats?.studentsPerClass?.let { data ->
-                            HorizontalBarChart(
-                                items = data.map { ChartItem(it.key, it.value.toFloat() / (data.values.maxOrNull() ?: 1)) }
-                            )
-                        }
-                    }
-                )
-
-                StatCard(
-                    title = "Students by Stream",
-                    value = (stats?.studentsPerStream?.values?.sum() ?: 0).toString(),
-                    subtitle = "Total",
-                    content = {
-                        stats?.studentsPerStream?.let { data ->
-                            HorizontalBarChart(
-                                items = data.map { ChartItem(it.key, it.value.toFloat() / (data.values.maxOrNull() ?: 1)) }
-                            )
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(80.dp))
-            }
         }
     }
 }
